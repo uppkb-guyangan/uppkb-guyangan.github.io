@@ -10,10 +10,10 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "./gsmart_launcher.png",
+      "src": "./G-SMART%20Traffic%20Monitoring%20Emblem.png",
       "sizes": "any",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
