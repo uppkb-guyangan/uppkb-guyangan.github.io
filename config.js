@@ -8,6 +8,6 @@ export const firebaseConfig = {
 };
 
 export const supabaseConfig = {
-  url: "",
-  publishableKey: ""
+  url: "https://pszyqzzqlzdgeefivydz.supabase.co",
+  publishableKey: "sb_publishable_wFcXPwYavaE5zD6_Wj4EeQ_JLGJWA3o"
 };
