@@ -1,12 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f5ea8">
   <title>G-Smart UPPKB Guyangan</title>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <h1>G-Smart UPPKB Guyangan</h1>
-  <p>Web App sedang dalam pengembangan.</p>
+  <section id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="brand"><div class="logo">G</div><div><h1>G-Smart</h1><p>UPPKB Guyangan · ETLE Monitoring</p></div></div>
+      <form id="loginForm">
+        <label>Email<input id="email" type="email" autocomplete="username" required></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Masuk</button>
+        <button type="button" id="demoBtn" class="secondary">Preview dengan data contoh</button>
+        <p id="loginMessage"></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="side-brand"><div class="logo small">G</div><div><b>G-Smart</b><span>UPPKB Guyangan</span></div></div>
+      <nav id="nav"></nav>
+      <div class="side-footer"><div id="profile"></div><button id="logoutBtn" class="ghost">Keluar</button></div>
+    </aside>
+    <main>
+      <header class="topbar"><button id="menuBtn">☰</button><div><h2 id="pageTitle">Dashboard</h2><p id="pageSub">Monitoring ETLE terintegrasi</p></div><span class="status">● Siap</span></header>
+      <section id="content"></section>
+    </main>
+  </section>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
