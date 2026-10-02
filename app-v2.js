@@ -22,7 +22,22 @@ function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim()
 const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,admin:rolePermissions().adminPrivileges});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
 function setSync(t){$("syncState").textContent=t}
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();openPage("dashboard")}
+function setDesktopSidebarHidden(hidden){
+  const shell=document.querySelector(".app-shell");
+  if(!shell)return;
+  shell.classList.toggle("sidebar-hidden",!!hidden);
+  try{localStorage.setItem("gsmart_sidebar_hidden",hidden?"1":"0")}catch(_){}
+}
+function applySidebarPreference(){
+  if(window.matchMedia("(max-width:800px)").matches){
+    document.querySelector(".app-shell")?.classList.remove("sidebar-hidden");
+    return;
+  }
+  let hidden=false;
+  try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
+  setDesktopSidebarHidden(hidden);
+}
+function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();openPage("dashboard")}
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){$("nav").innerHTML=menu.map(([id,t])=>'<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span>'+icons[id]+'</span><span>'+t+'</span></button>').join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{document.querySelector(".sidebar").classList.remove("open");openPage(b.dataset.id)})}
@@ -210,5 +225,29 @@ async function loadDashboard(){setSync("Sinkronisasi");const[cases,shipping,disp
 $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";showApp()}catch(err){$("loginMessage").textContent=err.message||"Login gagal."}};
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;await signOut(auth);showLogin()};
-$("menuBtn").onclick=()=>document.querySelector(".sidebar").classList.toggle("open");
+$("menuBtn").onclick=()=>{
+  const sidebar=document.querySelector(".sidebar");
+  const shell=document.querySelector(".app-shell");
+  if(window.matchMedia("(max-width:800px)").matches){
+    sidebar?.classList.toggle("open");
+  }else{
+    setDesktopSidebarHidden(!shell?.classList.contains("sidebar-hidden"));
+  }
+};
+if($("sidebarHideBtn"))$("sidebarHideBtn").onclick=()=>{
+  const sidebar=document.querySelector(".sidebar");
+  if(window.matchMedia("(max-width:800px)").matches){
+    sidebar?.classList.remove("open");
+  }else{
+    setDesktopSidebarHidden(true);
+  }
+};
+window.addEventListener("resize",()=>{
+  if(window.matchMedia("(max-width:800px)").matches){
+    document.querySelector(".app-shell")?.classList.remove("sidebar-hidden");
+  }else{
+    document.querySelector(".sidebar")?.classList.remove("open");
+    applySidebarPreference();
+  }
+});
 onAuthStateChanged(auth,async u=>{if(!u||state.demo)return;try{state.profile=await loadProfile(u);await loadDashboard();showApp()}catch(e){console.error(e);await signOut(auth);showLogin()}})
