@@ -7,6 +7,8 @@ const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime(
 const positiveAmount=v=>{const n=Number(v);return Number.isFinite(n)&&n>0};
 const kejaksaanUrl=noBlanko=>"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim());
 let busy=false;
+let casesCache=null;
+let casesCacheAt=0;
 
 async function query(table,{filters={},order=null,limit=1000}={}){
   const apps=getApps();
@@ -21,6 +23,12 @@ async function query(table,{filters={},order=null,limit=1000}={}){
   const r=await fetch(u,{headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token}});
   if(!r.ok)throw new Error(table+" HTTP "+r.status);
   return r.json();
+}
+async function getCases(){
+  if(casesCache&&Date.now()-casesCacheAt<60000)return casesCache;
+  casesCache=await query("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast",limit:1000});
+  casesCacheAt=Date.now();
+  return casesCache;
 }
 function modal(){return{backdrop:document.getElementById("modalBackdrop"),title:document.getElementById("modalTitle"),sub:document.getElementById("modalSubtitle"),body:document.getElementById("modalBody")}}
 async function showCase(c){
@@ -45,21 +53,31 @@ async function showCase(c){
 async function enhanceCourt(){
   if(busy||document.getElementById("pageTitle")?.textContent.trim()!=="Persidangan")return;
   const table=document.querySelector("#content table.data-table");
-  if(!table||table.dataset.courtEnhanced==="1")return;
-  busy=true;table.dataset.courtEnhanced="loading";
+  if(!table)return;
+  const head=table.querySelector("thead tr");
+  if(!head)return;
+  const alreadyEnhanced=head.children[0]?.dataset?.courtTnkb==="1";
+  if(alreadyEnhanced)return;
+  busy=true;
   try{
-    const cases=await query("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast",limit:1000});
+    const cases=await getCases();
     const byViolation=new Map(cases.filter(c=>c.violation_id!=null).map(c=>[String(c.violation_id).trim(),c]));
-    const head=table.querySelector("thead tr");if(head){const th=document.createElement("th");th.textContent="TNKB";head.prepend(th)}
+    const th=document.createElement("th");th.textContent="TNKB";th.dataset.courtTnkb="1";head.prepend(th);
     table.querySelectorAll("tbody tr").forEach(tr=>{
       const violation=tr.children[0]?.textContent?.trim()||"";
       const c=byViolation.get(violation);
-      const td=document.createElement("td");td.innerHTML=c?'<b>'+esc(c.tnkb||"-")+'</b>':"-";tr.prepend(td);
+      const td=document.createElement("td");td.dataset.courtTnkb="1";td.innerHTML=c?'<b>'+esc(c.tnkb||"-")+'</b>':"-";tr.prepend(td);
       if(c){tr.classList.add("clickable");tr.dataset.case=c.case_id;tr.title="Klik untuk melihat detail perkara";tr.onclick=()=>showCase(c)}
     });
-    table.dataset.courtEnhanced="1";
-  }catch(e){console.warn("Court enhancement:",e);delete table.dataset.courtEnhanced}finally{busy=false}
+  }catch(e){console.warn("Court enhancement:",e)}finally{busy=false}
 }
-const observer=new MutationObserver(()=>queueMicrotask(enhanceCourt));
+let scheduled=false;
+function scheduleEnhance(){
+  if(scheduled)return;
+  scheduled=true;
+  setTimeout(()=>{scheduled=false;enhanceCourt()},0);
+}
+const observer=new MutationObserver(scheduleEnhance);
 observer.observe(document.getElementById("content"),{childList:true,subtree:true});
-enhanceCourt();
+document.getElementById("globalMonth")?.addEventListener("change",()=>setTimeout(enhanceCourt,50));
+scheduleEnhance();
