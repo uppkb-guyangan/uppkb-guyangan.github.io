@@ -111,7 +111,92 @@ function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([
 function positiveAmount(v){const n=Number(v);return Number.isFinite(n)&&n>0}
 function hasCourtFine(d){return positiveAmount(d?.court?.denda_putusan)||positiveAmount(d?.payment?.denda_pengadilan)}
 function kejaksaanUrl(noBlanko){return"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim())}
-function renderDetail(d){const p=perms();const c=d.case;const phone=d.offender?.no_telp;const canWhatsApp=p.admin&&state.detailSource==="BLANKO";const phoneAction=p.copyPhone&&phone?'<button class="action-btn" id="copyPhone">Salin Telepon</button>'+(canWhatsApp?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':""):"";const kejaksaanAction=c.no_blanko&&hasCourtFine(d)?'<button class="action-btn gold" id="kejaksaanBtn">⚖ Buka E-Tilang Kejaksaan ↗</button>':"";const showManualStatus=state.detailSource!=="SHIPPING";const photos=d.photos?.filter(x=>x.photo_url)||[];$("modalBody").innerHTML='<div class="action-row"><button class="action-btn primary" id="copyCase">Salin Ringkasan</button>'+phoneAction+kejaksaanAction+'</div>'+'<section class="detail-section"><h3 class="section-heading">Perkara</h3>'+infoGrid(c,[["tnkb","TNKB"],["no_registrasi","No. Registrasi"],["violation_id","Violation ID"],["jenis_pelanggaran","Jenis Pelanggaran"],["pasal","Pasal"],["lokasi","Lokasi"],["tanggal_pelanggaran","Tanggal Pelanggaran","date"],["status_etle","Status ETLE"],["no_blanko","No. Blanko"],["no_briva","No. BRIVA"]])+'</section>'+'<section class="detail-section"><h3 class="section-heading">Pelanggar</h3>'+infoGrid(d.offender,[["nama","Nama"],["alamat","Alamat"],...(p.copyPhone?[["no_telp","No. Telepon"]]:[]),["email","Email"],["no_ktp","No. KTP"],["golongan_sim","Golongan SIM"],["tempat_lahir","Tempat Lahir"],["tanggal_lahir","Tanggal Lahir","date"],["pekerjaan","Pekerjaan"]])+'</section>'+'<section class="detail-section"><h3 class="section-heading">Kendaraan</h3>'+infoGrid(d.vehicle,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"]])+'</section>'+(photos.length?'<section class="detail-section"><h3 class="section-heading">Foto ETLE</h3><div class="photo-grid">'+photos.map(x=>'<img src="'+esc(x.photo_url)+'" alt="'+esc(x.description||x.photo_type||"Foto ETLE")+'">').join("")+'</div></section>':"")+'<div class="grid-2"><section class="detail-section"><h3 class="section-heading">Pengiriman</h3>'+infoGrid(d.shipping,[["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["status_description","Keterangan"],["printed_date","Tanggal Cetak","date"],["delivered_at","Terkirim","date"]])+'</section><section class="detail-section"><h3 class="section-heading">Pembayaran</h3>'+infoGrid(d.payment,[["no_briva","No. BRIVA"],["status_bayar","Status Bayar"],["titipan","Titipan","money"],["denda_maksimum","Denda Maksimum","money"],["denda_pengadilan","Denda Pengadilan","money"],["biaya_perkara","Biaya Perkara","money"],["nominal_sisa","Sisa","money"],["paid_at","Dibayar","date"]])+'</section></div>'+'<div class="grid-2"><section class="detail-section"><h3 class="section-heading">Sanggah / Dihentikan</h3>'+infoGrid(d.dispute,[["status","Status Sanggah"],["confirmation_date","Tanggal","date"],["reason","Alasan"],["result","Hasil"]])+infoGrid(d.terminated,[["status","Status Dihentikan"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal","date"]])+'</section><section class="detail-section"><h3 class="section-heading">Persidangan</h3>'+infoGrid(d.court,[["tanggal_sidang","Tanggal Sidang","date"],["pengadilan","Pengadilan"],["hakim","Hakim"],["no_amar_putusan","Amar Putusan"],["denda_putusan","Denda Putusan","money"],["biaya_perkara","Biaya Perkara","money"],["status_sidang","Status"]])+'</section></div>'+(showManualStatus?manualSection(d):"")+notesSection(d)+timelineSection(d.history||[]);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");$("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};bindDetailActions(d)}
+function renderDetail(d){
+  const p=perms();
+  const c=d.case;
+  const phone=d.offender?.no_telp;
+  const canWhatsApp=p.admin&&state.detailSource==="BLANKO";
+  const phoneAction=p.copyPhone&&phone
+    ? '<button class="action-btn" id="copyPhone">Salin Telepon</button>'+(canWhatsApp?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':"")
+    : "";
+  const kejaksaanAction=c.no_blanko&&hasCourtFine(d)
+    ? '<button class="action-btn gold" id="kejaksaanBtn">⚖ Buka E-Tilang Kejaksaan ↗</button>'
+    : "";
+  const showManualStatus=state.detailSource!=="SHIPPING";
+  const photos=d.photos?.filter(x=>x.photo_url)||[];
+  const mainPhoto=photos[0]?.photo_url;
+  const statusText=c.status_etle||d.shipping?.status||d.court?.status_sidang||"DATA PERKARA";
+  const owner=d.vehicle?.nama_pemilik||c.nama_pemilik||d.offender?.nama||"-";
+  const vehicleLabel=[d.vehicle?.merk,d.vehicle?.tipe].filter(Boolean).join(" ")||d.vehicle?.jenis_kendaraan||"-";
+  const paymentFine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:(positiveAmount(d?.payment?.denda_pengadilan)?d.payment.denda_pengadilan:null);
+
+  $("modalBody").innerHTML=
+    '<section class="detail-hero">'+
+      '<div class="detail-photo-main">'+
+        (mainPhoto?'<img src="'+esc(mainPhoto)+'" alt="Foto ETLE '+esc(c.tnkb||"")+'">':'<div class="detail-photo-empty"><b>▣</b><span>Foto ETLE belum tersedia</span></div>')+
+        (photos.length?'<span class="detail-photo-count">'+photos.length+' foto</span>':'')+
+      '</div>'+
+      '<div class="detail-identity">'+
+        '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip">'+esc(statusText)+'</span></div>'+
+        '<div class="detail-reg">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b></div>'+
+        '<div class="detail-key-grid">'+
+          '<div class="detail-key"><small>Jenis Pelanggaran</small><strong>'+esc(c.jenis_pelanggaran||"-")+'</strong></div>'+
+          '<div class="detail-key"><small>Tanggal Pelanggaran</small><strong>'+fmtDate(c.tanggal_pelanggaran)+'</strong></div>'+
+          '<div class="detail-key"><small>Lokasi</small><strong>'+esc(c.lokasi||"-")+'</strong></div>'+
+          '<div class="detail-key"><small>Nama Pemilik</small><strong>'+esc(owner)+'</strong></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="detail-summary-side">'+
+        '<div class="detail-summary-card accent"><small>Status Perkara</small><b>'+esc(statusText)+'</b><span>'+esc(c.pasal||"")+'</span></div>'+
+        '<div class="detail-summary-card"><small>Kendaraan</small><b>'+esc(vehicleLabel)+'</b><span>'+esc(d.vehicle?.jenis_kendaraan||"")+'</span></div>'+
+        '<div class="detail-summary-card"><small>Denda / Putusan</small><b>'+(paymentFine!=null?money(paymentFine):"-")+'</b><span>'+esc(d.payment?.status_bayar||d.court?.status_sidang||"")+'</span></div>'+
+      '</div>'+
+    '</section>'+
+
+    '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
+      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button>'+phoneAction+kejaksaanAction+
+    '</div></div>'+
+
+    '<div class="detail-workspace">'+
+      '<div class="detail-main-column">'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▣</span>Informasi Perkara</h3>'+
+          infoGrid(c,[["tnkb","TNKB"],["no_registrasi","No. Registrasi"],["violation_id","Violation ID"],["jenis_pelanggaran","Jenis Pelanggaran"],["pasal","Pasal"],["lokasi","Lokasi"],["tanggal_pelanggaran","Tanggal Pelanggaran","date"],["status_etle","Status ETLE"],["no_blanko","No. Blanko"],["no_briva","No. BRIVA"]])+
+        '</section>'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">◉</span>Data Pelanggar</h3>'+
+          infoGrid(d.offender,[["nama","Nama"],["alamat","Alamat"],...(p.copyPhone?[["no_telp","No. Telepon"]]:[]),["email","Email"],["no_ktp","No. KTP"],["golongan_sim","Golongan SIM"],["tempat_lahir","Tempat Lahir"],["tanggal_lahir","Tanggal Lahir","date"],["pekerjaan","Pekerjaan"]])+
+        '</section>'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▤</span>Kendaraan & KIR</h3>'+
+          infoGrid(d.vehicle,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"]])+
+        '</section>'+
+        (photos.length?'<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▧</span>Foto ETLE</h3><div class="detail-photos-strip">'+photos.map(x=>'<img src="'+esc(x.photo_url)+'" alt="'+esc(x.description||x.photo_type||"Foto ETLE")+'">').join("")+'</div></section>':"")+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">↻</span>Timeline Perkara</h3>'+timelineSection(d.history||[]).replace('<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3>','').replace('</section>','')+'</section>'+
+      '</div>'+
+
+      '<aside class="detail-side-column">'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">✉</span>Pengiriman Surat</h3>'+
+          infoGrid(d.shipping,[["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["status_description","Keterangan"],["printed_date","Tanggal Cetak","date"],["delivered_at","Terkirim","date"]])+
+        '</section>'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">Rp</span>Pembayaran & Denda</h3>'+
+          infoGrid(d.payment,[["no_briva","No. BRIVA"],["status_bayar","Status Bayar"],["titipan","Titipan","money"],["denda_maksimum","Denda Maksimum","money"],["denda_pengadilan","Denda Pengadilan","money"],["biaya_perkara","Biaya Perkara","money"],["nominal_sisa","Sisa","money"],["paid_at","Dibayar","date"]])+
+        '</section>'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">⚖</span>Persidangan</h3>'+
+          infoGrid(d.court,[["tanggal_sidang","Tanggal Sidang","date"],["pengadilan","Pengadilan"],["hakim","Hakim"],["no_amar_putusan","Amar Putusan"],["denda_putusan","Denda Putusan","money"],["biaya_perkara","Biaya Perkara","money"],["status_sidang","Status"]])+
+        '</section>'+
+        '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">⊘</span>Sanggah / Dihentikan</h3>'+
+          infoGrid(d.dispute,[["status","Status Sanggah"],["confirmation_date","Tanggal","date"],["reason","Alasan"],["result","Hasil"]])+
+          infoGrid(d.terminated,[["status","Status Dihentikan"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal","date"]])+
+        '</section>'+
+        (showManualStatus?'<div class="detail-card">'+manualSection(d).replace('<section class="detail-section">','').replace('</section>','')+'</div>':"")+
+        '<div class="detail-card">'+notesSection(d).replace('<section class="detail-section">','').replace('</section>','')+'</div>'+
+      '</aside>'+
+    '</div>';
+
+  if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
+  if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
+  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");
+  $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
+  bindDetailActions(d);
+}
 function manualSection(d){const m=d.manual||{};if(!perms().admin)return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3>'+infoGrid(m,[["kategori_internal","Kategori"],["prioritas","Prioritas"],["status_lebih_bayar","Status Lebih Bayar"],["nominal_lebih_bayar","Nominal Lebih Bayar","money"],["status_pengembalian","Status Pengembalian"],["pic_name","PIC"],["catatan_ringkas","Catatan"]])+'<div class="action-row" style="margin-top:10px"><button class="action-btn" id="deniedManualEdit">🔒 Ubah Status G-SMART</button></div></section>';return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3><div class="form-grid"><label>Kategori<select id="manualCategory"><option>BELUM_DIPROSES</option><option>SUDAH_DIKONFIRMASI</option><option>SIAP_SIDANG</option><option>SELESAI</option></select></label><label>Prioritas<select id="manualPriority"><option>NORMAL</option><option>TINGGI</option><option>URGENT</option></select></label><label>Status Lebih Bayar<input id="overStatus" value="'+esc(m.status_lebih_bayar||"")+'"></label><label>Nominal Lebih Bayar<input id="overAmount" type="number" min="0" value="'+esc(m.nominal_lebih_bayar||"")+'"></label><label>Status Pengembalian<input id="refundStatus" value="'+esc(m.status_pengembalian||"")+'"></label><label class="full">Catatan<textarea id="manualNote" rows="3">'+esc(m.catatan_ringkas||"")+'</textarea></label><div class="full"><button id="saveManual" class="primary-btn">Simpan Status G-Smart</button></div></div></section>'}
 function notesSection(d){return'<section class="detail-section"><h3 class="section-heading">Catatan Petugas</h3><div class="form-grid"><label class="full">Tambah Catatan<textarea id="newNote" rows="2" placeholder="Tulis catatan petugas..."></textarea></label><div class="full"><button id="addNote" class="action-btn primary">Tambah Catatan</button></div></div><div class="timeline" style="margin-top:14px">'+(d.notes?.length?d.notes.map(n=>'<div class="timeline-item"><b>'+esc(n.created_by_name||"Petugas")+'</b><span>'+esc(n.note)+'</span><small>'+fmtDate(n.created_at)+'</small></div>').join(""):'<div class="empty">Belum ada catatan.</div>')+'</div></section>'}
 function timelineSection(rows){return'<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3><div class="timeline">'+(rows.length?rows.map(h=>'<div class="timeline-item"><b>'+esc(h.title||h.event_type)+'</b><span>'+esc(h.description||h.source||"")+'</span><small>'+fmtDate(h.event_time)+'</small></div>').join(""):'<div class="empty">Belum ada riwayat.</div>')+'</div></section>'}
