@@ -4,6 +4,8 @@ import { supabaseConfig } from "./config.js?v=20261002-3";
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
+const positiveAmount=v=>{const n=Number(v);return Number.isFinite(n)&&n>0};
+const kejaksaanUrl=noBlanko=>"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim());
 let busy=false;
 
 async function query(table,{filters={},order=null,limit=1000}={}){
@@ -23,10 +25,22 @@ async function query(table,{filters={},order=null,limit=1000}={}){
 function modal(){return{backdrop:document.getElementById("modalBackdrop"),title:document.getElementById("modalTitle"),sub:document.getElementById("modalSubtitle"),body:document.getElementById("modalBody")}}
 async function showCase(c){
   const m=modal();m.backdrop.classList.remove("hidden");m.title.textContent="Detail Perkara";m.sub.textContent=(c.tnkb||"-")+" · "+(c.ref_number||c.no_registrasi||"");m.body.innerHTML='<div class="loading">Memuat detail perkara...</div>';
-  let vehicle=null,photos=[];
-  try{[vehicle,photos]=await Promise.all([query("etle_vehicles",{filters:{case_id:"eq."+c.case_id},limit:1}).then(r=>r[0]||null),query("etle_photos",{filters:{case_id:"eq."+c.case_id},order:"sort_order.asc",limit:20})])}catch(e){console.warn(e)}
+  let vehicle=null,photos=[],payment=null,court=null;
+  try{
+    const courtFilter=c.violation_id?{violation_id:"eq."+c.violation_id}:{case_id:"eq."+c.case_id};
+    [vehicle,photos,payment,court]=await Promise.all([
+      query("etle_vehicles",{filters:{case_id:"eq."+c.case_id},limit:1}).then(r=>r[0]||null),
+      query("etle_photos",{filters:{case_id:"eq."+c.case_id},order:"sort_order.asc",limit:20}),
+      query("etle_payments",{filters:{case_id:"eq."+c.case_id},limit:1}).then(r=>r[0]||null).catch(()=>null),
+      query("etle_court_info",{filters:courtFilter,limit:1}).then(r=>r[0]||null).catch(()=>null)
+    ]);
+  }catch(e){console.warn(e)}
   const item=(l,v)=>v!=null&&v!==""?'<div class="detail-item"><small>'+esc(l)+'</small><b>'+esc(v)+'</b></div>':"";
-  m.body.innerHTML='<section class="detail-section"><h3 class="section-heading">Perkara</h3><div class="detail-grid">'+item("TNKB",c.tnkb)+item("No. Registrasi",c.no_registrasi)+item("Violation ID",c.violation_id)+item("Jenis Pelanggaran",c.jenis_pelanggaran)+item("Pasal",c.pasal)+item("Lokasi",c.lokasi)+item("Tanggal Pelanggaran",fmtDate(c.tanggal_pelanggaran))+item("Status ETLE",c.status_etle)+item("No. Blanko",c.no_blanko)+item("No. BRIVA",c.no_briva)+'</div></section><section class="detail-section"><h3 class="section-heading">Kendaraan / BLUE</h3><div class="detail-grid">'+item("Nama Pemilik",vehicle?.nama_pemilik||c.nama_pemilik)+item("Alamat Pemilik",vehicle?.alamat_pemilik)+item("Merk",vehicle?.merk)+item("Tipe",vehicle?.tipe)+item("Jenis Kendaraan",vehicle?.jenis_kendaraan)+item("Masa Berlaku KIR",vehicle?.masa_berlaku_kir?fmtDate(vehicle.masa_berlaku_kir):null)+item("JBB",vehicle?.jbb)+item("JBI",vehicle?.jbi)+'</div></section>'+(photos.filter(x=>x.photo_url).length?'<section class="detail-section"><h3 class="section-heading">Foto ETLE</h3><div class="photo-grid">'+photos.filter(x=>x.photo_url).map(x=>'<img src="'+esc(x.photo_url)+'" alt="Foto ETLE">').join("")+'</div></section>':"");
+  const hasFine=positiveAmount(court?.denda_putusan)||positiveAmount(payment?.denda_pengadilan);
+  const kejaksaanAction=c.no_blanko&&hasFine?'<div class="action-row"><button class="action-btn gold" id="courtKejaksaanBtn">⚖ Buka E-Tilang Kejaksaan ↗</button></div>':"";
+  m.body.innerHTML=kejaksaanAction+'<section class="detail-section"><h3 class="section-heading">Perkara</h3><div class="detail-grid">'+item("TNKB",c.tnkb)+item("No. Registrasi",c.no_registrasi)+item("Violation ID",c.violation_id)+item("Jenis Pelanggaran",c.jenis_pelanggaran)+item("Pasal",c.pasal)+item("Lokasi",c.lokasi)+item("Tanggal Pelanggaran",fmtDate(c.tanggal_pelanggaran))+item("Status ETLE",c.status_etle)+item("No. Blanko",c.no_blanko)+item("No. BRIVA",c.no_briva)+'</div></section><section class="detail-section"><h3 class="section-heading">Kendaraan / BLUE</h3><div class="detail-grid">'+item("Nama Pemilik",vehicle?.nama_pemilik||c.nama_pemilik)+item("Alamat Pemilik",vehicle?.alamat_pemilik)+item("Merk",vehicle?.merk)+item("Tipe",vehicle?.tipe)+item("Jenis Kendaraan",vehicle?.jenis_kendaraan)+item("Masa Berlaku KIR",vehicle?.masa_berlaku_kir?fmtDate(vehicle.masa_berlaku_kir):null)+item("JBB",vehicle?.jbb)+item("JBI",vehicle?.jbi)+'</div></section>'+(photos.filter(x=>x.photo_url).length?'<section class="detail-section"><h3 class="section-heading">Foto ETLE</h3><div class="photo-grid">'+photos.filter(x=>x.photo_url).map(x=>'<img src="'+esc(x.photo_url)+'" alt="Foto ETLE">').join("")+'</div></section>':"");
+  const btn=document.getElementById("courtKejaksaanBtn");
+  if(btn)btn.onclick=e=>{e.stopPropagation();window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer")};
 }
 async function enhanceCourt(){
   if(busy||document.getElementById("pageTitle")?.textContent.trim()!=="Persidangan")return;
