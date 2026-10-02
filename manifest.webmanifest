@@ -1,0 +1,19 @@
+{
+  "name": "G-Smart UPPKB Guyangan",
+  "short_name": "G-Smart",
+  "description": "Monitoring ETLE UPPKB Guyangan",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071a2f",
+  "theme_color": "#0D254C",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./gsmart_launcher.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
