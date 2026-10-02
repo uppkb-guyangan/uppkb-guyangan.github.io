@@ -1,14 +1,13 @@
-const CACHE_NAME = 'gsmart-shell-v2';
+const CACHE_NAME = 'gsmart-shell-v3';
 const APP_SHELL = [
   './',
   './index.html',
   './styles-v2.css?v=20261002-ui2',
   './branding-overrides.css?v=20261002-brand1',
-  './app-v2.js?v=20261002-6',
+  './app-v2.js?v=20261002-7',
   './analytics-drilldown.js?v=20261002-1',
-  './court-enhancement.js?v=20261002-1',
   './config.js?v=20261002-3',
-  './gsmart_launcher.png',
+  './G-SMART%20Traffic%20Monitoring%20Emblem.png',
   './Gemini_Generated_Image_pckqrmpckqrmpckq.jpg',
   './manifest.webmanifest?v=20261002-logo2'
 ];
