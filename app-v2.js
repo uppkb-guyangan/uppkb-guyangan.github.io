@@ -37,7 +37,22 @@ const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
 const money=v=>v==null||v===""?"-":"Rp "+new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Number(v));
 const caseById=id=>state.bundle?.cases.find(x=>x.case_id===id);
-const perms=()=>{const r=(state.profile?.role||"").trim().toUpperCase();return{report:r==="ADMIN"||r==="WASATPEL",copyPhone:r==="ADMIN"||r==="WASATPEL",admin:r==="ADMIN"}};
+function rolePermissions(){
+  const normalizedRole=(state.profile?.role||"").trim().toUpperCase();
+  const isAdmin=normalizedRole==="ADMIN";
+  const isWasatpel=normalizedRole==="WASATPEL";
+  return {
+    etleReportVisible:true,
+    etleReportAccessible:isAdmin||isWasatpel,
+    copyPhone:isAdmin||isWasatpel,
+    adminPrivileges:isAdmin
+  };
+}
+const perms=()=>({
+  report:rolePermissions().etleReportAccessible,
+  copyPhone:rolePermissions().copyPhone,
+  admin:rolePermissions().adminPrivileges
+});
 
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
 function setSync(t){$("syncState").textContent=t}
@@ -135,7 +150,28 @@ function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWi
 $("closeModal").onclick=()=>$("modalBackdrop").classList.add("hidden");
 $("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop"))$("modalBackdrop").classList.add("hidden")};
 
-async function loadProfile(user){const s=await getDoc(doc(db,"users",user.uid));if(!s.exists())throw new Error("Profil petugas belum terdaftar.");const p=s.data();if(p.aktif!==true)throw new Error("Akun Anda tidak aktif.");return{uid:user.uid,nama:p.nama||p.username||user.email,nip:p.nip||"",username:p.username||user.email,role:p.role||"USER",photoUrl:p.photoUrl||null}}
+async function loadProfile(user){
+  const snap=await getDoc(doc(db,"users",user.uid));
+  if(!snap.exists()) throw new Error("Profil petugas belum terdaftar.");
+  const p=snap.data();
+  if(p.aktif===false) throw new Error("Akun Anda tidak aktif. Hubungi administrator.");
+  if(!user.uid||p.aktif!==true) throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");
+  const required=key=>{
+    const value=typeof p[key]==="string"?p[key].trim():"";
+    if(!value) throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");
+    return value;
+  };
+  const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;
+  return {
+    uid:user.uid,
+    nama:required("nama"),
+    nip:required("nip"),
+    username:required("username"),
+    role:required("role"),
+    aktif:true,
+    photoUrl
+  };
+}
 async function loadDashboard(){setSync("Sinkronisasi");const [cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs]=await Promise.all([q("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast"}),q("etle_shipping",{order:"printed_date.desc.nullslast"}),q("etle_disputes",{order:"confirmation_date.desc.nullslast"}),q("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),q("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),q("etle_offenders"),q("gsmart_case_history",{order:"event_time.desc.nullslast"}),q("gsmart_sync_log",{order:"started_at.desc",limit:30})]);state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};setSync("Siap")}
 $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";showApp()}catch(err){$("loginMessage").textContent=err.message||"Login gagal."}}
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()}
