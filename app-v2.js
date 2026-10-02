@@ -93,7 +93,23 @@ function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"
 function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim","Gagal Kirim","Dikembalikan","Lainnya"];const map=Object.fromEntries(cats.map(x=>[x,0]));rows.forEach(r=>map[shipClass(r.status)[0]]++);return '<div class="status-grid">'+cats.map(k=>'<div class="status-card"><b>'+map[k]+'</b><span>'+k+'</span></div>').join("")+'</div>'}
 
 function processPage(page,rows){const titles=Object.fromEntries(menu);let extra="";if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';$("content").innerHTML='<div class="panel"><div class="title-row"><h3>'+titles[page]+'</h3><span class="badge">'+rows.length+' data</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik...">'+extra+'</div><div id="slot">'+genericTable(page,rows)+'</div></div>';const apply=()=>{const q=norm($("filter").value);let r=rows.filter(x=>JSON.stringify(x).toLowerCase().includes(q));if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);$("slot").innerHTML=genericTable(page,r);bindDetailRows()};$("filter").oninput=apply;if($("statusFilter"))$("statusFilter").onchange=apply;bindDetailRows()}
-function rowCaseId(page,r){if(r.case_id)return r.case_id;if(page==="history")return r.case_id;return null}
+function resolveCaseIdForRecord(page,r){
+  if(!r)return null;
+  const cases=state.bundle?.cases||[];
+  if(r.case_id&&cases.some(c=>c.case_id===r.case_id))return r.case_id;
+  if(page==="shipping"){
+    if(r.ref_number){
+      const byRef=cases.find(c=>norm(c.ref_number)===norm(r.ref_number));
+      if(byRef)return byRef.case_id;
+    }
+    if(r.violation_id){
+      const byViolation=cases.find(c=>norm(c.violation_id)===norm(r.violation_id));
+      if(byViolation)return byViolation.case_id;
+    }
+  }
+  return r.case_id||null;
+}
+function rowCaseId(page,r){return resolveCaseIdForRecord(page,r)}
 function genericTable(page,rows){if(!rows.length)return'<div class="empty">Belum ada data pada periode ini.</div>';const defs={
 shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],
 blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
