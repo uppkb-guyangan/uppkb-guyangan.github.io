@@ -1,0 +1,204 @@
+/* G-Smart Web — dashboard redesign 2026-10-03
+   Visual-only layer. Existing feature selectors and behaviors are preserved. */
+
+:root{
+  --ux-blue:#1478ff;
+  --ux-blue-soft:#eaf3ff;
+  --ux-navy:#071a31;
+  --ux-bg:#f3f7fc;
+  --ux-card:#ffffff;
+  --ux-line:#e7edf5;
+  --ux-text:#10233f;
+  --ux-muted:#73839a;
+  --ux-radius:16px;
+  --ux-shadow:0 8px 28px rgba(20,54,92,.07);
+}
+
+body{background:var(--ux-bg)}
+.app-shell{grid-template-columns:236px minmax(0,1fr)}
+.sidebar{
+  padding:18px 12px 14px;
+  background:linear-gradient(180deg,#071a31 0%,#09213b 68%,#071a31 100%);
+  box-shadow:6px 0 24px rgba(7,26,49,.08);
+}
+.side-brand{padding:5px 10px 20px}
+.side-brand b{font-size:20px;letter-spacing:-.025em}
+.side-brand span{font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.nav-btn{min-height:42px;padding:10px 12px;border-radius:9px;color:#c7d5e4;font-size:13px}
+.nav-btn>span:first-child{width:21px;text-align:center;font-size:17px;opacity:.95}
+.nav-btn.active{
+  background:linear-gradient(135deg,#0878ff,#2389ff);
+  box-shadow:0 9px 22px rgba(8,120,255,.24);
+}
+.nav-btn.active:before{display:none}
+.side-footer{padding-top:12px}
+.profile-photo,.profile-fallback{width:40px;height:40px;border-radius:50%}
+.ghost{border-radius:9px}
+
+.topbar{
+  min-height:68px;
+  padding:10px 22px;
+  background:rgba(255,255,255,.96);
+  border-bottom:1px solid var(--ux-line);
+  box-shadow:0 1px 10px rgba(31,57,91,.025);
+}
+.topbar h2{font-size:18px}
+.topbar-title p{font-size:11px}
+.month-select{height:38px;border-radius:9px;min-width:148px}
+.status{padding:8px 10px;background:#f4fbf7;border-color:#dbefe4}
+#content{padding:14px 18px 32px;max-width:1800px}
+
+/* Welcome hero */
+.dashboard-hero{
+  min-height:132px;
+  position:relative;
+  overflow:hidden;
+  border-radius:16px;
+  padding:24px 28px;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  background:
+    linear-gradient(90deg,rgba(8,39,75,.96) 0%,rgba(8,54,96,.88) 45%,rgba(8,54,96,.44) 100%),
+    url('./Gemini_Generated_Image_pckqrmpckqrmpckq.jpg') center 47%/cover no-repeat;
+  box-shadow:var(--ux-shadow);
+}
+.dashboard-hero:after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 55%,rgba(6,35,68,.12));
+  pointer-events:none;
+}
+.hero-copy,.hero-meta{position:relative;z-index:1}
+.hero-copy h1{margin:0;font-size:27px;line-height:1.1;letter-spacing:-.035em}
+.hero-copy h2{margin:5px 0 0;font-size:20px;font-weight:760;letter-spacing:-.02em}
+.hero-copy p{margin:8px 0 0;color:rgba(255,255,255,.83);font-size:12px}
+.hero-meta{text-align:right;min-width:220px}
+.hero-meta small{display:block;color:rgba(255,255,255,.78);font-size:11px}
+.hero-meta strong{display:block;font-size:22px;margin-top:4px}
+.hero-meta span{display:block;margin-top:4px;font-size:11px;color:rgba(255,255,255,.82)}
+
+.dashboard-layout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:14px;margin-top:14px}
+.dashboard-main{min-width:0}
+.dashboard-rail{display:grid;align-content:start;gap:14px}
+.dashboard-rail .panel{margin-top:0}
+
+.cards.dashboard-metrics{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+.dashboard-metrics .card{
+  min-height:96px;
+  padding:16px 16px 15px 72px;
+  border:1px solid transparent;
+  border-radius:14px;
+  box-shadow:none;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.dashboard-metrics .card:before{
+  left:17px;top:50%;bottom:auto;
+  width:42px;height:42px;
+  transform:translateY(-50%);
+  border-radius:50%;
+  opacity:1;
+  background:rgba(255,255,255,.58);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.dashboard-metrics .card:after{
+  position:absolute;left:30px;top:50%;
+  transform:translateY(-52%);
+  font-size:18px;line-height:1;
+}
+.dashboard-metrics .card:nth-child(1){background:#fff0f2;color:#d92342}.dashboard-metrics .card:nth-child(1):after{content:"◫"}
+.dashboard-metrics .card:nth-child(2){background:#edf6ff;color:#086adb}.dashboard-metrics .card:nth-child(2):after{content:"▣"}
+.dashboard-metrics .card:nth-child(3){background:#fff7e8;color:#c67a00}.dashboard-metrics .card:nth-child(3):after{content:"▤"}
+.dashboard-metrics .card:nth-child(4){background:#f3edff;color:#6e38d5}.dashboard-metrics .card:nth-child(4):after{content:"⚖"}
+.dashboard-metrics .card:nth-child(5){background:#ebfaf4;color:#11845c}.dashboard-metrics .card:nth-child(5):after{content:"⚑"}
+.dashboard-metrics .card:nth-child(6){background:#fff0f0;color:#df3346}.dashboard-metrics .card:nth-child(6):after{content:"⊘"}
+.dashboard-metrics .card:nth-child(7){background:#eef5ff;color:#146cce}.dashboard-metrics .card:nth-child(7):after{content:"✓"}
+.dashboard-metrics .card:nth-child(8){background:#f1f4f8;color:#4f6179}.dashboard-metrics .card:nth-child(8):after{content:"▥"}
+.dashboard-metrics .card:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(25,58,96,.06)}
+.dashboard-metrics .metric-label{font-size:12px;color:currentColor;opacity:.85}
+.dashboard-metrics .metric-value{font-size:25px;margin:1px 0 0;color:currentColor}
+.dashboard-metrics .metric-note{font-size:10px;color:currentColor;opacity:.68;margin-top:2px}
+
+.panel{
+  border-color:var(--ux-line);
+  border-radius:14px;
+  box-shadow:var(--ux-shadow);
+}
+.dashboard-main>.grid-2{grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr);gap:14px}
+.dashboard-main>.grid-2>.panel{margin-top:14px}
+.dashboard-main>.grid-2>.panel:first-child{min-width:0}
+
+.rail-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rail-title h3{margin:0;font-size:15px;color:var(--ux-text)}
+.rail-title .badge{background:#f4f7fb;color:#243b5b}
+.rail-list{display:grid}
+.rail-row{
+  display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;
+  padding:11px 0;border-bottom:1px solid #edf1f6;
+}
+.rail-row:last-child{border-bottom:0}
+.rail-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#edf5ff;color:#1478ff;font-weight:800}
+.rail-row:nth-child(2) .rail-icon{background:#fff4e6;color:#dc7f08}
+.rail-row:nth-child(3) .rail-icon{background:#f5edff;color:#7446d3}
+.rail-row:nth-child(4) .rail-icon{background:#ebfaf3;color:#0c9364}
+.rail-label{font-size:12px;color:#263b56}
+.rail-value{font-size:12px;font-weight:850;background:#edf5ff;color:#126fd2;padding:4px 8px;border-radius:8px}
+
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick-btn{
+  border:1px solid #edf1f6;background:#f8fbff;color:#173657;
+  border-radius:11px;padding:12px 9px;text-align:left;font-size:11px;font-weight:750;
+  transition:.15s;
+}
+.quick-btn:hover{background:#edf5ff;border-color:#d9e8fb;transform:translateY(-1px)}
+.quick-btn b{display:block;color:#1478ff;font-size:18px;margin-bottom:6px}
+
+.dashboard-main .data-table th{background:#f3f6fa;color:#405572}
+.dashboard-main .data-table td{padding-top:10px;padding-bottom:10px}
+.dashboard-main .table-wrap{border-radius:10px}
+
+/* General polish for all existing pages */
+.card,.panel,.detail-modal{border-color:var(--ux-line)}
+.toolbar input,.toolbar select{background:#fbfdff}
+.action-btn{border-radius:9px}
+.action-btn.primary,.primary-btn{background:#1478ff;border-color:#1478ff}
+.badge{border-radius:7px}
+.modal-backdrop{background:rgba(6,20,36,.56)}
+.detail-modal{border-radius:18px}
+.detail-item{background:#f8fbff}
+.section-heading:before{background:#1478ff}
+
+@media(max-width:1280px){
+  .dashboard-layout{grid-template-columns:1fr}
+  .dashboard-rail{grid-template-columns:1fr 1fr}
+  .cards.dashboard-metrics{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:1040px){
+  .app-shell{grid-template-columns:220px minmax(0,1fr)}
+  .cards.dashboard-metrics{grid-template-columns:repeat(2,1fr)}
+  .dashboard-main>.grid-2{grid-template-columns:1fr}
+}
+@media(max-width:800px){
+  .app-shell{grid-template-columns:1fr}
+  .dashboard-hero{padding:20px;min-height:150px}
+  .hero-meta{display:none}
+  .dashboard-rail{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  #content{padding:12px}
+  .dashboard-hero{min-height:142px;border-radius:14px}
+  .hero-copy h1{font-size:22px}
+  .hero-copy h2{font-size:17px}
+  .cards.dashboard-metrics{grid-template-columns:1fr 1fr}
+  .dashboard-metrics .card{padding-left:62px;min-height:88px}
+  .dashboard-metrics .card:before{left:13px;width:38px;height:38px}
+  .dashboard-metrics .card:after{left:24px}
+  .dashboard-metrics .metric-value{font-size:22px}
+}
