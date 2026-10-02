@@ -34,7 +34,56 @@ function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).fil
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
 function filteredRows(page,b){switch(page){case"shipping":return b.shipping.filter(x=>period(x.printed_date));case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));case"disputes":return activeDisputes(b);case"terminated":return b.terminated.filter(x=>period(x.terminated_at));case"court":return b.courts.filter(x=>period(x.tanggal_sidang));case"new":return b.cases.filter(x=>period(x.first_seen_at));case"history":return b.histories.filter(x=>period(x.event_time));default:return[]}}
 function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
-function dashboard(b){const c=counts(b);const cards=[["Total Perkara",c.total],["Pengiriman Surat",c.shipping],["Blanko Terbit",c.blanko],["Tersanggah",c.disputes],["Dihentikan",c.terminated],["Persidangan",c.court],["Data Baru",c.newData],["Perpindahan Proses",c.transitions]];const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);$("content").innerHTML='<div class="cards">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value">'+x[1]+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div><div class="grid-2"><div class="panel"><div class="title-row"><h3>Perkara terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div><div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div></div>'}
+function dashboard(b){
+  const c=counts(b);
+  const cards=[
+    ["Total Perkara",c.total],
+    ["Pengiriman Surat",c.shipping],
+    ["Blanko Terbit",c.blanko],
+    ["Persidangan",c.court],
+    ["Tersanggah",c.disputes],
+    ["Dihentikan",c.terminated],
+    ["Data Baru",c.newData],
+    ["Perpindahan Proses",c.transitions]
+  ];
+  const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);
+  const profileName=state.profile?.nama||"Petugas";
+  const now=new Date();
+  const dateLabel=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:"Asia/Jakarta"}).format(now);
+  const timeLabel=new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(now)+" WIB";
+  const uniqueTnkb=new Set(b.cases.filter(x=>period(x.tanggal_pelanggaran)&&x.tnkb).map(x=>norm(x.tnkb))).size;
+  const railRows=[
+    ["＋","Data baru",c.newData],
+    ["▣","Blanko terbit",c.blanko],
+    ["⚖","Persidangan",c.court],
+    ["✓","TNKB unik",uniqueTnkb]
+  ];
+  $("content").innerHTML=
+    '<section class="dashboard-hero">'+
+      '<div class="hero-copy"><h1>Selamat datang, '+esc(profileName)+' 👋</h1><h2>G-Smart UPPKB Guyangan</h2><p>Monitoring dan pengelolaan data pelanggaran ETLE secara terintegrasi</p></div>'+
+      '<div class="hero-meta"><small>'+esc(dateLabel)+'</small><strong>'+esc(timeLabel)+'</strong><span>'+esc(monthName(state.month))+'</span></div>'+
+    '</section>'+
+    '<div class="dashboard-layout">'+
+      '<div class="dashboard-main">'+
+        '<div class="cards dashboard-metrics">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value">'+x[1]+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div>'+
+        '<div class="grid-2">'+
+          '<div class="panel"><div class="title-row"><h3>Perkara terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
+          '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<aside class="dashboard-rail">'+
+        '<div class="panel"><div class="rail-title"><h3>Ringkasan Operasional</h3><span class="badge">'+monthName(state.month)+'</span></div><div class="rail-list">'+railRows.map(r=>'<div class="rail-row"><span class="rail-icon">'+r[0]+'</span><span class="rail-label">'+r[1]+'</span><span class="rail-value">'+r[2]+'</span></div>').join("")+'</div></div>'+
+        '<div class="panel"><div class="rail-title"><h3>Quick Access</h3></div><div class="quick-grid">'+
+          '<button class="quick-btn" data-go="search"><b>⌕</b>Pencarian Global</button>'+
+          '<button class="quick-btn" data-go="vehicles"><b>▤</b>Profil Kendaraan</button>'+
+          '<button class="quick-btn" data-go="report"><b>▧</b>Laporan ETLE</button>'+
+          '<button class="quick-btn" data-go="analytics"><b>▥</b>Analitik ETLE</button>'+
+        '</div></div>'+
+      '</aside>'+
+    '</div>';
+  document.querySelectorAll(".quick-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
+  bindDetailRows();
+}
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
 function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim","Gagal Kirim","Dikembalikan","Lainnya"];const map=Object.fromEntries(cats.map(x=>[x,0]));rows.forEach(r=>map[shipClass(r.status)[0]]++);return'<div class="status-grid">'+cats.map(k=>'<div class="status-card"><b>'+map[k]+'</b><span>'+k+'</span></div>').join("")+'</div>'}
 function processPage(page,rows){const titles=Object.fromEntries(menu);let extra="";if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';$("content").innerHTML='<div class="panel"><div class="title-row"><h3>'+titles[page]+'</h3><span class="badge">'+rows.length+' data</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik...">'+extra+'</div><div id="slot">'+genericTable(page,rows)+'</div></div>';const apply=()=>{const q=norm($("filter").value);let r=rows.filter(x=>JSON.stringify(x).toLowerCase().includes(q));if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);$("slot").innerHTML=genericTable(page,r);bindDetailRows()};$("filter").oninput=apply;if($("statusFilter"))$("statusFilter").onchange=apply;bindDetailRows()}
