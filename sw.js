@@ -1,14 +1,14 @@
-const CACHE_NAME = 'gsmart-shell-v31';
+const CACHE_NAME = 'gsmart-shell-v32';
 const APP_SHELL = [
   './',
   './index.html',
   './styles-v2.css?v=20261003-online1',
-  './dashboard-redesign.css?v=20261003-sharefav1',
-  './detail-redesign.css?v=20261003-sharefav1',
+  './dashboard-redesign.css?v=20261003-watchroles2',
+  './detail-redesign.css?v=20261003-watchroles2',
   './splash.css?v=20261003-splash3',
   './branding-overrides.css?v=20261002-brand1',
   './splash.js?v=20261003-splash3',
-  './app-v2.js?v=20261003-watchroles1',
+  './app-v2.js?v=20261003-watchroles2',
   './analytics-drilldown.js?v=20261002-1',
   './court-enhancement.js?v=20261002-4',
   './config.js?v=20261002-3',
