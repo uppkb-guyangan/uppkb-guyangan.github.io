@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 
 const $=id=>document.getElementById(id);
-const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER"};
+const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null};
 let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
@@ -75,17 +75,43 @@ function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).fil
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
 function filteredRows(page,b){switch(page){case"shipping":return b.shipping.filter(x=>period(x.printed_date));case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));case"disputes":return activeDisputes(b);case"terminated":return b.terminated.filter(x=>period(x.terminated_at));case"court":return b.courts.filter(x=>period(x.tanggal_sidang));case"new":return b.cases.filter(x=>period(x.first_seen_at));case"history":return b.histories.filter(x=>period(x.event_time));default:return[]}}
 function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
+function animateDashboardStats(nextStats){
+  const previous=state.dashboardStats||{};
+  const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  const formatter=new Intl.NumberFormat("id-ID");
+  document.querySelectorAll("[data-stat-key][data-stat-value]").forEach((el,index)=>{
+    const key=el.dataset.statKey;
+    const target=Number(el.dataset.statValue)||0;
+    const start=Number(previous[key]);
+    const from=Number.isFinite(start)?start:0;
+    if(reduced||from===target){el.textContent=formatter.format(target);return}
+    const duration=620;
+    const delay=Math.min(index*38,220);
+    const started=performance.now()+delay;
+    const ease=t=>1-Math.pow(1-t,3);
+    const step=now=>{
+      if(now<started){requestAnimationFrame(step);return}
+      const p=Math.min(1,(now-started)/duration);
+      const value=Math.round(from+(target-from)*ease(p));
+      el.textContent=formatter.format(value);
+      if(p<1)requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  state.dashboardStats={...nextStats};
+}
 function dashboard(b){
   const c=counts(b);
+  const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
   const cards=[
-    ["Total Perkara",c.total],
-    ["Pengiriman Surat",c.shipping],
-    ["Blanko Terbit",c.blanko],
-    ["Persidangan",c.court],
-    ["Tersanggah",c.disputes],
-    ["Dihentikan",c.terminated],
-    ["Data Baru",c.newData],
-    ["Perpindahan Proses",c.transitions]
+    ["Total Perkara",c.total,"total"],
+    ["Pengiriman Surat",c.shipping,"shipping"],
+    ["Blanko Terbit",c.blanko,"blanko"],
+    ["Persidangan",c.court,"court"],
+    ["Tersanggah",c.disputes,"disputes"],
+    ["Dihentikan",c.terminated,"terminated"],
+    ["Data Baru",c.newData,"newData"],
+    ["Perpindahan Proses",c.transitions,"transitions"]
   ];
   const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);
   const profileName=state.profile?.nama||"Petugas";
@@ -114,9 +140,9 @@ function dashboard(b){
           '<h1>'+esc(profileName)+'</h1>'+
           '<div class="hero-role">'+esc(profileRole)+' · UPPKB Guyangan</div>'+
           '<div class="hero-stats">'+
-            '<span><b>'+c.total+'</b> Perkara</span>'+
-            '<span><b>'+c.shipping+'</b> Pengiriman</span>'+
-            '<span><b>'+c.blanko+'</b> Blanko</span>'+
+            '<span><b data-stat-key="total" data-stat-value="'+c.total+'">'+(state.dashboardStats?.total??0)+'</b> Perkara</span>'+
+            '<span><b data-stat-key="shipping" data-stat-value="'+c.shipping+'">'+(state.dashboardStats?.shipping??0)+'</b> Pengiriman</span>'+
+            '<span><b data-stat-key="blanko" data-stat-value="'+c.blanko+'">'+(state.dashboardStats?.blanko??0)+'</b> Blanko</span>'+
           '</div>'+
           '<div class="hero-status-row">'+
             '<span class="hero-online '+(online?"online":"offline")+'"><i></i>'+(online?"Online":"Offline")+'</span>'+
@@ -132,7 +158,7 @@ function dashboard(b){
     '</section>'+
     '<div class="dashboard-layout">'+
       '<div class="dashboard-main">'+
-        '<div class="cards dashboard-metrics">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value">'+x[1]+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div>'+
+        '<div class="cards dashboard-metrics">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div>'+
         '<div class="grid-2">'+
           '<div class="panel"><div class="title-row"><h3>Perkara terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
           '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div>'+
@@ -148,6 +174,7 @@ function dashboard(b){
         '</div></div>'+
       '</aside>'+
     '</div>';
+  animateDashboardStats(dashboardStats);
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
