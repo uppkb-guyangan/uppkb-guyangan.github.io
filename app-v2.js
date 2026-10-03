@@ -352,6 +352,21 @@ function dashboard(b){
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go], .dashboard-metric-link[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
+function statusBadgeClass(v){
+  const s=norm(v).replace(/[_-]+/g," ");
+  if(!s)return"status-neutral";
+  if(/terkirim|terbayar|paid|completed|selesai|tert(agih|agih)|confirmed|sudah dikonfirmasi/.test(s))return"status-success";
+  if(/tersanggah|sanggah|dispute/.test(s))return"status-purple";
+  if(/dihentikan|terminated|gagal|failed|batal/.test(s))return"status-danger";
+  if(/sidang|court|siap sidang/.test(s))return"status-indigo";
+  if(/blanko|terbit|issued/.test(s))return"status-gold";
+  if(/proses|pengiriman|inquiry|pending|menunggu|tercetak|cetak/.test(s))return"status-warning";
+  if(/baru|verifikasi|validasi|data di verifikasi/.test(s))return"status-info";
+  return"status-neutral"
+}
+function statusBadge(v){
+  return '<span class="status-badge '+statusBadgeClass(v)+'">'+esc(v||"-")+'</span>'
+}
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
 function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim","Gagal Kirim","Dikembalikan","Lainnya"];const map=Object.fromEntries(cats.map(x=>[x,0]));rows.forEach(r=>map[shipClass(r.status)[0]]++);return'<div class="status-grid">'+cats.map(k=>'<div class="status-card"><b>'+map[k]+'</b><span>'+k+'</span></div>').join("")+'</div>'}
 function processPage(page,rows){
@@ -370,9 +385,10 @@ function processPage(page,rows){
   $("content").innerHTML=
     '<div class="panel">'+
       '<div class="title-row"><div><h3>'+pageTitle+'</h3>'+(focusNote?'<p class="history-focus-note">'+focusNote+'</p>':'')+'</div><div class="history-title-actions"><span class="badge" id="resultCount">'+rows.length+' data</span>'+focusAction+'</div></div>'+
-      '<div class="toolbar table-toolbar">'+
+      '<div class="toolbar table-toolbar sticky-table-toolbar">'+
         '<div class="search-field-wrap"><span class="search-field-icon">⌕</span><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik..."><button id="clearFilter" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div>'+
         extra+
+        '<button id="resetTableFilters" class="toolbar-reset-btn" type="button">Reset Filter</button>'+
       '</div>'+
       '<div id="slot">'+genericTable(page,rows)+'</div>'+
     '</div>';
@@ -388,20 +404,60 @@ function processPage(page,rows){
   $("filter").oninput=apply;
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
+  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";apply()};
   if($("showAllFocusedData"))$("showAllFocusedData").onclick=()=>openPage(page);
   bindDetailRows();
 }
 function resolveCaseIdForRecord(page,r){if(!r)return null;const cases=state.bundle?.cases||[];if(r.case_id&&cases.some(c=>c.case_id===r.case_id))return r.case_id;if(page==="shipping"){if(r.ref_number){const byRef=cases.find(c=>norm(c.ref_number)===norm(r.ref_number));if(byRef)return byRef.case_id}if(r.violation_id){const byViolation=cases.find(c=>norm(c.violation_id)===norm(r.violation_id));if(byViolation)return byViolation.case_id}}return r.case_id||null}
 function rowCaseId(page,r){return resolveCaseIdForRecord(page,r)}
-function genericTable(page,rows){if(!rows.length)return'<div class="empty">Belum ada data pada periode ini.</div>';const defs={shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],["reason","Alasan"]],terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],history:[["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]};const cols=defs[page]||[];return'<div class="table-wrap"><table class="data-table"><thead><tr>'+cols.map(c=>'<th>'+c[1]+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr class="'+(rowCaseId(page,r)?"clickable":"")+'" data-case="'+esc(rowCaseId(page,r)||"")+'">'+cols.map(([k])=>'<td>'+cell(k,r[k],r)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>'}
-function cell(k,v,row=null){if(k==="__phone"){if(!rolePermissions().copyPhone)return"-";const offender=state.bundle?.offenders?.find(o=>o.case_id===row?.case_id);return esc(offender?.no_telp||"-")}if(k.includes("date")||k.includes("tanggal")||k.includes("time")||k==="first_seen_at"||k==="event_time"||k==="terminated_at")return fmtDate(v);if(k.includes("denda")||k.includes("amount"))return money(v);if(k==="status"){const c=shipClass(v);return'<span class="badge '+c[1]+'">'+esc(v||"-")+'</span>'}if(k.includes("status"))return'<span class="badge">'+esc(v||"-")+'</span>';return esc(v||"-")}
-function caseTable(rows){if(!rows.length)return'<div class="empty">Belum ada perkara.</div>';const cols=[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Tanggal Pelanggaran"],["status_etle","Status ETLE"],["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["nama_pemilik","Nama Pemilik"]];return'<div class="table-wrap"><table class="data-table"><thead><tr>'+cols.map(c=>'<th>'+c[1]+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'">'+cols.map(([k])=>'<td>'+cell(k,r[k])+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>'}
+function genericTable(page,rows){
+  if(!rows.length)return'<div class="empty">Belum ada data pada periode ini.</div>';
+  const defs={
+    shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],
+    blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
+    disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],["reason","Alasan"]],
+    terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
+    court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
+    new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],
+    history:[["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]
+  };
+  const cols=defs[page]||[];
+  return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr>'+
+    cols.map(c=>'<th>'+c[1]+'</th>').join("")+
+    '</tr></thead><tbody>'+
+    rows.map(r=>'<tr class="'+(rowCaseId(page,r)?"clickable":"")+'" data-case="'+esc(rowCaseId(page,r)||"")+'">'+
+      cols.map(([k,label])=>'<td data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
+    '</tr>').join("")+
+    '</tbody></table></div>'
+}
+function cell(k,v,row=null){
+  if(k==="__phone"){
+    if(!rolePermissions().copyPhone)return"-";
+    const offender=state.bundle?.offenders?.find(o=>o.case_id===row?.case_id);
+    return esc(offender?.no_telp||"-")
+  }
+  if(k.includes("date")||k.includes("tanggal")||k.includes("time")||k==="first_seen_at"||k==="event_time"||k==="terminated_at")return fmtDate(v);
+  if(k.includes("denda")||k.includes("amount"))return money(v);
+  if(k==="status"||k.includes("status"))return statusBadge(v);
+  return esc(v||"-")
+}
+function caseTable(rows){
+  if(!rows.length)return'<div class="empty">Belum ada perkara.</div>';
+  const cols=[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Tanggal Pelanggaran"],["status_etle","Status ETLE"],["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["nama_pemilik","Nama Pemilik"]];
+  return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr>'+
+    cols.map(c=>'<th>'+c[1]+'</th>').join("")+
+    '</tr></thead><tbody>'+
+    rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'">'+
+      cols.map(([k,label])=>'<td data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
+    '</tr>').join("")+
+    '</tbody></table></div>'
+}
 function detailSourceForPage(page){return({shipping:"SHIPPING",blanko:"BLANKO",disputes:"DISPUTE",terminated:"TERMINATED",court:"COURT"})[page]||"OTHER"}
 function bindDetailRows(){document.querySelectorAll("[data-case]").forEach(r=>r.onclick=()=>{if(!r.dataset.case)return;state.detailSource=detailSourceForPage(state.page);openDetail(r.dataset.case)})}
 function analytics(b){const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran));const byTnkb={};const byOwner={};const byType={};cases.forEach(x=>{if(x.tnkb)byTnkb[norm(x.tnkb)]=(byTnkb[norm(x.tnkb)]||{label:x.tnkb,n:0}),byTnkb[norm(x.tnkb)].n++;if(x.nama_pemilik)byOwner[norm(x.nama_pemilik)]=(byOwner[norm(x.nama_pemilik)]||{label:x.nama_pemilik,n:0}),byOwner[norm(x.nama_pemilik)].n++;const t=x.jenis_pelanggaran||"LAINNYA";byType[t]=(byType[t]||0)+1});const rank=o=>Object.values(o).sort((a,z)=>z.n-a.n).slice(0,10);const type=Object.entries(byType).map(([label,n])=>({label,n})).sort((a,z)=>z.n-a.n);const repeat=Object.values(byTnkb).filter(x=>x.n>1).length;const c=counts(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+cases.length+'</div></div><div class="card"><div class="metric-label">TNKB Unik</div><div class="metric-value">'+Object.keys(byTnkb).length+'</div></div><div class="card"><div class="metric-label">Kendaraan >1 Perkara</div><div class="metric-value">'+repeat+'</div></div><div class="card"><div class="metric-label">Blanko Terbit</div><div class="metric-value">'+c.blanko+'</div></div></div><div class="grid-3"><div class="panel"><h3 class="section-heading">TNKB Terbanyak</h3>'+bars(rank(byTnkb))+'</div><div class="panel"><h3 class="section-heading">Pemilik Terbanyak</h3>'+bars(rank(byOwner))+'</div><div class="panel"><h3 class="section-heading">Jenis Pelanggaran</h3>'+bars(type.slice(0,10),true)+'</div></div>'}
 function bars(rows,gold=false){if(!rows.length)return'<div class="empty">Belum ada data.</div>';const max=Math.max(...rows.map(x=>x.n),1);return'<div class="chart-list">'+rows.map(x=>'<div class="bar-row"><span class="bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></div></div><b>'+x.n+'</b></div>').join("")+'</div>'}
 function vehicleProfiles(b){const groups={};b.cases.forEach(x=>{const k=norm(x.tnkb);if(!k)return;if(!groups[k])groups[k]={tnkb:x.tnkb,owner:x.nama_pemilik,count:0,latest:null,case_id:x.case_id};groups[k].count++;if(!groups[k].latest||String(x.tanggal_pelanggaran)>String(groups[k].latest))groups[k].latest=x.tanggal_pelanggaran,groups[k].case_id=x.case_id});const rows=Object.values(groups).sort((a,z)=>z.count-a.count);$("content").innerHTML='<div class="panel"><div class="title-row"><h3>Profil Kendaraan</h3><span class="badge">'+rows.length+' kendaraan</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB atau pemilik..."></div><div id="slot">'+vehicleTable(rows)+'</div></div>';$("filter").oninput=e=>{$("slot").innerHTML=vehicleTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(norm(e.target.value))));bindDetailRows()};bindDetailRows()}
-function vehicleTable(rows){return'<div class="table-wrap"><table class="data-table"><thead><tr><th>TNKB</th><th>Nama Pemilik</th><th>Jumlah Perkara</th><th>Pelanggaran Terakhir</th></tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'"><td>'+esc(r.tnkb)+'</td><td>'+esc(r.owner||"-")+'</td><td>'+r.count+'</td><td>'+fmtDate(r.latest)+'</td></tr>').join("")+'</tbody></table></div>'}
+function vehicleTable(rows){return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Nama Pemilik</th><th>Jumlah Perkara</th><th>Pelanggaran Terakhir</th></tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'"><td data-label="TNKB">'+esc(r.tnkb)+'</td><td data-label="Nama Pemilik">'+esc(r.owner||"-")+'</td><td data-label="Jumlah Perkara">'+r.count+'</td><td data-label="Pelanggaran Terakhir">'+fmtDate(r.latest)+'</td></tr>').join("")+'</tbody></table></div>'}
 function searchTerms(v){return norm(v).split(/\s+/).filter(Boolean)}
 function caseSearchText(c,b,includePhone=false){
   const offender=b.offenders.find(o=>o.case_id===c.case_id)||{};
@@ -633,7 +689,7 @@ function renderDetail(d){
         (photos.length?'<span class="detail-photo-count">'+photos.length+' foto</span>':'')+
       '</div>'+
       '<div class="detail-identity">'+
-        '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip">'+esc(statusText)+'</span></div>'+
+        '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip '+statusBadgeClass(statusText)+'">'+esc(statusText)+'</span></div>'+
         '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb&&c.no_registrasi||c.tnkb&&c.ref_number?'<button class="detail-confirm-btn secondary" id="qrConfirmBtn" type="button">▦ QR Konfirmasi</button>':'')+'</div>'+
         '<div class="detail-key-grid">'+
           '<div class="detail-key"><small>Jenis Pelanggaran</small><strong>'+esc(c.jenis_pelanggaran||"-")+'</strong></div>'+
@@ -649,8 +705,14 @@ function renderDetail(d){
       '</div>'+
     '</section>'+
 
-    '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
-      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button>'+'<button class="action-btn favorite-action '+(p.watchCases?(isFavoriteCase(c.case_id)?"active":""):"restricted")+'" id="favoriteCaseBtn"'+(!p.watchCases?' aria-disabled="true" title="Hanya Admin dan Wasatpel"':"")+'>'+(p.watchCases?(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau"):"🔒 Pantau")+'</button>'+'<button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
+    '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row detail-primary-actions">'+
+      '<button class="action-btn primary" id="shareCaseBtn">↗ Bagikan</button>'+
+      '<button class="action-btn favorite-action '+(p.watchCases?(isFavoriteCase(c.case_id)?"active":""):"restricted")+'" id="favoriteCaseBtn"'+(!p.watchCases?' aria-disabled="true" title="Hanya Admin dan Wasatpel"':"")+'>'+(p.watchCases?(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau"):"🔒 Pantau")+'</button>'+
+      '<details class="detail-more" id="detailMore"><summary class="action-btn">Lainnya ⋮</summary><div class="detail-more-menu">'+
+        '<button class="detail-more-item" id="copyCase">Salin Ringkasan</button>'+
+        '<button class="detail-more-item" id="qrCaseBtn">▦ QR Perkara</button>'+
+        phoneAction+kejaksaanAction+
+      '</div></details>'+
     '</div></div>'+
 
     '<div class="detail-workspace">'+
