@@ -835,3 +835,14 @@ body{background:var(--ux-bg)}
   .hero-meta strong{font-size:13px}
   .hero-meta span{font-size:7px}
 }
+
+/* Watched cases */
+.favorites-panel .title-row{align-items:flex-start}
+.favorites-empty{display:grid;justify-items:center;gap:5px;padding:46px 18px}
+.favorites-empty b{font-size:32px;color:#e0a92d}
+.favorites-empty span{font-weight:800;color:#334b68}
+.favorites-empty small{color:#8190a3}
+@media(min-width:801px){
+  .sidebar nav{gap:1px!important}
+  .nav-btn{min-height:34px!important;padding-top:6px!important;padding-bottom:6px!important}
+}
