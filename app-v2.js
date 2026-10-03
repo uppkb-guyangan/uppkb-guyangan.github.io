@@ -41,7 +41,12 @@ function getFavoriteIds(){
 function isFavoriteCase(caseId){return getFavoriteIds().includes(String(caseId))}
 async function loadFavoriteIds(){
   const local=getLocalFavoriteIds();
-  if(state.demo||!state.profile?.uid||!perms().watchCases){
+  if(!perms().watchCases){
+    state.favoriteIds=[];
+    state.favoritesRemote=false;
+    return
+  }
+  if(state.demo||!state.profile?.uid){
     state.favoriteIds=local;
     state.favoritesRemote=false;
     return
@@ -130,13 +135,19 @@ function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"
 function renderNav(){
   const b=state.bundle||demo;
   const c=counts(b);
-  const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,favorites:getFavoriteIds().length};
-  $("nav").innerHTML=menu.filter(([id])=>id!=="favorites"||perms().watchCases).map(([id,t])=>{
+  const canWatch=perms().watchCases;
+  const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,favorites:canWatch?getFavoriteIds().length:null};
+  $("nav").innerHTML=menu.map(([id,t])=>{
     const n=badgeCounts[id];
-    const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':"";
-    return '<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span class="nav-icon">'+icons[id]+'</span><span class="nav-label">'+t+'</span>'+badge+'</button>'
+    const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':(id==="favorites"&&!canWatch?'<span class="nav-lock" aria-label="Akses dibatasi">🔒</span>':"");
+    const restricted=id==="favorites"&&!canWatch;
+    return '<button class="nav-btn '+(state.page===id?"active ":"")+(restricted?"restricted":"")+'" data-id="'+id+'"'+(restricted?' aria-disabled="true" title="Hanya Admin dan Wasatpel"':"")+'><span class="nav-icon">'+icons[id]+'</span><span class="nav-label">'+t+'</span>'+badge+'</button>'
   }).join("");
-  $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{setMobileSidebarOpen(false);openPage(b.dataset.id)})
+  $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    setMobileSidebarOpen(false);
+    if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Perkara Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
+    openPage(b.dataset.id)
+  })
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
@@ -639,7 +650,7 @@ function renderDetail(d){
     '</section>'+
 
     '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
-      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button>'+(p.watchCases?'<button class="action-btn favorite-action '+(isFavoriteCase(c.case_id)?"active":"")+'" id="favoriteCaseBtn">'+(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau")+'</button>':'')+'<button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
+      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button>'+'<button class="action-btn favorite-action '+(p.watchCases?(isFavoriteCase(c.case_id)?"active":""):"restricted")+'" id="favoriteCaseBtn"'+(!p.watchCases?' aria-disabled="true" title="Hanya Admin dan Wasatpel"':"")+'>'+(p.watchCases?(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau"):"🔒 Pantau")+'</button>'+'<button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
     '</div></div>'+
 
     '<div class="detail-workspace">'+
@@ -688,6 +699,7 @@ function renderDetail(d){
   });
   if($("shareCaseBtn"))$("shareCaseBtn").onclick=()=>shareCase(d);
   if($("favoriteCaseBtn"))$("favoriteCaseBtn").onclick=async()=>{
+    if(!perms().watchCases){toast("Fitur Pantau hanya dapat digunakan Admin dan Wasatpel.");return}
     const next=!isFavoriteCase(c.case_id);
     const result=await setFavoriteCase(c.case_id,next);
     renderNav();
