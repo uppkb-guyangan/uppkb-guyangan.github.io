@@ -205,3 +205,12 @@
   .detail-actionbar .action-row{width:100%}
   .detail-actionbar .action-btn{flex:1 1 auto}
 }
+
+.favorite-action.restricted{
+  opacity:.62;
+  cursor:not-allowed;
+  background:#f5f7fa;
+  color:#66788e;
+  border-color:#dfe6ee;
+}
+.favorite-action.restricted:hover{transform:none;background:#f5f7fa;border-color:#dfe6ee}
