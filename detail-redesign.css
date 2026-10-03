@@ -161,3 +161,33 @@
   background:#f7f9fc;
   border-color:#cfdbe8;
 }
+
+/* QR Perkara */
+.case-qr-overlay{
+  position:fixed;inset:0;z-index:1200;display:grid;place-items:center;
+  padding:18px;background:rgba(5,20,38,.68);backdrop-filter:blur(5px);
+}
+.case-qr-dialog{
+  position:relative;width:min(390px,100%);background:#fff;border-radius:20px;
+  padding:24px 22px 20px;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.30);
+  border:1px solid rgba(255,255,255,.7)
+}
+.case-qr-close{
+  position:absolute;right:12px;top:12px;width:34px;height:34px;border:0;border-radius:10px;
+  background:#f1f5f9;color:#34465d;font-weight:800;cursor:pointer
+}
+.case-qr-kicker{font-size:10px;font-weight:850;letter-spacing:.12em;color:#1478ff;margin-bottom:7px}
+.case-qr-dialog h3{margin:0;color:#10233f;font-size:26px;letter-spacing:-.03em}
+.case-qr-reg{margin:5px 0 15px;color:#73839a;font-size:11px;word-break:break-all}
+.case-qr-code{
+  width:244px;min-height:244px;margin:0 auto 13px;padding:12px;
+  display:grid;place-items:center;background:#fff;border:1px solid #e7edf5;border-radius:16px
+}
+.case-qr-code img,.case-qr-code canvas{display:block;max-width:220px;width:100%;height:auto}
+.case-qr-note{margin:0 auto 16px;max-width:290px;color:#687b92;font-size:11px;line-height:1.45}
+.case-qr-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+@media(max-width:520px){
+  .case-qr-dialog{padding:22px 16px 18px;border-radius:18px}
+  .case-qr-code{width:224px;min-height:224px;padding:10px}
+  .case-qr-code img,.case-qr-code canvas{max-width:204px}
+}
