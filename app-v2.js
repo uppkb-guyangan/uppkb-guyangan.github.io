@@ -22,6 +22,9 @@ const caseById=id=>state.bundle?.cases.find(x=>x.case_id===id);
 function favoriteStorageKey(){
   return "gsmart_favorites_"+String(state.profile?.uid||"guest")
 }
+function favoriteMigrationKey(){
+  return "gsmart_favorites_migrated_"+String(state.profile?.uid||"guest")
+}
 function getLocalFavoriteIds(){
   try{
     const raw=localStorage.getItem(favoriteStorageKey());
@@ -44,16 +47,21 @@ async function loadFavoriteIds(){
     return
   }
   try{
-    const rows=await q("gsmart_case_favorites",{select:"case_id",filters:{user_uid:"eq."+state.profile.uid},order:"created_at.desc"});
-    const remote=rows.map(x=>String(x.case_id)).filter(Boolean);
-    const merged=[...new Set([...local,...remote])];
-    state.favoriteIds=merged;
-    state.favoritesRemote=true;
-    saveLocalFavoriteIds(merged);
-    const missing=local.filter(id=>!remote.includes(id));
-    if(missing.length){
-      await write("gsmart_case_favorites",missing.map(case_id=>({user_uid:state.profile.uid,case_id})),{onConflict:"user_uid,case_id"});
+    let rows=await q("gsmart_case_favorites",{select:"case_id",filters:{user_uid:"eq."+state.profile.uid},order:"created_at.desc"});
+    let remote=rows.map(x=>String(x.case_id)).filter(Boolean);
+    let migrated=false;
+    try{migrated=localStorage.getItem(favoriteMigrationKey())==="1"}catch(_){}
+    if(!migrated&&local.length){
+      const missing=local.filter(id=>!remote.includes(id));
+      if(missing.length){
+        await write("gsmart_case_favorites",missing.map(case_id=>({user_uid:state.profile.uid,case_id})),{onConflict:"user_uid,case_id"});
+        remote=[...new Set([...local,...remote])]
+      }
+      try{localStorage.setItem(favoriteMigrationKey(),"1")}catch(_){}
     }
+    state.favoriteIds=remote;
+    state.favoritesRemote=true;
+    saveLocalFavoriteIds(remote)
   }catch(err){
     console.warn("Favorite Supabase fallback lokal:",err);
     state.favoriteIds=local;
