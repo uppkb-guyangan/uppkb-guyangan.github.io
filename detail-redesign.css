@@ -151,3 +151,13 @@
   transition:.15s;
 }
 .detail-confirm-btn:hover{background:#dfeeff;border-color:#b8d5f6;transform:translateY(-1px)}
+
+.detail-confirm-btn.secondary{
+  background:#fff;
+  color:#35506f;
+  border-color:#dce5ef;
+}
+.detail-confirm-btn.secondary:hover{
+  background:#f7f9fc;
+  border-color:#cfdbe8;
+}
