@@ -53,7 +53,7 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard")}
+function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase()}
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){
@@ -372,6 +372,24 @@ function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
 async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
+function caseDeepLink(caseId){
+  const url=new URL(window.location.href);
+  url.hash="";
+  url.search="";
+  url.searchParams.set("case",String(caseId||"").trim());
+  return url.toString()
+}
+function requestedCaseId(){
+  try{return new URL(window.location.href).searchParams.get("case")?.trim()||null}catch(_){return null}
+}
+function openRequestedCase(){
+  const caseId=requestedCaseId();
+  if(!caseId||!state.bundle)return;
+  const exists=state.bundle.cases.some(x=>String(x.case_id)===String(caseId));
+  if(!exists){toast("Perkara dari QR tidak ditemukan pada data G-Smart.");return}
+  state.detailSource="OTHER";
+  setTimeout(()=>openDetail(caseId),80)
+}
 async function openDetail(caseId){$("modalBackdrop").classList.remove("hidden");$("modalBody").innerHTML='<div class="loading">Memuat detail perkara...</div>';const c=caseById(caseId);$("modalTitle").textContent="Detail Perkara";$("modalSubtitle").textContent=(c?.tnkb||"-")+" · "+(c?.ref_number||c?.no_registrasi||"");try{const d=state.demo?demoDetail(caseId):await loadDetail(caseId);state.detail=d;renderDetail(d)}catch(e){$("modalBody").innerHTML='<div class="notice">'+esc(e.message)+'</div>'}}
 function demoDetail(id){const c=caseById(id)||demo.cases[0];return{case:c,offender:demo.offenders.find(x=>x.case_id===id),vehicle:{case_id:id,nama_pemilik:c.nama_pemilik,merk:"MITSUBISHI",tipe:"FUSO",jenis_kendaraan:"MOBIL BARANG",tahun_rakit:"2020",bahan_bakar:"SOLAR",jbb:3200,jbi:3100,berat_timbang:3450,berat_lebih:350},photos:[],shipping:demo.shipping.find(x=>x.case_id===id),payment:c.no_blanko?{no_briva:c.no_briva,status_bayar:c.status_bayar,titipan:500000,denda_maksimum:500000,denda_pengadilan:150000,biaya_perkara:5000,nominal_sisa:350000}:null,dispute:demo.disputes.find(x=>x.case_id===id),terminated:demo.terminated.find(x=>x.case_id===id),court:demo.courts.find(x=>x.case_id===id),manual:{kategori_internal:"BELUM_DIPROSES",prioritas:"NORMAL",catatan_ringkas:"Preview"},notes:[],history:demo.histories.filter(x=>x.case_id===id)}}
 async function loadDetail(caseId){const c=caseById(caseId);if(!c)throw new Error("Perkara tidak ditemukan.");const one=async(t,f,v)=>{if(!v)return null;const r=await q(t,{filters:{[f]:"eq."+v},limit:1});return r[0]||null};const [offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history]=await Promise.all([one("etle_offenders","case_id",caseId),one("etle_vehicles","case_id",caseId),q("etle_photos",{filters:{case_id:"eq."+caseId},order:"sort_order.asc"}),c.ref_number?one("etle_shipping","ref_number",c.ref_number):one("etle_shipping","case_id",caseId),one("etle_payments","case_id",caseId),c.violation_id?one("etle_disputes","violation_id",c.violation_id):one("etle_disputes","case_id",caseId),c.ref_number?one("etle_terminated_cases","ref_number",c.ref_number):one("etle_terminated_cases","case_id",caseId),c.violation_id?one("etle_court_info","violation_id",c.violation_id):one("etle_court_info","case_id",caseId),one("gsmart_case_status","case_id",caseId),q("gsmart_case_notes",{filters:{case_id:"eq."+caseId},order:"created_at.desc"}),q("gsmart_case_history",{filters:{case_id:"eq."+caseId},order:"event_time.desc.nullslast"})]);return{case:c,offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history}}
@@ -379,6 +397,52 @@ function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([
 function positiveAmount(v){const n=Number(v);return Number.isFinite(n)&&n>0}
 function hasCourtFine(d){return positiveAmount(d?.court?.denda_putusan)||positiveAmount(d?.payment?.denda_pengadilan)}
 function kejaksaanUrl(noBlanko){return"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim())}
+function closeCaseQr(){
+  document.getElementById("caseQrOverlay")?.remove()
+}
+function showCaseQr(d){
+  const c=d?.case;
+  if(!c?.case_id)return;
+  const url=caseDeepLink(c.case_id);
+  closeCaseQr();
+  const overlay=document.createElement("div");
+  overlay.id="caseQrOverlay";
+  overlay.className="case-qr-overlay";
+  overlay.innerHTML=
+    '<section class="case-qr-dialog" role="dialog" aria-modal="true" aria-label="QR Perkara">'+
+      '<button type="button" class="case-qr-close" id="caseQrClose" aria-label="Tutup">✕</button>'+
+      '<div class="case-qr-kicker">G-SMART · QR PERKARA</div>'+
+      '<h3>'+esc(c.tnkb||"Perkara ETLE")+'</h3>'+
+      '<p class="case-qr-reg">'+esc(c.no_registrasi||c.ref_number||c.case_id)+'</p>'+
+      '<div id="caseQrCode" class="case-qr-code"></div>'+
+      '<p class="case-qr-note">Scan untuk membuka Detail Perkara di G-Smart. Login tetap diperlukan.</p>'+
+      '<div class="case-qr-actions">'+
+        '<button type="button" class="action-btn" id="copyCaseLink">Salin Tautan</button>'+
+        '<button type="button" class="action-btn primary" id="downloadCaseQr">Simpan QR</button>'+
+      '</div>'+
+    '</section>';
+  document.body.appendChild(overlay);
+  const target=document.getElementById("caseQrCode");
+  if(window.QRCode&&target){
+    new window.QRCode(target,{text:url,width:220,height:220,colorDark:"#071a31",colorLight:"#ffffff",correctLevel:window.QRCode.CorrectLevel.M})
+  }else if(target){
+    target.innerHTML='<div class="notice">QR belum dapat dibuat. Pastikan perangkat terhubung ke internet lalu coba lagi.</div>'
+  }
+  document.getElementById("caseQrClose").onclick=closeCaseQr;
+  overlay.onclick=e=>{if(e.target===overlay)closeCaseQr()};
+  document.getElementById("copyCaseLink").onclick=async()=>{
+    try{await navigator.clipboard.writeText(url);toast("Tautan perkara disalin")}catch(_){toast("Gagal menyalin tautan")}
+  };
+  document.getElementById("downloadCaseQr").onclick=()=>{
+    const canvas=target?.querySelector("canvas");
+    const img=target?.querySelector("img");
+    const href=canvas?.toDataURL("image/png")||img?.src;
+    if(!href){toast("QR belum siap disimpan");return}
+    const a=document.createElement("a");
+    const safe=String(c.tnkb||c.case_id||"perkara").replace(/[^a-z0-9_-]+/gi,"-");
+    a.href=href;a.download="G-Smart-QR-"+safe+".png";document.body.appendChild(a);a.click();a.remove()
+  }
+}
 function renderDetail(d){
   const p=perms();
   const c=d.case;
@@ -422,7 +486,7 @@ function renderDetail(d){
     '</section>'+
 
     '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
-      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button>'+phoneAction+kejaksaanAction+
+      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
     '</div></div>'+
 
     '<div class="detail-workspace">'+
@@ -469,7 +533,7 @@ function renderDetail(d){
     document.querySelectorAll(".detail-photo-thumb").forEach(x=>x.classList.remove("active"));
     btn.classList.add("active");
   });
-  if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
+  if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const reg=String(c.no_registrasi||c.ref_number||"").trim();const tnkb=String(c.tnkb||"").replace(/\s+/g,"").toUpperCase();if(!reg||!tnkb){toast("No. Registrasi atau TNKB belum tersedia");return}const url="https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb);window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("copyTnkbBtn"))$("copyTnkbBtn").onclick=async()=>{const tnkb=String(c.tnkb||"").trim();if(!tnkb)return;try{await navigator.clipboard.writeText(tnkb);toast("TNKB disalin")}catch(_){toast("Gagal menyalin TNKB")}};
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
