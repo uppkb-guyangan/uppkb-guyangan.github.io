@@ -191,3 +191,17 @@
   .case-qr-code{width:224px;min-height:224px;padding:10px}
   .case-qr-code img,.case-qr-code canvas{max-width:204px}
 }
+
+/* Share + watched case actions */
+.favorite-action{transition:.15s}
+.favorite-action.active{
+  background:#fff8e7;
+  border-color:#f0cf82;
+  color:#916500;
+}
+.favorite-action.active:hover{background:#fff2cb;border-color:#e7bf5e}
+@media(max-width:760px){
+  .detail-actionbar{align-items:flex-start}
+  .detail-actionbar .action-row{width:100%}
+  .detail-actionbar .action-btn{flex:1 1 auto}
+}
