@@ -13,7 +13,7 @@
       "src": "./G-SMART%20Traffic%20Monitoring%20Emblem.png",
       "sizes": "any",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
