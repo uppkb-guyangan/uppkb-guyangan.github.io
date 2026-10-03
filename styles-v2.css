@@ -117,3 +117,25 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
   outline:2px solid var(--navy-light);
   outline-offset:2px;
 }
+
+.refresh-data-btn{
+  display:inline-grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  padding:0;
+  flex:0 0 auto;
+  background:#f3f7fc;
+  border:1px solid #e4ebf3;
+  color:var(--navy);
+  font-size:18px;
+  font-weight:800;
+}
+.refresh-data-btn:hover{background:#eaf1f8}
+.refresh-data-btn:disabled{opacity:.55;cursor:wait}
+.refresh-data-btn.refreshing{animation:gsmart-refresh-spin .8s linear infinite}
+@keyframes gsmart-refresh-spin{to{transform:rotate(360deg)}}
+@media(max-width:520px){
+  .refresh-data-btn{width:36px;height:36px}
+  .topbar-actions{margin-left:auto}
+}
