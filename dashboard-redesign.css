@@ -75,8 +75,52 @@ body{background:var(--ux-bg)}
   inset:0;
   z-index:-2;
   background:linear-gradient(90deg,rgba(5,31,61,.96) 0%,rgba(7,48,88,.90) 43%,rgba(7,48,88,.48) 72%,rgba(7,35,69,.42) 100%);
+  transition:background .45s ease;
   pointer-events:none;
 }
+.dashboard-hero.hero-morning:before{
+  background:
+    linear-gradient(90deg,rgba(5,39,72,.94) 0%,rgba(13,82,126,.80) 44%,rgba(46,126,166,.36) 74%,rgba(255,198,112,.16) 100%);
+}
+.dashboard-hero.hero-day:before{
+  background:
+    linear-gradient(90deg,rgba(5,36,70,.94) 0%,rgba(8,78,137,.78) 44%,rgba(50,137,194,.32) 74%,rgba(255,255,255,.08) 100%);
+}
+.dashboard-hero.hero-evening:before{
+  background:
+    linear-gradient(90deg,rgba(30,35,68,.95) 0%,rgba(75,64,96,.80) 44%,rgba(186,103,78,.30) 74%,rgba(246,172,86,.16) 100%);
+}
+.dashboard-hero.hero-night:before{
+  background:
+    linear-gradient(90deg,rgba(4,18,38,.97) 0%,rgba(5,35,68,.92) 44%,rgba(10,54,89,.50) 74%,rgba(2,22,43,.48) 100%);
+}
+
+.dashboard-hero.hero-morning:after{
+  background:
+    radial-gradient(circle at 82% 20%,rgba(255,220,154,.20),transparent 28%),
+    linear-gradient(120deg,transparent 18%,rgba(255,255,255,.055) 48%,transparent 70%);
+}
+.dashboard-hero.hero-day:after{
+  background:
+    radial-gradient(circle at 82% 18%,rgba(255,255,255,.16),transparent 26%),
+    linear-gradient(120deg,transparent 20%,rgba(255,255,255,.045) 48%,transparent 68%);
+}
+.dashboard-hero.hero-evening:after{
+  background:
+    radial-gradient(circle at 84% 24%,rgba(255,189,119,.20),transparent 28%),
+    linear-gradient(120deg,transparent 18%,rgba(255,217,169,.045) 48%,transparent 70%);
+}
+.dashboard-hero.hero-night:after{
+  background:
+    radial-gradient(circle at 82% 20%,rgba(122,165,225,.10),transparent 24%),
+    linear-gradient(120deg,transparent 20%,rgba(255,255,255,.025) 48%,transparent 68%);
+}
+
+.dashboard-hero.hero-morning .hero-stats b{color:#ffe2a6}
+.dashboard-hero.hero-day .hero-stats b{color:#d9ecff}
+.dashboard-hero.hero-evening .hero-stats b{color:#ffd09c}
+.dashboard-hero.hero-night .hero-stats b{color:#bcdcff}
+
 .dashboard-hero:after{
   content:"";
   position:absolute;
