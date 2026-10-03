@@ -15,23 +15,23 @@
 }
 
 body{background:var(--ux-bg)}
-.app-shell{grid-template-columns:272px minmax(0,1fr)}
+.app-shell{grid-template-columns:304px minmax(0,1fr)}
 .sidebar{
-  padding:18px 12px 14px;
+  padding:14px 10px 10px;
   background:linear-gradient(180deg,#071a31 0%,#09213b 68%,#071a31 100%);
   box-shadow:6px 0 24px rgba(7,26,49,.08);
 }
-.side-brand{padding:5px 10px 20px}
-.side-brand b{font-size:20px;letter-spacing:-.025em}
-.side-brand span{font-size:10px;text-transform:uppercase;letter-spacing:.08em}
-.sidebar nav{overflow-x:hidden;overflow-y:auto}\n.nav-btn{min-height:42px;padding:10px 12px;border-radius:9px;color:#c7d5e4;font-size:13px}
-.nav-btn>span:first-child{width:21px;text-align:center;font-size:17px;opacity:.95}
+.side-brand{padding:3px 10px 14px}
+.side-brand b{font-size:19px;letter-spacing:-.025em}
+.side-brand span{font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.sidebar nav{overflow-x:hidden;overflow-y:auto}\n.nav-btn{min-height:38px;padding:8px 10px;border-radius:9px;color:#c7d5e4;font-size:12.5px}
+.nav-btn>span:first-child{width:20px;text-align:center;font-size:16px;opacity:.95}
 .nav-btn.active{
   background:linear-gradient(135deg,#0878ff,#2389ff);
   box-shadow:0 9px 22px rgba(8,120,255,.24);
 }
 .nav-btn.active:before{display:none}
-.side-footer{padding-top:12px}
+.side-footer{padding-top:8px}
 .profile-photo,.profile-fallback{width:40px;height:40px;border-radius:50%}
 .ghost{border-radius:9px}
 
@@ -393,7 +393,7 @@ body{background:var(--ux-bg)}
   .cards.dashboard-metrics{grid-template-columns:repeat(4,1fr)}
 }
 @media(max-width:1040px){
-  .app-shell{grid-template-columns:252px minmax(0,1fr)}
+  .app-shell{grid-template-columns:278px minmax(0,1fr)}
   .cards.dashboard-metrics{grid-template-columns:repeat(2,1fr)}
   .dashboard-main>.grid-2{grid-template-columns:1fr}
 }
@@ -698,5 +698,40 @@ body{background:var(--ux-bg)}
   }
   .sidebar nav{
     padding-right:2px;
+  }
+}
+
+@media(min-width:801px){
+  .sidebar nav{
+    gap:2px;
+    overflow-x:hidden;
+    overflow-y:auto;
+    min-height:0;
+  }
+  .sidebar .profile-card{margin-bottom:8px}
+  .sidebar .profile-photo,.sidebar .profile-fallback{width:36px;height:36px}
+  .sidebar .profile{font-size:11px}
+  .sidebar .profile b{font-size:12px;line-height:1.2}
+  .sidebar-hide-btn{
+    padding:6px 6px;
+    margin:0 0 3px;
+    font-size:10px;
+  }
+  .sidebar-copyright{
+    margin:0 0 5px;
+    font-size:9px;
+    line-height:1.2;
+  }
+  .sidebar .ghost{
+    padding:7px 10px;
+    min-height:34px;
+    font-size:12px;
+    border-radius:9px;
+  }
+  .nav-badge{
+    min-width:30px;
+    height:22px;
+    padding:0 8px;
+    font-size:11px;
   }
 }
