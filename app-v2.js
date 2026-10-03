@@ -101,7 +101,33 @@ function dashboard(b){
 }
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
 function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim","Gagal Kirim","Dikembalikan","Lainnya"];const map=Object.fromEntries(cats.map(x=>[x,0]));rows.forEach(r=>map[shipClass(r.status)[0]]++);return'<div class="status-grid">'+cats.map(k=>'<div class="status-card"><b>'+map[k]+'</b><span>'+k+'</span></div>').join("")+'</div>'}
-function processPage(page,rows){const titles=Object.fromEntries(menu);let extra="";if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';$("content").innerHTML='<div class="panel"><div class="title-row"><h3>'+titles[page]+'</h3><span class="badge">'+rows.length+' data</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik...">'+extra+'</div><div id="slot">'+genericTable(page,rows)+'</div></div>';const apply=()=>{const q=norm($("filter").value);let r=rows.filter(x=>JSON.stringify(x).toLowerCase().includes(q));if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);$("slot").innerHTML=genericTable(page,r);bindDetailRows()};$("filter").oninput=apply;if($("statusFilter"))$("statusFilter").onchange=apply;bindDetailRows()}
+function processPage(page,rows){
+  const titles=Object.fromEntries(menu);
+  let extra="";
+  if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
+  $("content").innerHTML=
+    '<div class="panel">'+
+      '<div class="title-row"><h3>'+titles[page]+'</h3><span class="badge" id="resultCount">'+rows.length+' data</span></div>'+
+      '<div class="toolbar table-toolbar">'+
+        '<div class="search-field-wrap"><span class="search-field-icon">⌕</span><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik..."><button id="clearFilter" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div>'+
+        extra+
+      '</div>'+
+      '<div id="slot">'+genericTable(page,rows)+'</div>'+
+    '</div>';
+  const apply=()=>{
+    const q=norm($("filter").value);
+    let r=rows.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q));
+    if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
+    $("slot").innerHTML=genericTable(page,r);
+    $("resultCount").textContent=r.length===rows.length?r.length+" data":r.length+" dari "+rows.length+" data";
+    $("clearFilter").classList.toggle("hidden",!q);
+    bindDetailRows();
+  };
+  $("filter").oninput=apply;
+  $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
+  if($("statusFilter"))$("statusFilter").onchange=apply;
+  bindDetailRows();
+}
 function resolveCaseIdForRecord(page,r){if(!r)return null;const cases=state.bundle?.cases||[];if(r.case_id&&cases.some(c=>c.case_id===r.case_id))return r.case_id;if(page==="shipping"){if(r.ref_number){const byRef=cases.find(c=>norm(c.ref_number)===norm(r.ref_number));if(byRef)return byRef.case_id}if(r.violation_id){const byViolation=cases.find(c=>norm(c.violation_id)===norm(r.violation_id));if(byViolation)return byViolation.case_id}}return r.case_id||null}
 function rowCaseId(page,r){return resolveCaseIdForRecord(page,r)}
 function genericTable(page,rows){if(!rows.length)return'<div class="empty">Belum ada data pada periode ini.</div>';const defs={shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],["reason","Alasan"]],terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],history:[["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]};const cols=defs[page]||[];return'<div class="table-wrap"><table class="data-table"><thead><tr>'+cols.map(c=>'<th>'+c[1]+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr class="'+(rowCaseId(page,r)?"clickable":"")+'" data-case="'+esc(rowCaseId(page,r)||"")+'">'+cols.map(([k])=>'<td>'+cell(k,r[k],r)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>'}
@@ -113,7 +139,53 @@ function analytics(b){const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran
 function bars(rows,gold=false){if(!rows.length)return'<div class="empty">Belum ada data.</div>';const max=Math.max(...rows.map(x=>x.n),1);return'<div class="chart-list">'+rows.map(x=>'<div class="bar-row"><span class="bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></div></div><b>'+x.n+'</b></div>').join("")+'</div>'}
 function vehicleProfiles(b){const groups={};b.cases.forEach(x=>{const k=norm(x.tnkb);if(!k)return;if(!groups[k])groups[k]={tnkb:x.tnkb,owner:x.nama_pemilik,count:0,latest:null,case_id:x.case_id};groups[k].count++;if(!groups[k].latest||String(x.tanggal_pelanggaran)>String(groups[k].latest))groups[k].latest=x.tanggal_pelanggaran,groups[k].case_id=x.case_id});const rows=Object.values(groups).sort((a,z)=>z.count-a.count);$("content").innerHTML='<div class="panel"><div class="title-row"><h3>Profil Kendaraan</h3><span class="badge">'+rows.length+' kendaraan</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB atau pemilik..."></div><div id="slot">'+vehicleTable(rows)+'</div></div>';$("filter").oninput=e=>{$("slot").innerHTML=vehicleTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(norm(e.target.value))));bindDetailRows()};bindDetailRows()}
 function vehicleTable(rows){return'<div class="table-wrap"><table class="data-table"><thead><tr><th>TNKB</th><th>Nama Pemilik</th><th>Jumlah Perkara</th><th>Pelanggaran Terakhir</th></tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'"><td>'+esc(r.tnkb)+'</td><td>'+esc(r.owner||"-")+'</td><td>'+r.count+'</td><td>'+fmtDate(r.latest)+'</td></tr>').join("")+'</tbody></table></div>'}
-function globalSearch(b){$("content").innerHTML='<div class="panel"><div class="title-row"><h3>Pencarian Global</h3></div><div class="toolbar"><input id="globalQuery" style="min-width:min(620px,100%)" placeholder="TNKB, No. Registrasi, Blanko, BRIVA, pemilik, nama pelanggar..."></div><div id="searchResult"><div class="empty">Masukkan minimal 2 karakter.</div></div></div>';$("globalQuery").oninput=e=>{const q=norm(e.target.value);if(q.length<2){$("searchResult").innerHTML='<div class="empty">Masukkan minimal 2 karakter.</div>';return}const offenderCase=new Map(b.offenders.map(o=>[o.case_id,o]));const isAdmin=rolePermissions().adminPrivileges;const rows=b.cases.filter(c=>{if(JSON.stringify(c).toLowerCase().includes(q))return true;const o=offenderCase.get(c.case_id)||{};const searchable=[o.nama,o.no_sim,o.email];if(isAdmin)searchable.push(o.no_telp);return searchable.filter(Boolean).some(v=>String(v).toLowerCase().includes(q))}).slice(0,100);$("searchResult").innerHTML=caseTable(rows);bindDetailRows()}}
+function searchTerms(v){return norm(v).split(/\s+/).filter(Boolean)}
+function caseSearchText(c,b,includePhone=false){
+  const offender=b.offenders.find(o=>o.case_id===c.case_id)||{};
+  const shipping=b.shipping.find(x=>x.case_id===c.case_id||norm(x.ref_number)===norm(c.ref_number))||{};
+  const court=b.courts.find(x=>x.case_id===c.case_id||norm(x.violation_id)===norm(c.violation_id))||{};
+  const dispute=b.disputes.find(x=>x.case_id===c.case_id||norm(x.violation_id)===norm(c.violation_id))||{};
+  const terminated=b.terminated.find(x=>x.case_id===c.case_id||norm(x.ref_number)===norm(c.ref_number))||{};
+  const values=[
+    c.case_id,c.violation_id,c.ref_number,c.tnkb,c.no_registrasi,c.jenis_pelanggaran,c.pasal,c.lokasi,
+    c.status_etle,c.no_blanko,c.no_briva,c.status_bayar,c.nama_pemilik,
+    offender.nama,offender.no_sim,offender.email,
+    shipping.tracking_number,shipping.courier,shipping.status,shipping.status_description,
+    court.pengadilan,court.status_sidang,court.no_amar_putusan,court.hakim,
+    dispute.status,dispute.reason,terminated.status,terminated.reason
+  ];
+  if(includePhone)values.push(offender.no_telp);
+  return values.filter(Boolean).join(" ").toLowerCase()
+}
+function globalSearch(b){
+  $("content").innerHTML=
+    '<div class="panel global-search-panel">'+
+      '<div class="title-row"><div><h3>Pencarian Global</h3><p class="search-hint">Cari lintas perkara, TNKB, registrasi, blanko, BRIVA, pelanggar, resi, status, dan persidangan.</p></div><span class="badge" id="globalSearchCount">Siap</span></div>'+
+      '<div class="toolbar table-toolbar"><div class="search-field-wrap global-search-wrap"><span class="search-field-icon">⌕</span><input id="globalQuery" placeholder="Contoh: AG 9632 UV, AJ0000468, BRIVA, nama pemilik, nomor resi..."><button id="clearGlobalQuery" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div></div>'+
+      '<div id="searchResult"><div class="empty">Masukkan minimal 2 karakter untuk mencari.</div></div>'+
+    '</div>';
+  const run=()=>{
+    const raw=$("globalQuery").value;
+    const q=norm(raw);
+    $("clearGlobalQuery").classList.toggle("hidden",!q);
+    if(q.length<2){
+      $("globalSearchCount").textContent="Siap";
+      $("searchResult").innerHTML='<div class="empty">Masukkan minimal 2 karakter untuk mencari.</div>';
+      return;
+    }
+    const terms=searchTerms(raw);
+    const isAdmin=rolePermissions().adminPrivileges;
+    const rows=b.cases.filter(c=>{
+      const haystack=caseSearchText(c,b,isAdmin);
+      return terms.every(t=>haystack.includes(t))
+    }).sort((a,z)=>String(z.tanggal_pelanggaran||z.first_seen_at||"").localeCompare(String(a.tanggal_pelanggaran||a.first_seen_at||""))).slice(0,100);
+    $("globalSearchCount").textContent=rows.length+(rows.length===100?" hasil teratas":" hasil");
+    $("searchResult").innerHTML=rows.length?caseTable(rows):'<div class="empty">Tidak ada perkara yang cocok dengan pencarian tersebut.</div>';
+    bindDetailRows();
+  };
+  $("globalQuery").oninput=run;
+  $("clearGlobalQuery").onclick=()=>{$("globalQuery").value="";run();$("globalQuery").focus()};
+}
 function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const shipping=new Set(b.shipping.map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
 function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Total Perkara: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' perkara\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' perkara ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
