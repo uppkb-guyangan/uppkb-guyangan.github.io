@@ -41,7 +41,7 @@ function getFavoriteIds(){
 function isFavoriteCase(caseId){return getFavoriteIds().includes(String(caseId))}
 async function loadFavoriteIds(){
   const local=getLocalFavoriteIds();
-  if(state.demo||!state.profile?.uid){
+  if(state.demo||!state.profile?.uid||!perms().watchCases){
     state.favoriteIds=local;
     state.favoritesRemote=false;
     return
@@ -70,7 +70,7 @@ async function loadFavoriteIds(){
 }
 async function setFavoriteCase(caseId,active){
   const id=String(caseId||"").trim();
-  if(!id)return{active:false,remote:false};
+  if(!id||!perms().watchCases)return{active:false,remote:false};
   const current=getFavoriteIds();
   const next=active?[id,...current.filter(x=>x!==id)]:current.filter(x=>x!==id);
   state.favoriteIds=next;
@@ -90,8 +90,8 @@ async function setFavoriteCase(caseId,active){
     return{active,remote:false}
   }
 }
-function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
-const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,admin:rolePermissions().adminPrivileges});
+function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
+const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
 function syncTimeLabel(){
   return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(new Date())+" WIB"
@@ -131,7 +131,7 @@ function renderNav(){
   const b=state.bundle||demo;
   const c=counts(b);
   const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,favorites:getFavoriteIds().length};
-  $("nav").innerHTML=menu.map(([id,t])=>{
+  $("nav").innerHTML=menu.filter(([id])=>id!=="favorites"||perms().watchCases).map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':"";
     return '<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span class="nav-icon">'+icons[id]+'</span><span class="nav-label">'+t+'</span>'+badge+'</button>'
@@ -140,7 +140,7 @@ function renderNav(){
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Perkara Dipantau.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
@@ -639,7 +639,7 @@ function renderDetail(d){
     '</section>'+
 
     '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
-      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button><button class="action-btn favorite-action '+(isFavoriteCase(c.case_id)?"active":"")+'" id="favoriteCaseBtn">'+(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau")+'</button><button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
+      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button>'+(p.watchCases?'<button class="action-btn favorite-action '+(isFavoriteCase(c.case_id)?"active":"")+'" id="favoriteCaseBtn">'+(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau")+'</button>':'')+'<button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
     '</div></div>'+
 
     '<div class="detail-workspace">'+
