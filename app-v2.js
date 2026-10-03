@@ -89,9 +89,15 @@ function dashboard(b){
   ];
   const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);
   const profileName=state.profile?.nama||"Petugas";
+  const profileRole=String(state.profile?.role||"PETUGAS").trim().toUpperCase();
+  const profilePhoto=String(state.profile?.photoUrl||"").trim();
   const now=new Date();
   const dateLabel=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:"Asia/Jakarta"}).format(now);
   const timeLabel=new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(now)+" WIB";
+  const hourWib=Number(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(now));
+  const greeting=hourWib>=5&&hourWib<11?"Selamat pagi":hourWib>=11&&hourWib<15?"Selamat siang":hourWib>=15&&hourWib<18?"Selamat sore":"Selamat malam";
+  const online=navigator.onLine;
+  const syncLabel=$("syncState")?.textContent||"Siap";
   const uniqueTnkb=new Set(b.cases.filter(x=>period(x.tanggal_pelanggaran)&&x.tnkb).map(x=>norm(x.tnkb))).size;
   const railRows=[
     ["＋","Data baru",c.newData],
@@ -100,9 +106,29 @@ function dashboard(b){
     ["✓","TNKB unik",uniqueTnkb]
   ];
   $("content").innerHTML=
-    '<section class="dashboard-hero">'+
-      '<div class="hero-copy"><h1>Selamat datang, '+esc(profileName)+' 👋</h1><h2>G-Smart UPPKB Guyangan</h2><p>Monitoring dan pengelolaan data pelanggaran ETLE secara terintegrasi</p></div>'+
-      '<div class="hero-meta"><small>'+esc(dateLabel)+'</small><strong>'+esc(timeLabel)+'</strong><span>'+esc(monthName(state.month))+'</span></div>'+
+    '<section class="dashboard-hero hero-animated">'+
+      '<div class="hero-building-bg" aria-hidden="true"></div>'+
+      '<div class="hero-content">'+
+        '<div class="hero-copy">'+
+          '<div class="hero-greeting-row"><span class="hero-greeting">'+esc(greeting)+'</span><span class="hero-wave" aria-hidden="true">👋</span></div>'+
+          '<h1>'+esc(profileName)+'</h1>'+
+          '<div class="hero-role">'+esc(profileRole)+' · UPPKB Guyangan</div>'+
+          '<div class="hero-stats">'+
+            '<span><b>'+c.total+'</b> Perkara</span>'+
+            '<span><b>'+c.shipping+'</b> Pengiriman</span>'+
+            '<span><b>'+c.blanko+'</b> Blanko</span>'+
+          '</div>'+
+          '<div class="hero-status-row">'+
+            '<span class="hero-online '+(online?"online":"offline")+'"><i></i>'+(online?"Online":"Offline")+'</span>'+
+            '<span class="hero-sync">'+esc(syncLabel)+'</span>'+
+            '<button type="button" class="hero-search-btn" data-go="search">⌕ Cari Perkara</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="hero-side">'+
+          '<div class="hero-meta"><small>'+esc(dateLabel)+'</small><strong>'+esc(timeLabel)+'</strong><span>'+esc(monthName(state.month))+'</span></div>'+
+          (profilePhoto?'<div class="hero-user-photo-wrap"><span class="hero-user-glow"></span><img class="hero-user-photo" src="'+esc(profilePhoto)+'" alt="Foto '+esc(profileName)+'" decoding="async" fetchpriority="high"></div>':'<div class="hero-user-fallback" aria-label="Foto profil belum tersedia">'+esc((profileName||"P")[0])+'</div>')+
+        '</div>'+
+      '</div>'+
     '</section>'+
     '<div class="dashboard-layout">'+
       '<div class="dashboard-main">'+
@@ -122,7 +148,7 @@ function dashboard(b){
         '</div></div>'+
       '</aside>'+
     '</div>';
-  document.querySelectorAll(".quick-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
+  document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
