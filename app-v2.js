@@ -30,7 +30,7 @@ function setDesktopSidebarHidden(hidden){
   try{localStorage.setItem("gsmart_sidebar_hidden",hidden?"1":"0")}catch(_){}
 }
 function applySidebarPreference(){
-  if(window.matchMedia("(max-width:800px)").matches){
+  if(isMobileLayout()){
     document.querySelector(".app-shell")?.classList.remove("sidebar-hidden");
     return;
   }
@@ -41,7 +41,7 @@ function applySidebarPreference(){
 function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();openPage("dashboard")}
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
-function renderNav(){$("nav").innerHTML=menu.map(([id,t])=>'<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span>'+icons[id]+'</span><span>'+t+'</span></button>').join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{document.querySelector(".sidebar").classList.remove("open");openPage(b.dataset.id)})}
+function renderNav(){$("nav").innerHTML=menu.map(([id,t])=>'<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span>'+icons[id]+'</span><span>'+t+'</span></button>').join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{setMobileSidebarOpen(false);openPage(b.dataset.id)})}
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderPage()};
 function openPage(p){state.page=p;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}renderPage()}
@@ -299,19 +299,30 @@ $("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("lo
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;await signOut(auth);showLogin()};
-$("menuBtn").onclick=()=>{
+function isMobileLayout(){return window.matchMedia("(max-width:800px)").matches||window.innerWidth<=800||(window.visualViewport&&window.visualViewport.width<=800)}
+function setMobileSidebarOpen(open){
+  const sidebar=document.querySelector(".sidebar");
+  const backdrop=$("mobileNavBackdrop");
+  sidebar?.classList.toggle("open",!!open);
+  backdrop?.classList.toggle("open",!!open);
+  document.body.classList.toggle("mobile-nav-open",!!open);
+}
+$("menuBtn").onclick=e=>{
+  e.preventDefault();
+  e.stopPropagation();
   const sidebar=document.querySelector(".sidebar");
   const shell=document.querySelector(".app-shell");
-  if(window.matchMedia("(max-width:800px)").matches){
-    sidebar?.classList.toggle("open");
+  if(isMobileLayout()){
+    setMobileSidebarOpen(!sidebar?.classList.contains("open"));
   }else{
     setDesktopSidebarHidden(!shell?.classList.contains("sidebar-hidden"));
   }
 };
+if($("mobileNavBackdrop"))$("mobileNavBackdrop").onclick=()=>setMobileSidebarOpen(false);
 if($("sidebarHideBtn"))$("sidebarHideBtn").onclick=()=>{
   const sidebar=document.querySelector(".sidebar");
-  if(window.matchMedia("(max-width:800px)").matches){
-    sidebar?.classList.remove("open");
+  if(isMobileLayout()){
+    setMobileSidebarOpen(false);
   }else{
     setDesktopSidebarHidden(true);
   }
