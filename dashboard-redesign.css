@@ -188,7 +188,7 @@ body{background:var(--ux-bg)}
 .hero-search-btn:hover{background:rgba(255,255,255,.20)}
 .hero-side{
   position:relative;
-  flex:0 0 260px;
+  flex:0 0 390px;
   min-width:0;
   display:flex;
   justify-content:flex-end;
@@ -196,16 +196,24 @@ body{background:var(--ux-bg)}
 }
 .hero-meta{
   position:absolute;
-  top:0;
-  right:0;
-  z-index:3;
+  top:8px;
+  right:190px;
+  z-index:4;
+  width:178px;
+  min-width:178px;
+  padding:10px 12px;
+  border-radius:13px;
   text-align:right;
-  min-width:190px;
+  background:rgba(4,24,49,.56);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 10px 24px rgba(0,0,0,.16);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   animation:heroCopyIn .85s ease both;
 }
-.hero-meta small{display:block;color:rgba(255,255,255,.76);font-size:10px}
-.hero-meta strong{display:block;font-size:18px;margin-top:2px}
-.hero-meta span{display:block;margin-top:2px;font-size:10px;color:rgba(255,255,255,.80)}
+.hero-meta small{display:block;color:rgba(255,255,255,.92);font-size:10px;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+.hero-meta strong{display:block;font-size:22px;line-height:1.05;margin-top:3px;color:#fff;text-shadow:0 2px 7px rgba(0,0,0,.55);font-variant-numeric:tabular-nums}
+.hero-meta span{display:block;margin-top:4px;font-size:10px;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.45)}
 .hero-user-photo-wrap{
   position:absolute;
   right:-4px;
@@ -665,4 +673,19 @@ body{background:var(--ux-bg)}
 @media (prefers-reduced-motion: reduce){
   .dashboard-metric-link,.dashboard-metric-link .metric-nav-arrow{transition:none!important}
   .dashboard-metric-link:active{transform:none!important}
+}
+
+@media(max-width:1180px) and (min-width:801px){
+  .hero-side{flex-basis:330px}
+  .hero-meta{right:166px;width:150px;min-width:150px;padding:9px 10px}
+  .hero-meta strong{font-size:20px}
+  .hero-user-photo-wrap{width:165px}
+  .hero-user-photo{max-width:165px}
+}
+
+.history-title-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.history-focus-note{margin:4px 0 0;color:#71849a;font-size:11px;line-height:1.45}
+.history-reset-btn{padding:7px 10px;font-size:11px;white-space:nowrap}
+@media(max-width:600px){
+  .history-title-actions{width:100%;justify-content:flex-start}
 }
