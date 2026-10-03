@@ -139,3 +139,30 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
   .refresh-data-btn{width:36px;height:36px}
   .topbar-actions{margin-left:auto}
 }
+
+.connection-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:750;
+  white-space:nowrap;
+  border:1px solid #dcefe3;
+  background:#edf8f1;
+  color:#267748;
+}
+.connection-badge .connection-dot{font-size:10px;line-height:1}
+.connection-badge.offline{
+  border-color:#f1d3d3;
+  background:#fff1f1;
+  color:#b33a3a;
+}
+@media(max-width:520px){
+  .connection-badge{
+    padding:7px 9px;
+    font-size:11px;
+  }
+  .connection-badge .connection-dot{display:none}
+}
