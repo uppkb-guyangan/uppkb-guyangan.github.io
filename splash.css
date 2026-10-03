@@ -1,0 +1,57 @@
+/* G-Smart branded splash — desktop + mobile */
+html.splash-lock, body.splash-lock{overflow:hidden!important}
+.gsmart-splash{
+  position:fixed;inset:0;z-index:100000;
+  display:grid;place-items:center;
+  min-height:100vh;min-height:100dvh;
+  background:
+    radial-gradient(circle at 50% 48%,rgba(30,91,156,.20),transparent 38%),
+    linear-gradient(145deg,#06101d 0%,#0a1929 52%,#06101d 100%);
+  opacity:1;visibility:visible;
+  transition:opacity .34s ease,visibility .34s ease;
+  overflow:hidden
+}
+.gsmart-splash.is-closing{opacity:0;visibility:hidden;pointer-events:none}
+.gsmart-splash.hidden{display:none}
+.gsmart-splash::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.22) 100%)
+}
+.gsmart-splash-stage{
+  position:relative;z-index:1;
+  width:min(1100px,100vw);
+  display:grid;place-items:center
+}
+.gsmart-splash-video{
+  display:block;width:100%;height:auto;max-height:100dvh;
+  object-fit:contain;object-position:center;
+  background:#06101d
+}
+.gsmart-splash-fallback{
+  display:none;place-items:center;text-align:center;color:#fff;gap:14px
+}
+.gsmart-splash-fallback img{
+  width:112px;height:112px;object-fit:contain;
+  filter:drop-shadow(0 16px 30px rgba(0,0,0,.35))
+}
+.gsmart-splash-fallback b{font-size:25px;letter-spacing:-.02em}
+.gsmart-splash-fallback span{font-size:12px;color:#adc0d5}
+.gsmart-splash.show-fallback .gsmart-splash-video{display:none}
+.gsmart-splash.show-fallback .gsmart-splash-fallback{display:grid}
+.gsmart-splash-label{
+  position:absolute;left:50%;bottom:max(20px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:2;
+  color:rgba(255,255,255,.72);font-size:10px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap
+}
+@media(max-width:700px) and (orientation:portrait){
+  .gsmart-splash-stage{width:100vw}
+  .gsmart-splash-video{width:100vw;max-height:62dvh;object-fit:contain}
+  .gsmart-splash{background:
+    radial-gradient(circle at 50% 50%,rgba(24,85,148,.25),transparent 34%),
+    linear-gradient(180deg,#06101d 0%,#091a2d 48%,#06101d 100%)}
+  .gsmart-splash-label{bottom:max(18px,env(safe-area-inset-bottom));font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .gsmart-splash{transition:none}
+}
