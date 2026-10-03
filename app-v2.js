@@ -41,9 +41,19 @@ function applySidebarPreference(){
 function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();openPage("dashboard")}
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
-function renderNav(){$("nav").innerHTML=menu.map(([id,t])=>'<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span>'+icons[id]+'</span><span>'+t+'</span></button>').join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{setMobileSidebarOpen(false);openPage(b.dataset.id)})}
+function renderNav(){
+  const b=state.bundle||demo;
+  const c=counts(b);
+  const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions};
+  $("nav").innerHTML=menu.map(([id,t])=>{
+    const n=badgeCounts[id];
+    const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':"";
+    return '<button class="nav-btn '+(state.page===id?"active":"")+'" data-id="'+id+'"><span class="nav-icon">'+icons[id]+'</span><span class="nav-label">'+t+'</span>'+badge+'</button>'
+  }).join("");
+  $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{setMobileSidebarOpen(false);openPage(b.dataset.id)})
+}
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
-$("globalMonth").onchange=e=>{state.month=e.target.value||null;renderPage()};
+$("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
 function openPage(p){state.page=p;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
@@ -221,7 +231,7 @@ function renderDetail(d){
   $("modalBody").innerHTML=
     '<section class="detail-hero">'+
       '<div class="detail-photo-main">'+
-        (mainPhoto?'<img src="'+esc(mainPhoto)+'" alt="Foto ETLE '+esc(c.tnkb||"")+'">':'<div class="detail-photo-empty"><b>▣</b><span>Foto ETLE belum tersedia</span></div>')+
+        (mainPhoto?'<img id="detailMainPhoto" src="'+esc(mainPhoto)+'" alt="Foto ETLE '+esc(c.tnkb||"")+'" decoding="async" fetchpriority="high">':'<div class="detail-photo-empty"><b>▣</b><span>Foto ETLE belum tersedia</span></div>')+
         (photos.length?'<span class="detail-photo-count">'+photos.length+' foto</span>':'')+
       '</div>'+
       '<div class="detail-identity">'+
@@ -256,7 +266,7 @@ function renderDetail(d){
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▤</span>Kendaraan & KIR</h3>'+
           infoGrid(d.vehicle,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"]])+
         '</section>'+
-        (photos.length?'<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▧</span>Foto ETLE</h3><div class="detail-photos-strip">'+photos.map(x=>'<img src="'+esc(x.photo_url)+'" alt="'+esc(x.description||x.photo_type||"Foto ETLE")+'">').join("")+'</div></section>':"")+
+        (photos.length?'<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▧</span>Foto ETLE</h3><div class="detail-photos-strip">'+photos.map((x,i)=>'<button type="button" class="detail-photo-thumb'+(i===0?" active":"")+'" data-photo="'+esc(x.photo_url)+'" aria-label="Tampilkan '+esc(x.description||x.photo_type||"foto ETLE")+'"><img src="'+esc(x.photo_url)+'" alt="'+esc(x.description||x.photo_type||"Foto ETLE")+'" loading="lazy" decoding="async" fetchpriority="low"></button>').join("")+'</div></section>':"")+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">↻</span>Timeline Perkara</h3>'+timelineSection(d.history||[]).replace('<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3>','').replace('</section>','')+'</section>'+
       '</div>'+
 
@@ -279,6 +289,16 @@ function renderDetail(d){
       '</aside>'+
     '</div>';
 
+  document.querySelectorAll(".detail-photo-thumb").forEach(btn=>btn.onclick=()=>{
+    const main=$("detailMainPhoto");
+    const src=btn.dataset.photo;
+    if(main&&src&&main.src!==src){
+      main.src=src;
+      main.alt="Foto ETLE "+(c.tnkb||"");
+    }
+    document.querySelectorAll(".detail-photo-thumb").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");
+  });
   if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const reg=String(c.no_registrasi||c.ref_number||"").trim();const tnkb=String(c.tnkb||"").replace(/\s+/g,"").toUpperCase();if(!reg||!tnkb){toast("No. Registrasi atau TNKB belum tersedia");return}const url="https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb);window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("copyTnkbBtn"))$("copyTnkbBtn").onclick=async()=>{const tnkb=String(c.tnkb||"").trim();if(!tnkb)return;try{await navigator.clipboard.writeText(tnkb);toast("TNKB disalin")}catch(_){toast("Gagal menyalin TNKB")}};
