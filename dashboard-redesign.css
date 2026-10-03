@@ -790,3 +790,17 @@ body{background:var(--ux-bg)}
 @media(min-width:801px) and (max-width:1040px){
   .app-shell{grid-template-columns:300px minmax(0,1fr)!important}
 }
+
+/* Keep main content full-width when desktop sidebar is hidden */
+@media(min-width:801px){
+  .app-shell.sidebar-hidden{
+    grid-template-columns:0 minmax(0,1fr)!important;
+  }
+  .app-shell.sidebar-hidden .sidebar{
+    width:0!important;
+    min-width:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    overflow:hidden!important;
+  }
+}
