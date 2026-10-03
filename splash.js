@@ -1,10 +1,17 @@
 (()=>{"use strict";
-const ASSET="./assets/gsmart-splash-225q.b64?v=20261003-splash1";
-let blobUrlPromise=null;
+const ASSETS={
+  landscape:"./assets/gsmart-splash-225q.b64?v=20261003-splash2",
+  portrait:"./assets/gsmart-splash-portrait-360.b64?v=20261003-splash2"
+};
+const blobUrlPromises={};
 let activePromise=null;
-function decodeBase64Video(){
-  if(blobUrlPromise)return blobUrlPromise;
-  blobUrlPromise=fetch(ASSET,{cache:"force-cache"}).then(r=>{
+function usePortrait(){
+  return window.matchMedia("(max-width:800px) and (orientation:portrait)").matches
+}
+function decodeBase64Video(kind){
+  const asset=ASSETS[kind];
+  if(blobUrlPromises[kind])return blobUrlPromises[kind];
+  blobUrlPromises[kind]=fetch(asset,{cache:"force-cache"}).then(r=>{
     if(!r.ok)throw new Error("Splash asset HTTP "+r.status);
     return r.text()
   }).then(text=>{
@@ -14,7 +21,7 @@ function decodeBase64Video(){
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
     return URL.createObjectURL(new Blob([bytes],{type:"video/webm"}))
   });
-  return blobUrlPromise
+  return blobUrlPromises[kind]
 }
 function overlay(){return document.getElementById("gsmartSplash")}
 function video(){return document.getElementById("gsmartSplashVideo")}
@@ -24,12 +31,14 @@ async function playSplash(reason="opening"){
   activePromise=(async()=>{
     const o=overlay(),v=video();
     if(!o||!v)return;
+    const kind=usePortrait()?"portrait":"landscape";
+    o.dataset.orientation=kind;
     document.documentElement.classList.add("splash-lock");
     document.body.classList.add("splash-lock");
     o.classList.remove("hidden","is-closing","show-fallback");
     o.setAttribute("data-reason",reason);
     try{
-      v.src=await decodeBase64Video();
+      v.src=await decodeBase64Video(kind);
       v.muted=true;
       v.playsInline=true;
       v.defaultPlaybackRate=2;
