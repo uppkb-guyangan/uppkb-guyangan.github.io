@@ -157,14 +157,14 @@ function dashboard(b){
   const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
   const smartActivities=buildSmartActivities(b,c);
   const cards=[
-    ["Total Perkara",c.total,"total"],
-    ["Pengiriman Surat",c.shipping,"shipping"],
-    ["Blanko Terbit",c.blanko,"blanko"],
-    ["Persidangan",c.court,"court"],
-    ["Tersanggah",c.disputes,"disputes"],
-    ["Dihentikan",c.terminated,"terminated"],
-    ["Data Baru",c.newData,"newData"],
-    ["Perpindahan Proses",c.transitions,"transitions"]
+    ["Total Perkara",c.total,"total","search"],
+    ["Pengiriman Surat",c.shipping,"shipping","shipping"],
+    ["Blanko Terbit",c.blanko,"blanko","blanko"],
+    ["Persidangan",c.court,"court","court"],
+    ["Tersanggah",c.disputes,"disputes","disputes"],
+    ["Dihentikan",c.terminated,"terminated","terminated"],
+    ["Data Baru",c.newData,"newData","new"],
+    ["Perpindahan Proses",c.transitions,"transitions","history"]
   ];
   const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);
   const profileName=state.profile?.nama||"Petugas";
@@ -217,7 +217,7 @@ function dashboard(b){
     '</section>':"")+
     '<div class="dashboard-layout">'+
       '<div class="dashboard-main">'+
-        '<div class="cards dashboard-metrics">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div>'+
+        '<div class="cards dashboard-metrics">'+cards.map(x=>'<button type="button" class="card dashboard-metric-link" data-go="'+x[3]+'" aria-label="Buka '+esc(x[0])+'"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div><span class="metric-nav-arrow" aria-hidden="true">›</span></button>').join("")+'</div>'+
         '<div class="grid-2">'+
           '<div class="panel"><div class="title-row"><h3>Perkara terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
           '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div>'+
@@ -235,7 +235,7 @@ function dashboard(b){
     '</div>';
   animateDashboardStats(dashboardStats);
   bindSmartActivityTracker();
-  document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
+  document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go], .dashboard-metric-link[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
