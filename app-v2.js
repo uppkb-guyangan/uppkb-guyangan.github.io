@@ -122,6 +122,7 @@ function dashboard(b){
   const timeLabel=new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(now)+" WIB";
   const hourWib=Number(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(now));
   const greeting=hourWib>=5&&hourWib<11?"Selamat pagi":hourWib>=11&&hourWib<15?"Selamat siang":hourWib>=15&&hourWib<18?"Selamat sore":"Selamat malam";
+  const heroTimeClass=hourWib>=5&&hourWib<11?"hero-morning":hourWib>=11&&hourWib<15?"hero-day":hourWib>=15&&hourWib<18?"hero-evening":"hero-night";
   const online=navigator.onLine;
   const syncLabel=$("syncState")?.textContent||"Siap";
   const uniqueTnkb=new Set(b.cases.filter(x=>period(x.tanggal_pelanggaran)&&x.tnkb).map(x=>norm(x.tnkb))).size;
@@ -132,7 +133,7 @@ function dashboard(b){
     ["✓","TNKB unik",uniqueTnkb]
   ];
   $("content").innerHTML=
-    '<section class="dashboard-hero hero-animated">'+
+    '<section class="dashboard-hero hero-animated '+heroTimeClass+'">'+
       '<div class="hero-building-bg" aria-hidden="true"></div>'+
       '<div class="hero-content">'+
         '<div class="hero-copy">'+
