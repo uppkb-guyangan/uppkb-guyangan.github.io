@@ -22,7 +22,10 @@ const caseById=id=>state.bundle?.cases.find(x=>x.case_id===id);
 function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
 const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,admin:rolePermissions().adminPrivileges});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
-function setSync(t){$("syncState").textContent=t}
+function syncTimeLabel(){
+  return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(new Date())+" WIB"
+}
+function setSync(t){if($("syncState"))$("syncState").textContent=t}
 function setDesktopSidebarHidden(hidden){
   const shell=document.querySelector(".app-shell");
   if(!shell)return;
@@ -314,11 +317,46 @@ function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!pho
 function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWith("08"))return"62"+d.slice(1);if(d.startsWith("628"))return d;return null}
 $("closeModal").onclick=()=>$("modalBackdrop").classList.add("hidden");$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop"))$("modalBackdrop").classList.add("hidden")};
 async function loadProfile(user){const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists())throw new Error("Profil petugas belum terdaftar.");const p=snap.data();if(p.aktif===false)throw new Error("Akun Anda tidak aktif. Hubungi administrator.");if(!user.uid||p.aktif!==true)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");const required=key=>{const value=typeof p[key]==="string"?p[key].trim():"";if(!value)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");return value};const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;return{uid:user.uid,nama:required("nama"),nip:required("nip"),username:required("username"),role:required("role"),aktif:true,photoUrl}}
-async function loadDashboard(){setSync("Sinkronisasi");const[cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs]=await Promise.all([q("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast"}),q("etle_shipping",{order:"printed_date.desc.nullslast"}),q("etle_disputes",{order:"confirmation_date.desc.nullslast"}),q("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),q("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),q("etle_offenders",{order:"case_id.asc"}),q("gsmart_case_history",{order:"event_time.desc.nullslast"}),q("gsmart_sync_log",{order:"started_at.desc",limit:30})]);state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};setSync("Siap")}
+async function loadDashboard(){
+  setSync("Memuat...");
+  const[cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs]=await Promise.all([
+    q("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast"}),
+    q("etle_shipping",{order:"printed_date.desc.nullslast"}),
+    q("etle_disputes",{order:"confirmation_date.desc.nullslast"}),
+    q("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),
+    q("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),
+    q("etle_offenders",{order:"case_id.asc"}),
+    q("gsmart_case_history",{order:"event_time.desc.nullslast"}),
+    q("gsmart_sync_log",{order:"started_at.desc",limit:30})
+  ]);
+  state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};
+  setSync("Diperbarui "+syncTimeLabel())
+}
 $("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;await signOut(auth);showLogin()};
+if($("refreshDataBtn"))$("refreshDataBtn").onclick=async()=>{
+  if(state.demo){toast("Mode preview menggunakan data contoh");return}
+  const btn=$("refreshDataBtn");
+  if(btn.disabled)return;
+  btn.disabled=true;
+  btn.classList.add("refreshing");
+  try{
+    await loadDashboard();
+    buildMonthOptions();
+    renderNav();
+    renderPage();
+    toast("Data G-Smart berhasil diperbarui");
+  }catch(err){
+    console.error(err);
+    setSync("Gagal memuat");
+    toast("Gagal memperbarui data. Periksa koneksi lalu coba lagi.")
+  }finally{
+    btn.disabled=false;
+    btn.classList.remove("refreshing")
+  }
+};
 function isMobileLayout(){return window.matchMedia("(max-width:800px)").matches||window.innerWidth<=800||(window.visualViewport&&window.visualViewport.width<=800)}
 function setMobileSidebarOpen(open){
   const sidebar=document.querySelector(".sidebar");
