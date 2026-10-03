@@ -846,3 +846,8 @@ body{background:var(--ux-bg)}
   .sidebar nav{gap:1px!important}
   .nav-btn{min-height:34px!important;padding-top:6px!important;padding-bottom:6px!important}
 }
+
+/* Restricted watched-cases menu remains visible */
+.nav-btn.restricted{opacity:.68;cursor:not-allowed}
+.nav-btn.restricted:hover{background:rgba(255,255,255,.04);transform:none}
+.nav-lock{margin-left:auto;font-size:11px;opacity:.9;flex:0 0 auto}
