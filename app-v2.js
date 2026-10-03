@@ -269,30 +269,55 @@ function bindSmartActivityTracker(){
 function bindHeroParallax(){
   const hero=document.querySelector(".dashboard-hero");
   if(!hero)return;
+  const truck=hero.querySelector(".hero-truck-cursor");
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-  if(reduced)return;
-
+  const finePointer=window.matchMedia?.("(hover:hover) and (pointer:fine)")?.matches;
   let raf=0;
-  const apply=(x,y)=>{
+  let hideTimer=0;
+  let lastTruckX=null;
+
+  const applyParallax=(x,y)=>{
+    if(reduced)return;
     cancelAnimationFrame(raf);
     raf=requestAnimationFrame(()=>{
       if(!document.body.contains(hero))return;
       hero.style.setProperty("--hero-px",(x*8).toFixed(2)+"px");
       hero.style.setProperty("--hero-py",(y*5).toFixed(2)+"px");
       hero.style.setProperty("--hero-side-x",(x*-5).toFixed(2)+"px");
-      hero.style.setProperty("--hero-side-y",(y*-3).toFixed(2)+"px");
+      hero.style.setProperty("--hero-side-y",(y*-3).toFixed(2)+"px")
     })
   };
 
-  const finePointer=window.matchMedia?.("(hover:hover) and (pointer:fine)")?.matches;
+  const moveTruck=(clientX,clientY,transient=false)=>{
+    if(!truck)return;
+    const r=hero.getBoundingClientRect();
+    const x=Math.max(16,Math.min(r.width-16,clientX-r.left));
+    const y=Math.max(16,Math.min(r.height-16,clientY-r.top));
+    const dir=lastTruckX!=null&&x<lastTruckX?-1:1;
+    lastTruckX=x;
+    truck.style.setProperty("--truck-x",x.toFixed(1)+"px");
+    truck.style.setProperty("--truck-y",y.toFixed(1)+"px");
+    truck.style.setProperty("--truck-dir",String(dir));
+    truck.classList.add("visible");
+    truck.classList.toggle("touching",transient);
+    clearTimeout(hideTimer);
+    if(transient)hideTimer=setTimeout(()=>truck.classList.remove("visible","touching"),720)
+  };
+
   if(finePointer){
+    hero.addEventListener("pointerenter",e=>moveTruck(e.clientX,e.clientY),{passive:true});
     hero.addEventListener("pointermove",e=>{
       const r=hero.getBoundingClientRect();
       const x=((e.clientX-r.left)/Math.max(r.width,1)-.5)*2;
       const y=((e.clientY-r.top)/Math.max(r.height,1)-.5)*2;
-      apply(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))
+      applyParallax(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)));
+      moveTruck(e.clientX,e.clientY)
     },{passive:true});
-    hero.addEventListener("pointerleave",()=>apply(0,0),{passive:true});
+    hero.addEventListener("pointerleave",()=>{
+      applyParallax(0,0);
+      truck?.classList.remove("visible","touching");
+      lastTruckX=null
+    },{passive:true})
   }else{
     const onScroll=()=>{
       if(!document.body.contains(hero)){window.removeEventListener("scroll",onScroll);return}
@@ -300,12 +325,27 @@ function bindHeroParallax(){
       const center=r.top+r.height/2;
       const viewport=window.innerHeight/2;
       const y=Math.max(-1,Math.min(1,(center-viewport)/Math.max(window.innerHeight,1)));
-      apply(0,y*.7)
+      applyParallax(0,y*.7)
     };
     window.addEventListener("scroll",onScroll,{passive:true});
-    onScroll()
+    onScroll();
+
+    const touchPoint=e=>e.touches?.[0]||e.changedTouches?.[0];
+    hero.addEventListener("touchstart",e=>{
+      const t=touchPoint(e);
+      if(t)moveTruck(t.clientX,t.clientY,true)
+    },{passive:true});
+    hero.addEventListener("touchmove",e=>{
+      const t=touchPoint(e);
+      if(t)moveTruck(t.clientX,t.clientY,true)
+    },{passive:true});
+    hero.addEventListener("touchend",e=>{
+      const t=touchPoint(e);
+      if(t)moveTruck(t.clientX,t.clientY,true)
+    },{passive:true})
   }
 }
+
 function dashboard(b){
   const c=counts(b);
   const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
@@ -342,6 +382,7 @@ function dashboard(b){
   $("content").innerHTML=
     '<section class="dashboard-hero hero-animated '+heroTimeClass+'">'+
       '<div class="hero-building-bg" aria-hidden="true"></div>'+
+      '<span class="hero-truck-cursor" aria-hidden="true">🚚</span>'+
       '<div class="hero-content">'+
         '<div class="hero-copy">'+
           '<div class="hero-greeting-row"><span class="hero-greeting">'+esc(greeting)+'</span><span class="hero-wave" aria-hidden="true">👋</span></div>'+
