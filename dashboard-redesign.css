@@ -851,3 +851,18 @@ body{background:var(--ux-bg)}
 .nav-btn.restricted{opacity:.68;cursor:not-allowed}
 .nav-btn.restricted:hover{background:rgba(255,255,255,.04);transform:none}
 .nav-lock{margin-left:auto;font-size:11px;opacity:.9;flex:0 0 auto}
+
+/* UX v33: table workspace polish */
+.panel>.title-row{gap:10px}
+.table-toolbar{
+  border-radius:10px;
+  transition:box-shadow .15s ease
+}
+.sticky-table-toolbar:is(:hover,:focus-within){
+  box-shadow:0 8px 18px rgba(20,54,92,.055)
+}
+@media(max-width:760px){
+  .panel{padding:12px}
+  .table-toolbar{align-items:stretch}
+  .history-title-actions{gap:6px}
+}
