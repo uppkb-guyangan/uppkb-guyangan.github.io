@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gsmart-shell-v16';
+const CACHE_NAME = 'gsmart-shell-v17';
 const APP_SHELL = [
   './',
   './index.html',
@@ -16,7 +16,7 @@ const APP_SHELL = [
   './assets/gsmart-splash-portrait-360.b64?v=20261003-splash2',
   './G-SMART%20Traffic%20Monitoring%20Emblem.png',
   './Gemini_Generated_Image_pckqrmpckqrmpckq.jpg',
-  './manifest.webmanifest?v=20261002-logo2'
+  './manifest.webmanifest?v=20261003-maskable1'
 ];
 
 self.addEventListener('install', event => {
