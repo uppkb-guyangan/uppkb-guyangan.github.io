@@ -1,9 +1,9 @@
-const CACHE_NAME = 'gsmart-shell-v21';
+const CACHE_NAME = 'gsmart-shell-v22';
 const APP_SHELL = [
   './',
   './index.html',
   './styles-v2.css?v=20261003-online1',
-  './dashboard-redesign.css?v=20261003-sidebarwide1',
+  './dashboard-redesign.css?v=20261003-sidebarwide2',
   './detail-redesign.css?v=20261003-confirm2',
   './splash.css?v=20261003-splash3',
   './branding-overrides.css?v=20261002-brand1',
