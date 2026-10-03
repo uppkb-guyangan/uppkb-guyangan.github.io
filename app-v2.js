@@ -26,6 +26,18 @@ function syncTimeLabel(){
   return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(new Date())+" WIB"
 }
 function setSync(t){if($("syncState"))$("syncState").textContent=t}
+function updateConnectionStatus(){
+  const el=$("connectionState");
+  const wrap=$("connectionBadge");
+  if(!el||!wrap)return;
+  const online=navigator.onLine;
+  el.textContent=online?"Online":"Offline";
+  wrap.classList.toggle("offline",!online);
+  wrap.classList.toggle("online",online);
+  wrap.title=online?"Perangkat terhubung ke jaringan":"Perangkat sedang offline";
+}
+window.addEventListener("online",()=>{updateConnectionStatus();toast("Koneksi kembali online")});
+window.addEventListener("offline",()=>{updateConnectionStatus();toast("Perangkat sedang offline")});
 function setDesktopSidebarHidden(hidden){
   const shell=document.querySelector(".app-shell");
   if(!shell)return;
@@ -41,7 +53,7 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();openPage("dashboard")}
+function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard")}
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){
