@@ -226,7 +226,7 @@ function renderDetail(d){
       '</div>'+
       '<div class="detail-identity">'+
         '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip">'+esc(statusText)+'</span></div>'+
-        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+'</div>'+
+        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb?'<button class="detail-confirm-btn secondary" id="copyTnkbBtn" type="button">Salin TNKB</button>':'')+'</div>'+
         '<div class="detail-key-grid">'+
           '<div class="detail-key"><small>Jenis Pelanggaran</small><strong>'+esc(c.jenis_pelanggaran||"-")+'</strong></div>'+
           '<div class="detail-key"><small>Tanggal Pelanggaran</small><strong>'+fmtDate(c.tanggal_pelanggaran)+'</strong></div>'+
@@ -281,7 +281,7 @@ function renderDetail(d){
 
   if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
-  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=async()=>{const reg=String(c.no_registrasi||c.ref_number||"").trim();if(!reg)return;try{await navigator.clipboard.writeText(reg);toast("No. Registrasi disalin — tinggal tempel di web konfirmasi")}catch(_){toast("Web konfirmasi dibuka")};window.open("https://etilang-djpd.kemenhub.go.id/konfirmasi","_blank","noopener,noreferrer")};
+  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=async()=>{const reg=String(c.no_registrasi||c.ref_number||"").trim();if(!reg)return;try{await navigator.clipboard.writeText(reg);toast("No. Registrasi disalin — tempel di kolom pertama")}catch(_){toast("Web konfirmasi dibuka")};window.open("https://etilang-djpd.kemenhub.go.id/konfirmasi","_blank","noopener,noreferrer")};if($("copyTnkbBtn"))$("copyTnkbBtn").onclick=async()=>{const tnkb=String(c.tnkb||"").trim();if(!tnkb)return;try{await navigator.clipboard.writeText(tnkb);toast("TNKB disalin — tempel di kolom kedua")}catch(_){toast("Gagal menyalin TNKB")}};
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
 }
