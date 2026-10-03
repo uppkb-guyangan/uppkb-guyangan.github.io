@@ -16,8 +16,20 @@
   <link rel="stylesheet" href="./branding-overrides.css?v=20261002-brand1">
   <link rel="stylesheet" href="./dashboard-redesign.css?v=20261003-search1">
   <link rel="stylesheet" href="./detail-redesign.css?v=20261003-detail1">
+  <link rel="stylesheet" href="./splash.css?v=20261003-splash1">
 </head>
 <body>
+  <div id="gsmartSplash" class="gsmart-splash" role="status" aria-label="Memuat G-Smart">
+    <div class="gsmart-splash-stage">
+      <video id="gsmartSplashVideo" class="gsmart-splash-video" muted playsinline preload="auto" aria-hidden="true"></video>
+      <div class="gsmart-splash-fallback">
+        <img src="./G-SMART%20Traffic%20Monitoring%20Emblem.png" alt="Logo G-Smart">
+        <b>G-Smart</b>
+        <span>UPPKB Guyangan · ETLE Monitoring</span>
+      </div>
+    </div>
+    <div class="gsmart-splash-label">G-Smart · UPPKB Guyangan</div>
+  </div>
   <section id="loginView" class="login-shell">
     <div class="login-card">
       <div class="brand"><div class="logo brand-logo"><img src="./G-SMART%20Traffic%20Monitoring%20Emblem.png" alt="Logo G-Smart"></div><div><h1>G-Smart</h1><p>UPPKB Guyangan · ETLE Monitoring</p></div></div>
@@ -30,7 +42,8 @@
   </section>
   <div id="modalBackdrop" class="modal-backdrop hidden"><section id="detailModal" class="detail-modal"><header class="modal-header"><div><h3 id="modalTitle">Detail Perkara</h3><p id="modalSubtitle"></p></div><button id="closeModal" class="icon-btn">✕</button></header><div id="modalBody" class="modal-body"></div></section></div>
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="./app-v2.js?v=20261003-search1"></script>
+  <script src="./splash.js?v=20261003-splash1"></script>
+  <script type="module" src="./app-v2.js?v=20261003-splash1"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
   <script src="./pwa.js?v=20261002-2"></script>
