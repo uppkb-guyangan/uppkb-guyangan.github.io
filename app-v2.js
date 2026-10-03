@@ -266,6 +266,46 @@ function bindSmartActivityTracker(){
     },4200);
   }
 }
+function bindHeroParallax(){
+  const hero=document.querySelector(".dashboard-hero");
+  if(!hero)return;
+  const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  if(reduced)return;
+
+  let raf=0;
+  const apply=(x,y)=>{
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{
+      if(!document.body.contains(hero))return;
+      hero.style.setProperty("--hero-px",(x*8).toFixed(2)+"px");
+      hero.style.setProperty("--hero-py",(y*5).toFixed(2)+"px");
+      hero.style.setProperty("--hero-side-x",(x*-5).toFixed(2)+"px");
+      hero.style.setProperty("--hero-side-y",(y*-3).toFixed(2)+"px");
+    })
+  };
+
+  const finePointer=window.matchMedia?.("(hover:hover) and (pointer:fine)")?.matches;
+  if(finePointer){
+    hero.addEventListener("pointermove",e=>{
+      const r=hero.getBoundingClientRect();
+      const x=((e.clientX-r.left)/Math.max(r.width,1)-.5)*2;
+      const y=((e.clientY-r.top)/Math.max(r.height,1)-.5)*2;
+      apply(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))
+    },{passive:true});
+    hero.addEventListener("pointerleave",()=>apply(0,0),{passive:true});
+  }else{
+    const onScroll=()=>{
+      if(!document.body.contains(hero)){window.removeEventListener("scroll",onScroll);return}
+      const r=hero.getBoundingClientRect();
+      const center=r.top+r.height/2;
+      const viewport=window.innerHeight/2;
+      const y=Math.max(-1,Math.min(1,(center-viewport)/Math.max(window.innerHeight,1)));
+      apply(0,y*.7)
+    };
+    window.addEventListener("scroll",onScroll,{passive:true});
+    onScroll()
+  }
+}
 function dashboard(b){
   const c=counts(b);
   const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
@@ -348,6 +388,7 @@ function dashboard(b){
       '</aside>'+
     '</div>';
   animateDashboardStats(dashboardStats);
+  bindHeroParallax();
   bindSmartActivityTracker();
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go], .dashboard-metric-link[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
