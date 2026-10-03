@@ -32,3 +32,9 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
 .login-card form{gap:17px}.login-card label{font-size:12px;font-weight:750;color:#53667b}.login-card form input{height:52px;margin-top:7px;padding:0 15px;border:1px solid #dce5ef;border-radius:14px;background:#f7f9fc;color:#102033;font-size:14px;font-weight:550;box-shadow:none}.login-card form input:focus{background:#fff;border-color:#2d65a8;box-shadow:0 0 0 4px rgba(45,101,168,.10)}.login-card form button[type="submit"]{height:52px;margin-top:5px;border-radius:14px;background:linear-gradient(135deg,#d99a24,#edb847);color:#0a2745;font-size:15px;font-weight:850;box-shadow:0 10px 22px rgba(217,154,36,.22);transition:transform .16s,box-shadow .16s}.login-card form button[type="submit"]:hover{transform:translateY(-1px);box-shadow:0 13px 26px rgba(217,154,36,.28)}.login-card form button[type="submit"]:active{transform:translateY(0)}
 #demoBtn{display:none!important}#loginMessage{text-align:center;min-height:18px;margin:-2px 0 0;font-size:12px}
 @media(max-width:520px){.login-shell{padding:20px 16px}.login-card{padding:32px 24px 28px;border-radius:24px}.login-card .logo{width:64px;height:64px;border-radius:20px}.login-card .brand h1{font-size:28px}.login-card form input,.login-card form button[type="submit"]{height:50px}}
+
+.login-help-row{display:flex;justify-content:flex-end;margin-top:-8px}
+.login-help-row .forgot-password-btn{border:0;background:transparent;color:var(--navy-light);padding:2px 0;font-size:12px;font-weight:750;border-radius:0}
+.login-help-row .forgot-password-btn:hover{text-decoration:underline}
+.login-help-row .forgot-password-btn:disabled{opacity:.6;cursor:wait;text-decoration:none}
+#loginMessage.success{color:var(--success)}
