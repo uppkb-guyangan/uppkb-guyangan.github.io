@@ -598,6 +598,215 @@ function globalSearch(b){
   $("globalQuery").oninput=run;
   $("clearGlobalQuery").onclick=()=>{$("globalQuery").value="";run();$("globalQuery").focus()};
 }
+
+const commandItems=[
+  {id:"dashboard",label:"Dashboard",icon:"⌂",keys:"D",keywords:"beranda home ringkasan"},
+  {id:"shipping",label:"Pengiriman Surat",icon:"✉",keys:"P",keywords:"jne resi kirim"},
+  {id:"blanko",label:"Blanko Tilang Terbit",icon:"▣",keys:"B",keywords:"blanko briva bayar"},
+  {id:"court",label:"Persidangan",icon:"⚖",keys:"S",keywords:"sidang pengadilan"},
+  {id:"disputes",label:"Pelanggaran Tersanggah",icon:"⚑",keys:"",keywords:"sanggah keberatan"},
+  {id:"terminated",label:"Pelanggaran Dihentikan",icon:"⊘",keys:"",keywords:"dihentikan terminated"},
+  {id:"new",label:"Data Baru",icon:"+",keys:"N",keywords:"baru masuk"},
+  {id:"history",label:"Perpindahan Proses",icon:"↻",keys:"H",keywords:"histori riwayat proses"},
+  {id:"analytics",label:"Analitik ETLE",icon:"▥",keys:"A",keywords:"analitik statistik grafik"},
+  {id:"vehicles",label:"Profil Kendaraan",icon:"▤",keys:"V",keywords:"kendaraan tnkb"},
+  {id:"favorites",label:"Perkara Dipantau",icon:"★",keys:"F",keywords:"pantau favorit watch"},
+  {id:"search",label:"Pencarian Global",icon:"⌕",keys:"G",keywords:"cari search"},
+  {id:"report",label:"Laporan ETLE",icon:"▧",keys:"",keywords:"laporan report"}
+];
+
+function commandPaletteOpen(){return !$("commandPalette")?.classList.contains("hidden")}
+function closeCommandPalette(){
+  $("commandPalette")?.classList.add("hidden");
+  document.body.classList.remove("command-palette-open")
+}
+function openCommandPalette(mode="command",seed=""){
+  if($("appView")?.classList.contains("hidden"))return;
+  const modal=$("commandPalette");
+  const input=$("commandPaletteInput");
+  if(!modal||!input)return;
+  modal.classList.remove("hidden");
+  document.body.classList.add("command-palette-open");
+  input.value=seed;
+  input.dataset.mode=mode;
+  renderCommandPalette();
+  setTimeout(()=>{input.focus();input.select()},20)
+}
+function commandText(item){return norm([item.label,item.id,item.keywords].join(" "))}
+function renderCommandPalette(){
+  const input=$("commandPaletteInput");
+  const out=$("commandPaletteResults");
+  if(!input||!out)return;
+  const raw=input.value.trim();
+  const q=norm(raw);
+  const mode=input.dataset.mode||"command";
+
+  if(mode==="shortcuts"&&!raw){
+    out.innerHTML=
+      '<div class="cp-section-label">Shortcut keyboard</div>'+
+      '<div class="shortcut-grid">'+
+        '<div><kbd>Ctrl</kbd><kbd>K</kbd><span>Command Palette / Asisten</span></div>'+
+        '<div><kbd>/</kbd><span>Cari atau tanya G-Smart</span></div>'+
+        '<div><kbd>D</kbd><span>Dashboard</span></div>'+
+        '<div><kbd>P</kbd><span>Pengiriman Surat</span></div>'+
+        '<div><kbd>B</kbd><span>Blanko Tilang</span></div>'+
+        '<div><kbd>S</kbd><span>Persidangan</span></div>'+
+        '<div><kbd>N</kbd><span>Data Baru</span></div>'+
+        '<div><kbd>H</kbd><span>Perpindahan Proses</span></div>'+
+        '<div><kbd>A</kbd><span>Analitik ETLE</span></div>'+
+        '<div><kbd>V</kbd><span>Profil Kendaraan</span></div>'+
+        '<div><kbd>F</kbd><span>Perkara Dipantau</span></div>'+
+        '<div><kbd>G</kbd><span>Pencarian Global</span></div>'+
+        '<div><kbd>R</kbd><span>Refresh data</span></div>'+
+        '<div><kbd>Esc</kbd><span>Tutup dialog/detail</span></div>'+
+      '</div>';
+    return
+  }
+
+  if(!q){
+    out.innerHTML=
+      '<div class="cp-section-label">Akses cepat</div>'+
+      commandItems.slice(0,7).map(x=>'<button class="cp-result" data-command-page="'+x.id+'"><span class="cp-icon">'+x.icon+'</span><span><b>'+x.label+'</b><small>'+esc(x.keywords.split(" ").slice(0,3).join(" · "))+'</small></span>'+(x.keys?'<kbd>'+x.keys+'</kbd>':'')+'</button>').join("")+
+      '<div class="cp-section-label cp-ai-label">✦ Asisten Data G-Smart <span>read-only</span></div>'+
+      ['Berapa blanko yang belum bayar?','Kendaraan yang punya lebih dari satu perkara','Berapa sidang hari ini?','Apa yang perlu diprioritaskan hari ini?'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
+    bindCommandPaletteActions();
+    return
+  }
+
+  const terms=searchTerms(raw);
+  const commands=commandItems.filter(x=>terms.every(t=>commandText(x).includes(t))).slice(0,6);
+  const b=state.bundle||demo;
+  const isAdmin=rolePermissions().adminPrivileges;
+  const cases=q.length>=2?b.cases.filter(c=>terms.every(t=>caseSearchText(c,b,isAdmin).includes(t))).slice(0,5):[];
+  out.innerHTML=
+    (commands.length?'<div class="cp-section-label">Menu</div>'+commands.map(x=>'<button class="cp-result" data-command-page="'+x.id+'"><span class="cp-icon">'+x.icon+'</span><span><b>'+x.label+'</b><small>Buka menu G-Smart</small></span>'+(x.keys?'<kbd>'+x.keys+'</kbd>':'')+'</button>').join(""):"")+
+    (cases.length?'<div class="cp-section-label">Perkara</div>'+cases.map(c=>'<button class="cp-result" data-command-case="'+esc(c.case_id)+'"><span class="cp-icon">🚚</span><span><b>'+esc(c.tnkb||c.ref_number||"Perkara")+'</b><small>'+esc(c.no_registrasi||c.ref_number||c.jenis_pelanggaran||"-")+'</small></span><span class="cp-status">'+esc(c.status_etle||"")+'</span></button>').join(""):"")+
+    '<div class="cp-section-label cp-ai-label">✦ Asisten Data G-Smart <span>read-only</span></div>'+
+    '<button class="cp-result cp-ai-run" data-ai-prompt="'+esc(raw)+'"><span class="cp-icon">✦</span><span><b>Tanya Asisten</b><small>'+esc(raw)+'</small></span><kbd>Enter</kbd></button>';
+  bindCommandPaletteActions()
+}
+function bindCommandPaletteActions(){
+  document.querySelectorAll("[data-command-page]").forEach(btn=>btn.onclick=()=>{
+    closeCommandPalette();
+    openPage(btn.dataset.commandPage)
+  });
+  document.querySelectorAll("[data-command-case]").forEach(btn=>btn.onclick=()=>{
+    const id=btn.dataset.commandCase;
+    closeCommandPalette();
+    state.detailSource="OTHER";
+    openDetail(id)
+  });
+  document.querySelectorAll("[data-ai-prompt]").forEach(btn=>btn.onclick=()=>{
+    const prompt=btn.dataset.aiPrompt||"";
+    if($("commandPaletteInput"))$("commandPaletteInput").value=prompt;
+    runAssistantQuery(prompt)
+  })
+}
+function monthKeyFromAssistantText(text){
+  const months={januari:"01",februari:"02",maret:"03",april:"04",mei:"05",juni:"06",juli:"07",agustus:"08",september:"09",oktober:"10",november:"11",desember:"12"};
+  const q=norm(text);
+  const entry=Object.entries(months).find(([name])=>q.includes(name));
+  if(!entry)return state.month||null;
+  const yearMatch=q.match(/\b(20\d{2})\b/);
+  const currentYear=new Intl.DateTimeFormat("en",{year:"numeric",timeZone:"Asia/Jakarta"}).format(new Date());
+  return (yearMatch?.[1]||currentYear)+"-"+entry[1]
+}
+function assistantDateFilter(rows,dateGetter,question){
+  const q=norm(question);
+  if(q.includes("hari ini")){
+    const today=wibDateKey();
+    return rows.filter(x=>wibDateKey(dateGetter(x))===today)
+  }
+  const month=monthKeyFromAssistantText(question);
+  if(month)return rows.filter(x=>ym(dateGetter(x))===month);
+  return rows
+}
+function assistantCaseButton(c){
+  return '<button class="assistant-case" data-command-case="'+esc(c.case_id)+'"><b>'+esc(c.tnkb||"-")+'</b><span>'+esc(c.no_registrasi||c.ref_number||c.jenis_pelanggaran||"-")+'</span><small>'+esc(c.status_etle||"-")+'</small></button>'
+}
+function assistantAnswerHtml(question){
+  const b=state.bundle||demo;
+  const q=norm(question);
+  const cases=b.cases||[];
+  const paid=c=>/paid|terbayar|lunas|selesai/.test(norm(c.status_bayar));
+  const plateMatch=question.toUpperCase().match(/\b[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{0,3}\b/);
+  const specific=plateMatch?norm(plateMatch[0]).replace(/\s+/g,""):null;
+
+  if(/kendaraan.*(lebih dari|>\s*1|berulang|beberapa).*perkara|lebih dari satu perkara/.test(q)){
+    const groups={};
+    cases.forEach(c=>{const k=norm(c.tnkb).replace(/\s+/g,"");if(!k)return;(groups[k]??=[]).push(c)});
+    const repeated=Object.values(groups).filter(x=>x.length>1).sort((a,z)=>z.length-a.length);
+    return '<div class="assistant-answer"><b>'+repeated.length+' kendaraan</b><p>memiliki lebih dari satu perkara pada data G-Smart yang sedang dimuat.</p>'+
+      (repeated.length?'<div class="assistant-list">'+repeated.slice(0,8).map(g=>'<button class="assistant-case" data-command-case="'+esc(g[0].case_id)+'"><b>'+esc(g[0].tnkb)+'</b><span>'+g.length+' perkara</span><small>Buka riwayat perkara</small></button>').join("")+'</div>':'')+'</div>'
+  }
+
+  if((q.includes("blanko")||q.includes("briva"))&&(q.includes("belum bayar")||q.includes("belum terbayar")||q.includes("unpaid"))){
+    let rows=cases.filter(c=>c.no_blanko&&!paid(c));
+    rows=assistantDateFilter(rows,c=>c.tanggal_blanko||c.tanggal_pelanggaran,question);
+    return '<div class="assistant-answer"><b>'+rows.length+' blanko belum bayar</b><p>'+esc(monthKeyFromAssistantText(question)?'Periode '+monthName(monthKeyFromAssistantText(question)):'Berdasarkan data yang sedang dimuat')+'.</p>'+
+      (rows.length?'<div class="assistant-list">'+rows.slice(0,8).map(assistantCaseButton).join("")+'</div>':'')+
+      '<button class="assistant-open-page" data-command-page="blanko">Buka Blanko Tilang →</button></div>'
+  }
+
+  if(q.includes("prioritas")||q.includes("perlu tindakan")||q.includes("perlu diprioritaskan")){
+    const today=wibDateKey();
+    const courtIds=new Set((b.courts||[]).filter(x=>wibDateKey(x.tanggal_sidang)===today).map(x=>String(x.case_id)));
+    const disputeIds=new Set(activeDisputes(b).map(x=>String(x.case_id)));
+    const unpaidIds=new Set(cases.filter(c=>c.no_blanko&&!paid(c)).map(x=>String(x.case_id)));
+    const rows=cases.filter(c=>courtIds.has(String(c.case_id))||disputeIds.has(String(c.case_id))||unpaidIds.has(String(c.case_id)))
+      .sort((a,z)=>Number(courtIds.has(String(z.case_id)))-Number(courtIds.has(String(a.case_id)))).slice(0,12);
+    return '<div class="assistant-answer"><b>'+rows.length+' perkara terindikasi perlu perhatian</b><p>Indikator read-only: sidang hari ini, sanggahan aktif, atau blanko belum bayar. Ini bukan perubahan status dan tidak menulis ke database.</p>'+
+      (rows.length?'<div class="assistant-list">'+rows.slice(0,8).map(assistantCaseButton).join("")+'</div>':'')+'</div>'
+  }
+
+  const categoryMap=[
+    {test:/sidang|persidangan/,label:"persidangan",rows:()=>assistantDateFilter(b.courts||[],x=>x.tanggal_sidang,question),page:"court"},
+    {test:/sanggah|tersanggah/,label:"sanggahan aktif",rows:()=>assistantDateFilter(activeDisputes(b),x=>x.confirmation_date,question),page:"disputes"},
+    {test:/dihentikan|penghentian/,label:"perkara dihentikan",rows:()=>assistantDateFilter(b.terminated||[],x=>x.terminated_at,question),page:"terminated"},
+    {test:/pengiriman|surat|jne|resi/,label:"pengiriman surat",rows:()=>assistantDateFilter(b.shipping||[],x=>x.printed_date||x.delivered_at,question),page:"shipping"},
+    {test:/blanko/,label:"blanko terbit",rows:()=>assistantDateFilter(cases.filter(c=>c.no_blanko),x=>x.tanggal_blanko,question),page:"blanko"},
+    {test:/data baru|perkara baru/,label:"data baru",rows:()=>assistantDateFilter(cases,x=>x.first_seen_at,question),page:"new"}
+  ];
+  const cat=categoryMap.find(x=>x.test.test(q));
+  if(cat&&(q.includes("berapa")||q.includes("jumlah")||q.includes("hari ini")||q.includes("bulan"))){
+    const rows=cat.rows();
+    return '<div class="assistant-answer"><b>'+rows.length+' '+cat.label+'</b><p>'+esc(monthKeyFromAssistantText(question)?'Periode '+monthName(monthKeyFromAssistantText(question)):(q.includes("hari ini")?"Hari ini":"Berdasarkan data yang sedang dimuat"))+'.</p><button class="assistant-open-page" data-command-page="'+cat.page+'">Buka data →</button></div>'
+  }
+
+  if(specific||q.includes("ringkas perkara")||q.includes("ringkasan perkara")){
+    const terms=specific?[specific]:searchTerms(question.replace(/ringkas(an)? perkara/ig,""));
+    const matches=cases.filter(c=>{
+      const compact=caseSearchText(c,b,rolePermissions().adminPrivileges).replace(/\s+/g,"");
+      return terms.filter(Boolean).every(t=>compact.includes(norm(t).replace(/\s+/g,"")))
+    }).slice(0,5);
+    if(matches.length===1){
+      const c=matches[0];
+      const ship=(b.shipping||[]).find(x=>String(x.case_id)===String(c.case_id));
+      const court=(b.courts||[]).find(x=>String(x.case_id)===String(c.case_id));
+      return '<div class="assistant-answer"><b>'+esc(c.tnkb||"Perkara")+'</b><p>'+
+        esc(c.jenis_pelanggaran||"Pelanggaran ETLE")+' · '+esc(c.status_etle||"Status belum tersedia")+
+        (c.no_blanko?' · Blanko '+esc(c.no_blanko):'')+
+        (ship?.status?' · Pengiriman '+esc(ship.status):'')+
+        (court?.tanggal_sidang?' · Sidang '+fmtDate(court.tanggal_sidang):'')+
+        '</p><button class="assistant-open-page" data-command-case="'+esc(c.case_id)+'">Buka Detail Perkara →</button></div>'
+    }
+    if(matches.length>1)return '<div class="assistant-answer"><b>'+matches.length+' perkara cocok</b><p>Pilih perkara yang dimaksud.</p><div class="assistant-list">'+matches.map(assistantCaseButton).join("")+'</div></div>'
+  }
+
+  return '<div class="assistant-answer assistant-help"><b>Saya belum memahami pertanyaan itu.</b><p>Versi awal Asisten G-Smart bersifat read-only dan fokus pada data operasional. Coba pertanyaan seperti:</p><div class="assistant-examples"><button data-ai-prompt="Berapa sidang hari ini?">Berapa sidang hari ini?</button><button data-ai-prompt="Berapa blanko yang belum bayar?">Blanko belum bayar</button><button data-ai-prompt="Kendaraan yang punya lebih dari satu perkara">Kendaraan berulang</button><button data-ai-prompt="Apa yang perlu diprioritaskan hari ini?">Prioritas hari ini</button></div></div>'
+}
+function runAssistantQuery(question){
+  const out=$("commandPaletteResults");
+  const q=String(question||"").trim();
+  if(!out||!q)return;
+  out.innerHTML='<div class="assistant-thinking"><span>✦</span> Menganalisis data G-Smart…</div>';
+  setTimeout(()=>{
+    if(!commandPaletteOpen())return;
+    out.innerHTML='<div class="cp-section-label cp-ai-label">✦ Asisten Data G-Smart <span>read-only</span></div>'+assistantAnswerHtml(q);
+    bindCommandPaletteActions()
+  },120)
+}
+
 function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const shipping=new Set(b.shipping.map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
 function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Total Perkara: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' perkara\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' perkara ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
@@ -944,4 +1153,52 @@ window.addEventListener("resize",()=>{
     applySidebarPreference();
   }
 });
+
+function isShortcutTypingTarget(el){
+  if(!el)return false;
+  const tag=el.tagName?.toLowerCase();
+  return tag==="input"||tag==="textarea"||tag==="select"||el.isContentEditable
+}
+if($("assistantBtn"))$("assistantBtn").onclick=()=>openCommandPalette("command");
+if($("commandPaletteClose"))$("commandPaletteClose").onclick=closeCommandPalette;
+if($("commandPalette"))$("commandPalette").onclick=e=>{if(e.target===$("commandPalette"))closeCommandPalette()};
+if($("commandPaletteInput")){
+  $("commandPaletteInput").oninput=()=>{if($("commandPaletteInput").dataset.mode==="shortcuts")$("commandPaletteInput").dataset.mode="command";renderCommandPalette()};
+  $("commandPaletteInput").onkeydown=e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      const raw=$("commandPaletteInput").value.trim();
+      const first=document.querySelector("#commandPaletteResults [data-command-page],#commandPaletteResults [data-command-case]");
+      if(raw&&document.querySelector("#commandPaletteResults .cp-ai-run"))runAssistantQuery(raw);
+      else first?.click()
+    }
+  }
+}
+document.addEventListener("keydown",e=>{
+  const appVisible=!$("appView")?.classList.contains("hidden");
+  if(!appVisible)return;
+
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){
+    e.preventDefault();openCommandPalette("command");return
+  }
+  if(e.key==="Escape"){
+    if(commandPaletteOpen()){e.preventDefault();closeCommandPalette();return}
+    if(!$("modalBackdrop")?.classList.contains("hidden")){$("modalBackdrop").classList.add("hidden");return}
+    setMobileSidebarOpen(false);return
+  }
+  if(isShortcutTypingTarget(e.target))return;
+  if(e.altKey||e.ctrlKey||e.metaKey)return;
+
+  if(e.key==="?"){e.preventDefault();openCommandPalette("shortcuts");return}
+  if(e.key==="/"){e.preventDefault();openCommandPalette("command");return}
+
+  const key=e.key.toLowerCase();
+  const pages={d:"dashboard",p:"shipping",b:"blanko",s:"court",n:"new",h:"history",a:"analytics",v:"vehicles",f:"favorites",g:"search"};
+  if(pages[key]){e.preventDefault();openPage(pages[key]);return}
+  if(key==="r"){
+    e.preventDefault();
+    $("refreshDataBtn")?.click()
+  }
+});
+
 onAuthStateChanged(auth,async u=>{if(!u||state.demo||interactiveLogin)return;try{state.profile=await loadProfile(u);await loadDashboard();showApp()}catch(e){console.error(e);await signOut(auth);showLogin()}})
