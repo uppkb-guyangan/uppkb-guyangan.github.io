@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 
 const $=id=>document.getElementById(id);
-const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null};
+const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null};
 let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
@@ -69,11 +69,32 @@ function renderNav(){
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p){state.page=p;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
-function filteredRows(page,b){switch(page){case"shipping":return b.shipping.filter(x=>period(x.printed_date));case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));case"disputes":return activeDisputes(b);case"terminated":return b.terminated.filter(x=>period(x.terminated_at));case"court":return b.courts.filter(x=>period(x.tanggal_sidang));case"new":return b.cases.filter(x=>period(x.first_seen_at));case"history":return b.histories.filter(x=>period(x.event_time));default:return[]}}
+function latestHistoryPerCase(rows){
+  const sorted=[...rows].filter(x=>x?.case_id).sort((a,z)=>String(z.event_time||"").localeCompare(String(a.event_time||"")));
+  const seen=new Set();
+  return sorted.filter(x=>{if(seen.has(x.case_id))return false;seen.add(x.case_id);return true})
+}
+function filteredRows(page,b){
+  switch(page){
+    case"shipping":return b.shipping.filter(x=>period(x.printed_date));
+    case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
+    case"disputes":return activeDisputes(b);
+    case"terminated":return b.terminated.filter(x=>period(x.terminated_at));
+    case"court":return b.courts.filter(x=>period(x.tanggal_sidang));
+    case"new":return b.cases.filter(x=>period(x.first_seen_at));
+    case"history":
+      if(state.historyFocus?.mode==="today-changes"){
+        const day=state.historyFocus.day;
+        return latestHistoryPerCase(b.histories.filter(x=>x.case_id&&wibDateKey(x.event_time)===day))
+      }
+      return b.histories.filter(x=>period(x.event_time));
+    default:return[]
+  }
+}
 function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
 function animateDashboardStats(nextStats){
   const previous=state.dashboardStats||{};
@@ -141,7 +162,7 @@ function bindSmartActivityTracker(){
     tracker.querySelectorAll(".activity-dot").forEach((el,n)=>el.classList.toggle("active",n===i));
   };
   show(0);
-  items.forEach(el=>el.onclick=()=>openPage(el.dataset.go));
+  items.forEach(el=>el.onclick=()=>{if(el.dataset.go==="history")openPage("history",{historyFocus:{mode:"today-changes",day:wibDateKey()}});else openPage(el.dataset.go)});
   tracker.querySelectorAll(".activity-dot").forEach((el,i)=>el.onclick=()=>{index=i;show(index)});
   if(items.length>1&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
     const timer=setInterval(()=>{
@@ -244,9 +265,12 @@ function processPage(page,rows){
   const titles=Object.fromEntries(menu);
   let extra="";
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
+  const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
+  const pageTitle=historyFocused?"Perpindahan Proses Hari Ini":titles[page];
+  const focusAction=historyFocused?'<button type="button" id="showAllHistory" class="action-btn history-reset-btn">Lihat Semua Data</button>':"";
   $("content").innerHTML=
     '<div class="panel">'+
-      '<div class="title-row"><h3>'+titles[page]+'</h3><span class="badge" id="resultCount">'+rows.length+' data</span></div>'+
+      '<div class="title-row"><div><h3>'+pageTitle+'</h3>'+(historyFocused?'<p class="history-focus-note">Menampilkan satu perubahan terbaru dari setiap perkara yang berubah proses hari ini.</p>':'')+'</div><div class="history-title-actions"><span class="badge" id="resultCount">'+rows.length+' data</span>'+focusAction+'</div></div>'+
       '<div class="toolbar table-toolbar">'+
         '<div class="search-field-wrap"><span class="search-field-icon">⌕</span><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik..."><button id="clearFilter" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div>'+
         extra+
@@ -265,6 +289,7 @@ function processPage(page,rows){
   $("filter").oninput=apply;
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
+  if($("showAllHistory"))$("showAllHistory").onclick=()=>openPage("history");
   bindDetailRows();
 }
 function resolveCaseIdForRecord(page,r){if(!r)return null;const cases=state.bundle?.cases||[];if(r.case_id&&cases.some(c=>c.case_id===r.case_id))return r.case_id;if(page==="shipping"){if(r.ref_number){const byRef=cases.find(c=>norm(c.ref_number)===norm(r.ref_number));if(byRef)return byRef.case_id}if(r.violation_id){const byViolation=cases.find(c=>norm(c.violation_id)===norm(r.violation_id));if(byViolation)return byViolation.case_id}}return r.case_id||null}
