@@ -372,6 +372,12 @@ function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
 async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
+function etleConfirmationUrl(c){
+  const reg=String(c?.no_registrasi||c?.ref_number||"").trim();
+  const tnkb=String(c?.tnkb||"").replace(/\s+/g,"").toUpperCase();
+  if(!reg||!tnkb)return null;
+  return "https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb)
+}
 function caseDeepLink(caseId){
   const url=new URL(window.location.href);
   url.hash="";
@@ -397,6 +403,47 @@ function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([
 function positiveAmount(v){const n=Number(v);return Number.isFinite(n)&&n>0}
 function hasCourtFine(d){return positiveAmount(d?.court?.denda_putusan)||positiveAmount(d?.payment?.denda_pengadilan)}
 function kejaksaanUrl(noBlanko){return"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim())}
+function showConfirmQr(d){
+  const c=d?.case;
+  const url=etleConfirmationUrl(c);
+  if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}
+  closeCaseQr();
+  const overlay=document.createElement("div");
+  overlay.id="caseQrOverlay";
+  overlay.className="case-qr-overlay";
+  overlay.innerHTML=
+    '<section class="case-qr-dialog" role="dialog" aria-modal="true" aria-label="QR Konfirmasi ETLE">'+
+      '<button type="button" class="case-qr-close" id="caseQrClose" aria-label="Tutup">✕</button>'+
+      '<div class="case-qr-kicker">G-SMART · QR KONFIRMASI ETLE</div>'+
+      '<h3>'+esc(c.tnkb||"Perkara ETLE")+'</h3>'+
+      '<p class="case-qr-reg">'+esc(c.no_registrasi||c.ref_number||"")+'</p>'+
+      '<div id="caseQrCode" class="case-qr-code"></div>'+
+      '<p class="case-qr-note">Scan untuk langsung membuka halaman Konfirmasi ETLE Kemenhub dengan nomor registrasi dan TNKB terisi otomatis.</p>'+
+      '<div class="case-qr-actions">'+
+        '<button type="button" class="action-btn" id="openConfirmLink">Buka Konfirmasi</button>'+
+        '<button type="button" class="action-btn primary" id="downloadCaseQr">Simpan QR</button>'+
+      '</div>'+
+    '</section>';
+  document.body.appendChild(overlay);
+  const target=document.getElementById("caseQrCode");
+  if(window.QRCode&&target){
+    new window.QRCode(target,{text:url,width:220,height:220,colorDark:"#071a31",colorLight:"#ffffff",correctLevel:window.QRCode.CorrectLevel.M})
+  }else if(target){
+    target.innerHTML='<div class="notice">QR belum dapat dibuat. Pastikan perangkat terhubung ke internet lalu coba lagi.</div>'
+  }
+  document.getElementById("caseQrClose").onclick=closeCaseQr;
+  overlay.onclick=e=>{if(e.target===overlay)closeCaseQr()};
+  document.getElementById("openConfirmLink").onclick=()=>window.open(url,"_blank","noopener,noreferrer");
+  document.getElementById("downloadCaseQr").onclick=()=>{
+    const canvas=target?.querySelector("canvas");
+    const img=target?.querySelector("img");
+    const href=canvas?.toDataURL("image/png")||img?.src;
+    if(!href){toast("QR belum siap disimpan");return}
+    const a=document.createElement("a");
+    const safe=String(c.tnkb||c.case_id||"konfirmasi").replace(/[^a-z0-9_-]+/gi,"-");
+    a.href=href;a.download="G-Smart-QR-Konfirmasi-"+safe+".png";document.body.appendChild(a);a.click();a.remove()
+  }
+}
 function closeCaseQr(){
   document.getElementById("caseQrOverlay")?.remove()
 }
@@ -470,7 +517,7 @@ function renderDetail(d){
       '</div>'+
       '<div class="detail-identity">'+
         '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip">'+esc(statusText)+'</span></div>'+
-        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb?'<button class="detail-confirm-btn secondary" id="copyTnkbBtn" type="button">Salin TNKB</button>':'')+'</div>'+
+        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb&&c.no_registrasi||c.tnkb&&c.ref_number?'<button class="detail-confirm-btn secondary" id="qrConfirmBtn" type="button">▦ QR Konfirmasi</button>':'')+'</div>'+
         '<div class="detail-key-grid">'+
           '<div class="detail-key"><small>Jenis Pelanggaran</small><strong>'+esc(c.jenis_pelanggaran||"-")+'</strong></div>'+
           '<div class="detail-key"><small>Tanggal Pelanggaran</small><strong>'+fmtDate(c.tanggal_pelanggaran)+'</strong></div>'+
@@ -535,7 +582,7 @@ function renderDetail(d){
   });
   if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
-  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const reg=String(c.no_registrasi||c.ref_number||"").trim();const tnkb=String(c.tnkb||"").replace(/\s+/g,"").toUpperCase();if(!reg||!tnkb){toast("No. Registrasi atau TNKB belum tersedia");return}const url="https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb);window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("copyTnkbBtn"))$("copyTnkbBtn").onclick=async()=>{const tnkb=String(c.tnkb||"").trim();if(!tnkb)return;try{await navigator.clipboard.writeText(tnkb);toast("TNKB disalin")}catch(_){toast("Gagal menyalin TNKB")}};
+  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
 }
