@@ -620,3 +620,49 @@ body{background:var(--ux-bg)}
 @media (prefers-reduced-motion: reduce){
   .activity-live-dot,.activity-item,.activity-dot{animation:none!important;transition:none!important}
 }
+
+.dashboard-metric-link{
+  width:100%;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  appearance:none;
+  -webkit-tap-highlight-color:transparent;
+  position:relative;
+}
+.dashboard-metric-link .metric-nav-arrow{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:20px;
+  line-height:1;
+  color:currentColor;
+  opacity:0;
+  transition:opacity .16s ease,transform .16s ease;
+}
+.dashboard-metric-link:active{
+  transform:scale(.975)!important;
+  transition:transform .08s ease!important;
+}
+.dashboard-metric-link:focus-visible{
+  outline:3px solid rgba(20,120,255,.22);
+  outline-offset:2px;
+}
+@media(hover:hover) and (pointer:fine){
+  .dashboard-metric-link:hover .metric-nav-arrow{
+    opacity:.42;
+    transform:translate(2px,-50%);
+  }
+}
+@media(max-width:800px){
+  .dashboard-metric-link .metric-nav-arrow{
+    opacity:.28;
+    right:9px;
+    font-size:18px;
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .dashboard-metric-link,.dashboard-metric-link .metric-nav-arrow{transition:none!important}
+  .dashboard-metric-link:active{transform:none!important}
+}
