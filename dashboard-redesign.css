@@ -241,3 +241,50 @@ body{background:var(--ux-bg)}
 @media(max-width:800px){
   .sidebar-hide-btn{display:block}
 }
+
+
+/* Table and search UX improvements */
+.table-toolbar{gap:10px;align-items:center}
+.search-field-wrap{
+  position:relative;display:flex;align-items:center;
+  min-width:min(440px,100%);flex:1 1 360px
+}
+.search-field-wrap input{
+  width:100%;min-width:0!important;
+  padding-left:36px!important;padding-right:36px!important;
+  background:#fbfdff
+}
+.search-field-icon{
+  position:absolute;left:12px;z-index:1;color:#8292a7;
+  font-size:15px;pointer-events:none
+}
+.clear-filter-btn{
+  position:absolute;right:7px;z-index:1;
+  width:26px;height:26px;border:0;border-radius:7px;
+  background:#eef3f8;color:#5d6f85;font-size:11px;
+  display:grid;place-items:center
+}
+.clear-filter-btn:hover{background:#e2eaf3;color:#203650}
+.global-search-wrap{max-width:none}
+.search-hint{margin:4px 0 0;color:#7a8ba0;font-size:11px;font-weight:500}
+.global-search-panel .title-row{align-items:flex-start}
+
+.data-table thead th{
+  top:0;z-index:3;
+  box-shadow:0 1px 0 #e8eef5
+}
+.data-table tbody tr:nth-child(even){background:#fbfdff}
+.data-table tbody tr.clickable:hover{background:#eef6ff}
+.table-wrap{
+  background:#fff;
+  scrollbar-width:thin;
+  scrollbar-color:#b8c5d4 transparent
+}
+.table-wrap::-webkit-scrollbar{height:9px;width:9px}
+.table-wrap::-webkit-scrollbar-thumb{background:#b8c5d4;border-radius:10px}
+.table-wrap::-webkit-scrollbar-track{background:transparent}
+
+@media(max-width:800px){
+  .search-field-wrap{min-width:100%;flex-basis:100%}
+  .table-toolbar select{width:100%}
+}
