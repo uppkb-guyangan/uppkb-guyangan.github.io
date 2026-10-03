@@ -477,3 +477,9 @@ body{background:var(--ux-bg)}
     transition:none!important;
   }
 }
+
+.metric-value[data-stat-key],.hero-stats b[data-stat-key]{
+  font-variant-numeric:tabular-nums;
+  will-change:contents;
+}
+.hero-stats b[data-stat-key]{display:inline-block;min-width:1.6ch}
