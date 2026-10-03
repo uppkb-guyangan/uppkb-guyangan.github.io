@@ -5,6 +5,7 @@ import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 
 const $=id=>document.getElementById(id);
 const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER"};
+let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
@@ -294,7 +295,7 @@ function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWi
 $("closeModal").onclick=()=>$("modalBackdrop").classList.add("hidden");$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop"))$("modalBackdrop").classList.add("hidden")};
 async function loadProfile(user){const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists())throw new Error("Profil petugas belum terdaftar.");const p=snap.data();if(p.aktif===false)throw new Error("Akun Anda tidak aktif. Hubungi administrator.");if(!user.uid||p.aktif!==true)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");const required=key=>{const value=typeof p[key]==="string"?p[key].trim():"";if(!value)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");return value};const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;return{uid:user.uid,nama:required("nama"),nip:required("nip"),username:required("username"),role:required("role"),aktif:true,photoUrl}}
 async function loadDashboard(){setSync("Sinkronisasi");const[cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs]=await Promise.all([q("etle_cases",{order:"tanggal_pelanggaran.desc.nullslast"}),q("etle_shipping",{order:"printed_date.desc.nullslast"}),q("etle_disputes",{order:"confirmation_date.desc.nullslast"}),q("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),q("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),q("etle_offenders"),q("gsmart_case_history",{order:"event_time.desc.nullslast"}),q("gsmart_sync_log",{order:"started_at.desc",limit:30})]);state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};setSync("Siap")}
-$("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";showApp()}catch(err){$("loginMessage").textContent=err.message||"Login gagal."}};
+$("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;await signOut(auth);showLogin()};
 $("menuBtn").onclick=()=>{
@@ -322,4 +323,4 @@ window.addEventListener("resize",()=>{
     applySidebarPreference();
   }
 });
-onAuthStateChanged(auth,async u=>{if(!u||state.demo)return;try{state.profile=await loadProfile(u);await loadDashboard();showApp()}catch(e){console.error(e);await signOut(auth);showLogin()}})
+onAuthStateChanged(auth,async u=>{if(!u||state.demo||interactiveLogin)return;try{state.profile=await loadProfile(u);await loadDashboard();showApp()}catch(e){console.error(e);await signOut(auth);showLogin()}})
