@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 
 const $=id=>document.getElementById(id);
-const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null};
+const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
 let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
@@ -22,21 +22,65 @@ const caseById=id=>state.bundle?.cases.find(x=>x.case_id===id);
 function favoriteStorageKey(){
   return "gsmart_favorites_"+String(state.profile?.uid||"guest")
 }
-function getFavoriteIds(){
+function getLocalFavoriteIds(){
   try{
     const raw=localStorage.getItem(favoriteStorageKey());
     const arr=raw?JSON.parse(raw):[];
     return Array.isArray(arr)?arr.map(String):[]
   }catch(_){return[]}
 }
+function saveLocalFavoriteIds(ids){
+  try{localStorage.setItem(favoriteStorageKey(),JSON.stringify(ids))}catch(_){}
+}
+function getFavoriteIds(){
+  return Array.isArray(state.favoriteIds)?state.favoriteIds:getLocalFavoriteIds()
+}
 function isFavoriteCase(caseId){return getFavoriteIds().includes(String(caseId))}
-function setFavoriteCase(caseId,active){
+async function loadFavoriteIds(){
+  const local=getLocalFavoriteIds();
+  if(state.demo||!state.profile?.uid){
+    state.favoriteIds=local;
+    state.favoritesRemote=false;
+    return
+  }
+  try{
+    const rows=await q("gsmart_case_favorites",{select:"case_id",filters:{user_uid:"eq."+state.profile.uid},order:"created_at.desc"});
+    const remote=rows.map(x=>String(x.case_id)).filter(Boolean);
+    const merged=[...new Set([...local,...remote])];
+    state.favoriteIds=merged;
+    state.favoritesRemote=true;
+    saveLocalFavoriteIds(merged);
+    const missing=local.filter(id=>!remote.includes(id));
+    if(missing.length){
+      await write("gsmart_case_favorites",missing.map(case_id=>({user_uid:state.profile.uid,case_id})),{onConflict:"user_uid,case_id"});
+    }
+  }catch(err){
+    console.warn("Favorite Supabase fallback lokal:",err);
+    state.favoriteIds=local;
+    state.favoritesRemote=false
+  }
+}
+async function setFavoriteCase(caseId,active){
   const id=String(caseId||"").trim();
-  if(!id)return false;
-  const ids=getFavoriteIds();
-  const next=active?[id,...ids.filter(x=>x!==id)]:ids.filter(x=>x!==id);
-  try{localStorage.setItem(favoriteStorageKey(),JSON.stringify(next))}catch(_){}
-  return active
+  if(!id)return{active:false,remote:false};
+  const current=getFavoriteIds();
+  const next=active?[id,...current.filter(x=>x!==id)]:current.filter(x=>x!==id);
+  state.favoriteIds=next;
+  saveLocalFavoriteIds(next);
+  if(state.demo||!state.profile?.uid)return{active,remote:false};
+  try{
+    if(active){
+      await write("gsmart_case_favorites",{user_uid:state.profile.uid,case_id:id},{onConflict:"user_uid,case_id"})
+    }else{
+      await removeRows("gsmart_case_favorites",{user_uid:"eq."+state.profile.uid,case_id:"eq."+id})
+    }
+    state.favoritesRemote=true;
+    return{active,remote:true}
+  }catch(err){
+    console.warn("Sinkronisasi favorit gagal:",err);
+    state.favoritesRemote=false;
+    return{active,remote:false}
+  }
 }
 function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
 const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,admin:rolePermissions().adminPrivileges});
@@ -363,7 +407,7 @@ function favoritesPage(b){
   const rows=b.cases.filter(x=>order.has(String(x.case_id))).sort((a,z)=>order.get(String(a.case_id))-order.get(String(z.case_id)));
   $("content").innerHTML=
     '<div class="panel favorites-panel">'+
-      '<div class="title-row"><div><h3>Perkara Dipantau</h3><p class="search-hint">Perkara yang Anda tandai untuk dipantau di perangkat ini.</p></div><span class="badge">'+rows.length+' perkara</span></div>'+
+      '<div class="title-row"><div><h3>Perkara Dipantau</h3><p class="search-hint">'+(state.favoritesRemote?"Tersinkron ke Supabase dan tersedia di semua perangkat.":"Mode lokal sementara; sinkronisasi Supabase belum aktif.")+'</p></div><span class="badge">'+rows.length+' perkara</span></div>'+
       (rows.length?caseTable(rows):'<div class="empty favorites-empty"><b>☆</b><span>Belum ada perkara yang dipantau.</span><small>Buka Detail Perkara lalu pilih “Pantau”.</small></div>')+
     '</div>';
   bindDetailRows()
@@ -402,6 +446,7 @@ function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
 async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
+async function removeRows(table,filters={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{method:"DELETE",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,Prefer:"return=minimal"}});if(!r.ok)throw new Error("Gagal menghapus "+table+" (HTTP "+r.status+")")}
 function etleConfirmationUrl(c){
   const reg=String(c?.no_registrasi||c?.ref_number||"").trim();
   const tnkb=String(c?.tnkb||"").replace(/\s+/g,"").toUpperCase();
@@ -634,15 +679,16 @@ function renderDetail(d){
     btn.classList.add("active");
   });
   if($("shareCaseBtn"))$("shareCaseBtn").onclick=()=>shareCase(d);
-  if($("favoriteCaseBtn"))$("favoriteCaseBtn").onclick=()=>{
+  if($("favoriteCaseBtn"))$("favoriteCaseBtn").onclick=async()=>{
     const next=!isFavoriteCase(c.case_id);
-    setFavoriteCase(c.case_id,next);
+    const result=await setFavoriteCase(c.case_id,next);
     renderNav();
     if(state.page==="favorites")favoritesPage(state.bundle||demo);
     renderDetail(d);
-    toast(next?"Perkara ditambahkan ke Dipantau":"Perkara dihapus dari Dipantau")
+    if(result.remote)toast(next?"Perkara Dipantau tersinkron ke Supabase":"Perkara dihapus dari Dipantau");
+    else toast(next?"Perkara disimpan lokal; sinkronisasi Supabase belum aktif":"Perkara dihapus dari Dipantau")
   };
-  if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
+    if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
@@ -670,12 +716,13 @@ async function loadDashboard(){
     q("gsmart_sync_log",{order:"started_at.desc",limit:30})
   ]);
   state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};
+  await loadFavoriteIds();
   setSync("Diperbarui "+syncTimeLabel())
 }
 $("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
-$("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;showApp()};
-$("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;await signOut(auth);showLogin()};
+$("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
+$("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
 if($("refreshDataBtn"))$("refreshDataBtn").onclick=async()=>{
   if(state.demo){toast("Mode preview menggunakan data contoh");return}
   const btn=$("refreshDataBtn");
