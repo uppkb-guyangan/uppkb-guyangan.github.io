@@ -1,10 +1,10 @@
-const CACHE_NAME = 'gsmart-shell-v6';
+const CACHE_NAME = 'gsmart-shell-v7';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles-v2.css?v=20261002-ui2',\n  './dashboard-redesign.css?v=20261003-sidebar1',\n  './detail-redesign.css?v=20261003-detail1',
+  './styles-v2.css?v=20261002-ui2',\n  './dashboard-redesign.css?v=20261003-search1',\n  './detail-redesign.css?v=20261003-detail1',
   './branding-overrides.css?v=20261002-brand1',
-  './app-v2.js?v=20261003-sidebar1',
+  './app-v2.js?v=20261003-search1',
   './analytics-drilldown.js?v=20261002-1',
   './config.js?v=20261002-3',
   './G-SMART%20Traffic%20Monitoring%20Emblem.png',
