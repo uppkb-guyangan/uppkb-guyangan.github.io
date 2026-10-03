@@ -19,12 +19,13 @@ html.splash-lock, body.splash-lock{overflow:hidden!important}
 }
 .gsmart-splash-stage{
   position:relative;z-index:1;
-  width:min(1100px,100vw);
-  display:grid;place-items:center
+  width:100vw;height:100dvh;
+  display:grid;place-items:center;
+  overflow:hidden
 }
 .gsmart-splash-video{
-  display:block;width:100%;height:auto;max-height:100dvh;
-  object-fit:contain;object-position:center;
+  display:block;width:100vw;height:100dvh;max-height:none;
+  object-fit:cover;object-position:center center;
   background:#06101d
 }
 .gsmart-splash-fallback{
