@@ -9,8 +9,8 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Data Baru"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["search","Pencarian Global"],["report","Laporan ETLE"]];
-const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",search:"⌕",report:"▧"};
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Data Baru"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Perkara Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
+const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",favorites:"★",search:"⌕",report:"▧"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat tilang dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
@@ -19,6 +19,25 @@ const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
 const money=v=>v==null||v===""?"-":"Rp "+new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Number(v));
 const caseById=id=>state.bundle?.cases.find(x=>x.case_id===id);
+function favoriteStorageKey(){
+  return "gsmart_favorites_"+String(state.profile?.uid||"guest")
+}
+function getFavoriteIds(){
+  try{
+    const raw=localStorage.getItem(favoriteStorageKey());
+    const arr=raw?JSON.parse(raw):[];
+    return Array.isArray(arr)?arr.map(String):[]
+  }catch(_){return[]}
+}
+function isFavoriteCase(caseId){return getFavoriteIds().includes(String(caseId))}
+function setFavoriteCase(caseId,active){
+  const id=String(caseId||"").trim();
+  if(!id)return false;
+  const ids=getFavoriteIds();
+  const next=active?[id,...ids.filter(x=>x!==id)]:ids.filter(x=>x!==id);
+  try{localStorage.setItem(favoriteStorageKey(),JSON.stringify(next))}catch(_){}
+  return active
+}
 function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
 const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,admin:rolePermissions().adminPrivileges});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
@@ -59,7 +78,7 @@ function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"
 function renderNav(){
   const b=state.bundle||demo;
   const c=counts(b);
-  const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions};
+  const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,favorites:getFavoriteIds().length};
   $("nav").innerHTML=menu.map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':"";
@@ -106,7 +125,7 @@ function filteredRows(page,b){
     default:return[]
   }
 }
-function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
+function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
 function animateDashboardStats(nextStats){
   const previous=state.dashboardStats||{};
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -338,6 +357,17 @@ function caseSearchText(c,b,includePhone=false){
   if(includePhone)values.push(offender.no_telp);
   return values.filter(Boolean).join(" ").toLowerCase()
 }
+function favoritesPage(b){
+  const ids=getFavoriteIds();
+  const order=new Map(ids.map((id,i)=>[String(id),i]));
+  const rows=b.cases.filter(x=>order.has(String(x.case_id))).sort((a,z)=>order.get(String(a.case_id))-order.get(String(z.case_id)));
+  $("content").innerHTML=
+    '<div class="panel favorites-panel">'+
+      '<div class="title-row"><div><h3>Perkara Dipantau</h3><p class="search-hint">Perkara yang Anda tandai untuk dipantau di perangkat ini.</p></div><span class="badge">'+rows.length+' perkara</span></div>'+
+      (rows.length?caseTable(rows):'<div class="empty favorites-empty"><b>☆</b><span>Belum ada perkara yang dipantau.</span><small>Buka Detail Perkara lalu pilih “Pantau”.</small></div>')+
+    '</div>';
+  bindDetailRows()
+}
 function globalSearch(b){
   $("content").innerHTML=
     '<div class="panel global-search-panel">'+
@@ -403,6 +433,29 @@ function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([
 function positiveAmount(v){const n=Number(v);return Number.isFinite(n)&&n>0}
 function hasCourtFine(d){return positiveAmount(d?.court?.denda_putusan)||positiveAmount(d?.payment?.denda_pengadilan)}
 function kejaksaanUrl(noBlanko){return"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim())}
+async function shareCase(d){
+  const c=d?.case;
+  if(!c)return;
+  const url=caseDeepLink(c.case_id);
+  const status=c.status_etle||d.shipping?.status||d.court?.status_sidang||"-";
+  const text=[
+    "G-Smart UPPKB Guyangan",
+    "TNKB: "+(c.tnkb||"-"),
+    "No. Registrasi: "+(c.no_registrasi||c.ref_number||"-"),
+    "Jenis Pelanggaran: "+(c.jenis_pelanggaran||"-"),
+    "Status: "+status,
+    "Detail: "+url
+  ].join("\n");
+  if(navigator.share){
+    try{
+      await navigator.share({title:"G-Smart · "+(c.tnkb||"Perkara ETLE"),text,url});
+      return
+    }catch(err){
+      if(err?.name==="AbortError")return
+    }
+  }
+  try{await navigator.clipboard.writeText(text);toast("Ringkasan dan tautan perkara disalin")}catch(_){toast("Gagal membagikan perkara")}
+}
 function showConfirmQr(d){
   const c=d?.case;
   const url=etleConfirmationUrl(c);
@@ -533,7 +586,7 @@ function renderDetail(d){
     '</section>'+
 
     '<div class="detail-actionbar"><span class="detail-actionbar-label">Aksi Perkara</span><div class="action-row">'+
-      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
+      '<button class="action-btn primary" id="copyCase">Salin Ringkasan</button><button class="action-btn" id="shareCaseBtn">↗ Bagikan</button><button class="action-btn favorite-action '+(isFavoriteCase(c.case_id)?"active":"")+'" id="favoriteCaseBtn">'+(isFavoriteCase(c.case_id)?"★ Dipantau":"☆ Pantau")+'</button><button class="action-btn" id="qrCaseBtn">▦ QR Perkara</button>'+phoneAction+kejaksaanAction+
     '</div></div>'+
 
     '<div class="detail-workspace">'+
@@ -580,6 +633,15 @@ function renderDetail(d){
     document.querySelectorAll(".detail-photo-thumb").forEach(x=>x.classList.remove("active"));
     btn.classList.add("active");
   });
+  if($("shareCaseBtn"))$("shareCaseBtn").onclick=()=>shareCase(d);
+  if($("favoriteCaseBtn"))$("favoriteCaseBtn").onclick=()=>{
+    const next=!isFavoriteCase(c.case_id);
+    setFavoriteCase(c.case_id,next);
+    renderNav();
+    if(state.page==="favorites")favoritesPage(state.bundle||demo);
+    renderDetail(d);
+    toast(next?"Perkara ditambahkan ke Dipantau":"Perkara dihapus dari Dipantau")
+  };
   if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);
