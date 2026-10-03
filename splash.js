@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const ASSETS={
-  landscape:"./assets/gsmart-splash-225q.b64?v=20261003-splash2",
+  landscape:"./assets/gsmart-splash-landscape-hq.b64?v=20261003-splash3",
   portrait:"./assets/gsmart-splash-portrait-360.b64?v=20261003-splash2"
 };
 const blobUrlPromises={};
