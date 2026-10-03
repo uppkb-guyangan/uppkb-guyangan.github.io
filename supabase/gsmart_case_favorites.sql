@@ -11,22 +11,22 @@ create index if not exists gsmart_case_favorites_user_created_idx
 
 alter table public.gsmart_case_favorites enable row level security;
 
-grant select, insert, delete on public.gsmart_case_favorites to authenticated;
+grant select, insert, delete on public.gsmart_case_favorites to anon, authenticated;
 
 drop policy if exists favorites_select_own on public.gsmart_case_favorites;
 create policy favorites_select_own
 on public.gsmart_case_favorites for select
-to authenticated
+to public
 using (user_uid = coalesce(auth.jwt() ->> 'sub',''));
 
 drop policy if exists favorites_insert_own on public.gsmart_case_favorites;
 create policy favorites_insert_own
 on public.gsmart_case_favorites for insert
-to authenticated
+to public
 with check (user_uid = coalesce(auth.jwt() ->> 'sub',''));
 
 drop policy if exists favorites_delete_own on public.gsmart_case_favorites;
 create policy favorites_delete_own
 on public.gsmart_case_favorites for delete
-to authenticated
+to public
 using (user_uid = coalesce(auth.jwt() ->> 'sub',''));
