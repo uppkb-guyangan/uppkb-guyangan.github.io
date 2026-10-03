@@ -100,9 +100,62 @@ function animateDashboardStats(nextStats){
   });
   state.dashboardStats={...nextStats};
 }
+function wibDateKey(v=new Date()){
+  const d=v instanceof Date?v:new Date(v);
+  if(Number.isNaN(d.getTime()))return"";
+  const parts=new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit",timeZone:"Asia/Jakarta"}).formatToParts(d);
+  const map=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+  return map.year+"-"+map.month+"-"+map.day
+}
+function buildSmartActivities(b,c){
+  const today=wibDateKey();
+  const sameDay=v=>v&&wibDateKey(v)===today;
+  const todayRows=[
+    {id:"new",icon:"＋",count:b.cases.filter(x=>sameDay(x.first_seen_at)).length,label:"data baru masuk hari ini",go:"new"},
+    {id:"blanko",icon:"▣",count:b.cases.filter(x=>x.no_blanko&&sameDay(x.tanggal_blanko)).length,label:"blanko terbit hari ini",go:"blanko"},
+    {id:"shipping",icon:"✉",count:b.shipping.filter(x=>sameDay(x.printed_date)||sameDay(x.delivered_at)).length,label:"aktivitas pengiriman hari ini",go:"shipping"},
+    {id:"disputes",icon:"⚑",count:activeDisputes(b).filter(x=>sameDay(x.confirmation_date)).length,label:"sanggahan aktif hari ini",go:"disputes"},
+    {id:"court",icon:"⚖",count:b.courts.filter(x=>sameDay(x.tanggal_sidang)).length,label:"jadwal sidang hari ini",go:"court"},
+    {id:"history",icon:"↻",count:new Set(b.histories.filter(x=>sameDay(x.event_time)&&x.case_id).map(x=>x.case_id)).size,label:"perkara berubah proses hari ini",go:"history"}
+  ].filter(x=>x.count>0);
+
+  if(todayRows.length)return todayRows;
+
+  const periodLabel=state.month?monthName(state.month):"periode aktif";
+  return [
+    {id:"new",icon:"＋",count:c.newData,label:"data baru pada "+periodLabel,go:"new"},
+    {id:"blanko",icon:"▣",count:c.blanko,label:"blanko terbit pada "+periodLabel,go:"blanko"},
+    {id:"shipping",icon:"✉",count:c.shipping,label:"pengiriman surat pada "+periodLabel,go:"shipping"},
+    {id:"disputes",icon:"⚑",count:c.disputes,label:"sanggahan aktif pada "+periodLabel,go:"disputes"},
+    {id:"court",icon:"⚖",count:c.court,label:"persidangan pada "+periodLabel,go:"court"}
+  ].filter(x=>x.count>0).slice(0,5)
+}
+function bindSmartActivityTracker(){
+  const tracker=$("smartActivityTracker");
+  if(!tracker)return;
+  const items=[...tracker.querySelectorAll(".activity-item")];
+  if(!items.length)return;
+  let index=0;
+  const show=i=>{
+    items.forEach((el,n)=>el.classList.toggle("active",n===i));
+    tracker.querySelectorAll(".activity-dot").forEach((el,n)=>el.classList.toggle("active",n===i));
+  };
+  show(0);
+  items.forEach(el=>el.onclick=()=>openPage(el.dataset.go));
+  tracker.querySelectorAll(".activity-dot").forEach((el,i)=>el.onclick=()=>{index=i;show(index)});
+  if(items.length>1&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
+    const timer=setInterval(()=>{
+      if(!document.body.contains(tracker)){clearInterval(timer);return}
+      if(document.hidden)return;
+      index=(index+1)%items.length;
+      show(index)
+    },4200);
+  }
+}
 function dashboard(b){
   const c=counts(b);
   const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
+  const smartActivities=buildSmartActivities(b,c);
   const cards=[
     ["Total Perkara",c.total,"total"],
     ["Pengiriman Surat",c.shipping,"shipping"],
@@ -157,6 +210,11 @@ function dashboard(b){
         '</div>'+
       '</div>'+
     '</section>'+
+    (smartActivities.length?'<section id="smartActivityTracker" class="smart-activity-tracker" aria-label="Aktivitas G-Smart">'+
+      '<div class="activity-label"><span class="activity-live-dot"></span><b>Aktivitas</b></div>'+
+      '<div class="activity-stage">'+smartActivities.map((a,i)=>'<button type="button" class="activity-item'+(i===0?" active":"")+'" data-go="'+a.go+'"><span class="activity-icon">'+a.icon+'</span><span><strong>'+a.count+'</strong> '+esc(a.label)+'</span><span class="activity-arrow">›</span></button>').join("")+'</div>'+
+      '<div class="activity-dots">'+smartActivities.map((a,i)=>'<button type="button" class="activity-dot'+(i===0?" active":"")+'" aria-label="Aktivitas '+(i+1)+'"></button>').join("")+'</div>'+
+    '</section>':"")+
     '<div class="dashboard-layout">'+
       '<div class="dashboard-main">'+
         '<div class="cards dashboard-metrics">'+cards.map(x=>'<div class="card"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div></div>').join("")+'</div>'+
@@ -176,6 +234,7 @@ function dashboard(b){
       '</aside>'+
     '</div>';
   animateDashboardStats(dashboardStats);
+  bindSmartActivityTracker();
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
