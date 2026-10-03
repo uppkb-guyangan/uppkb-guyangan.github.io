@@ -137,3 +137,17 @@
   .detail-tnkb{font-size:24px}
   .detail-photos-strip{grid-template-columns:1fr}
 }
+
+.detail-reg-action{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail-confirm-btn{
+  border:1px solid #cfe2fb;
+  background:#edf5ff;
+  color:#0f6fd6;
+  border-radius:8px;
+  padding:5px 8px;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.15s;
+}
+.detail-confirm-btn:hover{background:#dfeeff;border-color:#b8d5f6;transform:translateY(-1px)}
