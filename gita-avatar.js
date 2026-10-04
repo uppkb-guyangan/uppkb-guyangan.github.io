@@ -118,4 +118,7 @@
     }
     btn.classList.add('gita-video-missing');
   });
+
+  // Integrasi GITA Agent v3.1 dipisahkan agar app-v2.js tetap aman dan mudah di-revert.
+  import('./gita-agent-ui.js?v=20261004-agent1').catch(err=>console.error('GITA Agent UI gagal dimuat:',err));
 })();
