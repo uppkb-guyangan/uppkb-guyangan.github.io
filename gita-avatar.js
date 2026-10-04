@@ -10,6 +10,7 @@
   };
   let current='';
   let talkingTimer=null;
+  let interactionTimer=null;
   let sourceStep=0;
 
   function sourceFor(state,step){
@@ -41,20 +42,55 @@
     });
   }
 
+  const palette=document.getElementById('commandPalette');
+  const results=document.getElementById('commandPaletteResults');
+
+  function assistantState(){
+    if(results&&results.querySelector('.assistant-thinking'))return 'thinking';
+    if(results&&results.querySelector('.assistant-answer')&&palette&&!palette.classList.contains('hidden'))return 'talking';
+    return 'idle';
+  }
+
+  function startInteractionTalking(duration=2200){
+    clearTimeout(interactionTimer);
+    if(assistantState()==='thinking')return;
+    setGitaState('talking');
+    interactionTimer=setTimeout(()=>{
+      setGitaState(assistantState());
+    },duration);
+  }
+
   window.setGitaState=setGitaState;
   setGitaState('idle');
 
-  const palette=document.getElementById('commandPalette');
-  const results=document.getElementById('commandPaletteResults');
+  const finePointer=window.matchMedia&&window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(finePointer){
+    btn.addEventListener('mouseenter',()=>{
+      clearTimeout(interactionTimer);
+      if(assistantState()!=='thinking')setGitaState('talking');
+    });
+    btn.addEventListener('mouseleave',()=>{
+      clearTimeout(interactionTimer);
+      setGitaState(assistantState());
+    });
+  }else{
+    btn.addEventListener('pointerdown',()=>{
+      startInteractionTalking(2200);
+    },{passive:true});
+  }
+
   if(results){
     new MutationObserver(()=>{
       brandPaletteAvatar();
-      if(results.querySelector('.assistant-thinking')){
+      const state=assistantState();
+      if(state==='thinking'){
         clearTimeout(talkingTimer);
+        clearTimeout(interactionTimer);
         setGitaState('thinking');
         return;
       }
-      if(results.querySelector('.assistant-answer')){
+      if(state==='talking'){
+        clearTimeout(interactionTimer);
         setGitaState('talking');
         clearTimeout(talkingTimer);
         talkingTimer=setTimeout(()=>setGitaState('idle'),4500);
@@ -67,6 +103,7 @@
     new MutationObserver(()=>{
       if(palette.classList.contains('hidden')){
         clearTimeout(talkingTimer);
+        clearTimeout(interactionTimer);
         setGitaState('idle');
       }else{
         setTimeout(brandPaletteAvatar,0);
