@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gsmart-shell-v35';
+const CACHE_NAME = 'gsmart-shell-v36';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const APP_SHELL = [
   './branding-overrides.css?v=20261002-brand1',
   './splash.js?v=20261003-splash3',
   './app-v2.js?v=20261004-gita37',
+  './fcm-push.js?v=20261005-fcm1',
   './analytics-drilldown.js?v=20261002-1',
   './court-enhancement.js?v=20261002-4',
   './config.js?v=20261002-3',
@@ -50,5 +51,70 @@ self.addEventListener('fetch', event => {
       .catch(() =>
         caches.match(event.request).then(cached => cached || caches.match('./index.html'))
       )
+  );
+});
+
+// ============================================================
+// FIREBASE CLOUD MESSAGING - BACKGROUND PUSH
+// ============================================================
+
+importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: 'AIzaSyBbF1MPzFK_EdUFV9CNh2ZZfuHxRgilm6o',
+  authDomain: 'g-smart-guyangan.firebaseapp.com',
+  projectId: 'g-smart-guyangan',
+  storageBucket: 'g-smart-guyangan.firebasestorage.app',
+  messagingSenderId: '513673068228',
+  appId: '1:513673068228:web:03f3f5797b706fee641391'
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage(payload => {
+  console.info('G-Smart FCM background:', payload);
+
+  // Jika backend mengirim notification payload, browser/FCM dapat
+  // menampilkannya otomatis. Kita hanya membuat notifikasi sendiri
+  // untuk data-only payload agar tidak terjadi notifikasi ganda.
+  if (payload.notification) return;
+
+  const data = payload.data || {};
+  const title = data.title || 'G-Smart UPPKB Guyangan';
+  const options = {
+    body: data.body || 'Ada pembaruan data G-Smart.',
+    icon: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
+    badge: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
+    tag: data.tag || 'gsmart-update',
+    data: {
+      url: data.url || './'
+    }
+  };
+
+  return self.registration.showNotification(title, options);
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  const targetUrl = new URL(
+    event.notification?.data?.url || './',
+    self.location.origin
+  ).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          client.navigate(targetUrl).catch(() => {});
+          return client.focus();
+        }
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
   );
 });
