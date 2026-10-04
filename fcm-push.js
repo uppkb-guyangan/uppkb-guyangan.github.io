@@ -17,51 +17,90 @@ async function loadRole(uid) {
   return snap.exists() ? roleOf(snap.data()?.role) : "";
 }
 
-async function saveToken(user, role, token) {
+async function saveToken(user, token) {
+  // Security boundary: UID and role are NOT sent as trusted identity data.
+  // The Edge Function verifies this Firebase ID token and reads the role server-side.
+  const firebaseIdToken = await user.getIdToken(true);
   const response = await fetch(REGISTER_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "apikey": supabaseConfig.publishableKey },
-    body: JSON.stringify({ token, firebase_uid: user.uid, role, platform: navigator.userAgentData?.platform || navigator.platform || "web-pwa" })
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": supabaseConfig.publishableKey
+    },
+    body: JSON.stringify({
+      token,
+      firebase_id_token: firebaseIdToken,
+      platform: navigator.userAgentData?.platform || navigator.platform || "web-pwa"
+    })
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result?.success) throw new Error(result?.error || `Registrasi push gagal (${response.status})`);
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.error || `Registrasi push gagal (${response.status})`);
+  }
   return result;
 }
 
 export async function registerGSmartPush({ user = auth.currentUser, role, requestPermission = false } = {}) {
   if (!user?.uid) return { enabled: false, reason: "not_authenticated" };
+
+  // Client-side role check is UX only. Authorization is enforced again by the Edge Function.
   const currentRole = roleOf(role || await loadRole(user.uid));
   if (!ALLOWED_ROLES.has(currentRole)) return { enabled: false, reason: "role_not_allowed" };
-  if (!(await isSupported()) || !("serviceWorker" in navigator) || !("Notification" in window)) return { enabled: false, reason: "unsupported" };
+
+  if (!(await isSupported()) || !("serviceWorker" in navigator) || !("Notification" in window)) {
+    return { enabled: false, reason: "unsupported" };
+  }
+
   let permission = Notification.permission;
   if (permission === "default" && requestPermission) permission = await Notification.requestPermission();
   if (permission !== "granted") return { enabled: false, reason: permission };
+
   const registration = await navigator.serviceWorker.ready;
-  const token = await getToken(getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
+  const token = await getToken(getMessaging(app), {
+    vapidKey: VAPID_KEY,
+    serviceWorkerRegistration: registration
+  });
   if (!token) return { enabled: false, reason: "token_empty" };
-  await saveToken(user, currentRole, token);
-  return { enabled: true, token, role: currentRole };
+
+  const serverResult = await saveToken(user, token);
+  return { enabled: true, token, role: roleOf(serverResult?.role || currentRole) };
 }
 
 export async function enableGSmartPush(user = auth.currentUser, role) {
   return registerGSmartPush({ user, role, requestPermission: true });
 }
 
-function removeButton() { document.getElementById("gsmartEnablePushBtn")?.remove(); }
+function removeButton() {
+  document.getElementById("gsmartEnablePushBtn")?.remove();
+}
+
 function showButton(user, role) {
   if (Notification.permission !== "default" || document.getElementById("gsmartEnablePushBtn")) return;
   const host = document.querySelector(".topbar-actions");
   if (!host) return;
+
   const b = document.createElement("button");
-  b.id = "gsmartEnablePushBtn"; b.type = "button"; b.className = "icon-btn"; b.title = "Aktifkan push notification"; b.textContent = "🔔";
+  b.id = "gsmartEnablePushBtn";
+  b.type = "button";
+  b.className = "icon-btn";
+  b.title = "Aktifkan push notification";
+  b.textContent = "🔔";
   b.onclick = async () => {
     b.disabled = true;
     try {
       const r = await enableGSmartPush(user, role);
-      if (r.enabled) { removeButton(); alert("Notifikasi G-Smart berhasil diaktifkan pada perangkat ini."); }
-      else if (r.reason === "denied") alert("Izin notifikasi ditolak. Aktifkan kembali melalui pengaturan browser/PWA.");
-    } catch (e) { console.error(e); alert("Notifikasi belum dapat diaktifkan. Silakan coba lagi."); }
-    finally { b.disabled = false; }
+      if (r.enabled) {
+        removeButton();
+        alert("Notifikasi G-Smart berhasil diaktifkan pada perangkat ini.");
+      } else if (r.reason === "denied") {
+        alert("Izin notifikasi ditolak. Aktifkan kembali melalui pengaturan browser/PWA.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Notifikasi belum dapat diaktifkan. Silakan coba lagi.");
+    } finally {
+      b.disabled = false;
+    }
   };
   host.prepend(b);
 }
@@ -72,9 +111,14 @@ onAuthStateChanged(auth, async user => {
   try {
     const role = await loadRole(user.uid);
     if (!ALLOWED_ROLES.has(role)) return;
-    if (Notification.permission === "granted") await registerGSmartPush({ user, role });
-    else if (Notification.permission === "default") showButton(user, role);
-  } catch (e) { console.warn("FCM auto registration:", e); }
+    if (Notification.permission === "granted") {
+      await registerGSmartPush({ user, role });
+    } else if (Notification.permission === "default") {
+      showButton(user, role);
+    }
+  } catch (e) {
+    console.warn("FCM auto registration:", e);
+  }
 });
 
 if (await isSupported()) {
@@ -83,4 +127,8 @@ if (await isSupported()) {
     console.info("G-Smart push foreground:", payload);
   });
 }
-window.GSmartPush = { register: registerGSmartPush, enable: enableGSmartPush };
+
+window.GSmartPush = {
+  register: registerGSmartPush,
+  enable: enableGSmartPush
+};
