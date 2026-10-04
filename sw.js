@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gsmart-shell-v37';
+const CACHE_NAME = 'gsmart-shell-v38';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,7 +21,17 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async cache => {
+      for (const url of APP_SHELL) {
+        try {
+          await cache.add(url);
+        } catch (error) {
+          console.warn('G-Smart SW cache skip:', url, error);
+        }
+      }
+    })
+  );
   self.skipWaiting();
 });
 
@@ -29,9 +39,8 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
@@ -54,54 +63,39 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ============================================================
-// FIREBASE CLOUD MESSAGING - BACKGROUND PUSH
-// ============================================================
+// Tahap diagnostik FCM:
+// Firebase Messaging sengaja tidak di-import di service worker ini.
+// Tujuannya memastikan service worker dasar dapat install + activate
+// dengan stabil di Chrome Android sebelum background messaging
+// ditambahkan kembali.
 
-importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.5/firebase-messaging-compat.js');
+self.addEventListener('push', event => {
+  if (!event.data) return;
 
-firebase.initializeApp({
-  apiKey: 'AIzaSyBbF1MPzFK_EdUFV9CNh2ZZfuHxRgilm6o',
-  authDomain: 'g-smart-guyangan.firebaseapp.com',
-  projectId: 'g-smart-guyangan',
-  storageBucket: 'g-smart-guyangan.firebasestorage.app',
-  messagingSenderId: '513673068228',
-  appId: '1:513673068228:web:03f3f5797b706fee641391'
-});
+  let payload = {};
+  try {
+    payload = event.data.json();
+  } catch (_) {
+    payload = { data: { body: event.data.text() } };
+  }
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(payload => {
-  console.info('G-Smart FCM background:', payload);
-
-  // Jika backend mengirim notification payload, browser/FCM dapat
-  // menampilkannya otomatis. Kita hanya membuat notifikasi sendiri
-  // untuk data-only payload agar tidak terjadi notifikasi ganda.
-  if (payload.notification) return;
-
+  const notification = payload.notification || {};
   const data = payload.data || {};
-  const title = data.title || 'G-Smart UPPKB Guyangan';
+  const title = notification.title || data.title || 'G-Smart UPPKB Guyangan';
   const options = {
-    body: data.body || 'Ada pembaruan data G-Smart.',
+    body: notification.body || data.body || 'Ada pembaruan data G-Smart.',
     icon: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
     badge: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
     tag: data.tag || 'gsmart-update',
-    data: {
-      url: data.url || './'
-    }
+    data: { url: data.url || './' }
   };
 
-  return self.registration.showNotification(title, options);
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
-  const targetUrl = new URL(
-    event.notification?.data?.url || './',
-    self.location.origin
-  ).href;
+  const targetUrl = new URL(event.notification?.data?.url || './', self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
@@ -111,10 +105,7 @@ self.addEventListener('notificationclick', event => {
           return client.focus();
         }
       }
-
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
     })
   );
 });
