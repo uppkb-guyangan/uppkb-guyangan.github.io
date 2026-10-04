@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.webmanifest?v=20261003-maskable1">
   <link rel="icon" type="image/png" href="./G-SMART%20Traffic%20Monitoring%20Emblem.png">
   <link rel="apple-touch-icon" href="./G-SMART%20Traffic%20Monitoring%20Emblem.png">
-  <link rel="stylesheet" href="./styles-v2.css?v=20261004-cmd36">
+  <link rel="stylesheet" href="./styles-v2.css?v=20261004-gita37">
   <link rel="stylesheet" href="./branding-overrides.css?v=20261002-brand1">
   <link rel="stylesheet" href="./dashboard-redesign.css?v=20261003-truck35">
   <link rel="stylesheet" href="./detail-redesign.css?v=20261003-ux33">
@@ -43,6 +43,22 @@
   </section>
   <div id="modalBackdrop" class="modal-backdrop hidden"><section id="detailModal" class="detail-modal"><header class="modal-header"><div><h3 id="modalTitle">Detail Perkara</h3><p id="modalSubtitle"></p></div><button id="closeModal" class="icon-btn">✕</button></header><div id="modalBody" class="modal-body"></div></section></div>
   <div id="toast" class="toast hidden"></div>
+  <div class="gita-floating-wrap" aria-live="polite">
+    <button id="gitaGreeting" class="gita-greeting" type="button" aria-label="Buka GITA">
+      <b>Halo! Saya GITA 👋</b>
+      <span>Ada yang bisa saya bantu?</span>
+    </button>
+    <button id="gitaAvatarBtn" class="gita-avatar-btn" type="button" title="Tanya GITA" aria-label="Buka Asisten GITA">
+      <span class="gita-pulse" aria-hidden="true"></span>
+      <span class="gita-avatar-face" aria-hidden="true">
+        <span class="gita-antenna"></span>
+        <span class="gita-eyes"><i></i><i></i></span>
+        <span class="gita-mouth"></span>
+      </span>
+      <span class="gita-name">GITA</span>
+      <span class="gita-online-dot" aria-hidden="true"></span>
+    </button>
+  </div>
   <div id="commandPalette" class="command-palette-backdrop hidden" role="dialog" aria-modal="true" aria-label="Command Palette dan Asisten G-Smart">
     <section class="command-palette">
       <header class="command-palette-search">
@@ -56,7 +72,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="./splash.js?v=20261003-splash3"></script>
-  <script type="module" src="./app-v2.js?v=20261004-cmd36"></script>
+  <script type="module" src="./app-v2.js?v=20261004-gita37"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
   <script src="./pwa.js?v=20261002-2"></script>
