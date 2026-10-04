@@ -663,6 +663,19 @@ function renderCommandPalette(){
     return
   }
 
+  if(!q&&mode==="assistant"){
+    const firstName=String(state.profile?.nama||"Petugas").trim().split(/\s+/)[0]||"Petugas";
+    out.innerHTML=
+      '<div class="gita-assistant-welcome">'+
+        '<div class="gita-mini-avatar" aria-hidden="true"><span class="gita-mini-eye"></span><span class="gita-mini-eye"></span><i></i></div>'+
+        '<div><b>Halo, '+esc(firstName)+'! Saya GITA.</b><p>GITA siap membantu membaca data operasional G-Smart. Tanyakan perkara, blanko, persidangan, kendaraan berulang, atau prioritas hari ini.</p></div>'+
+      '</div>'+
+      '<div class="cp-section-label cp-ai-label">Pertanyaan cepat <span>read-only</span></div>'+
+      ['Apa yang perlu diprioritaskan hari ini?','Berapa blanko yang belum bayar?','Berapa sidang hari ini?','Kendaraan yang punya lebih dari satu perkara'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
+    bindCommandPaletteActions();
+    return
+  }
+
   if(!q){
     out.innerHTML=
       '<div class="cp-section-label">Akses cepat</div>'+
@@ -1159,7 +1172,26 @@ function isShortcutTypingTarget(el){
   const tag=el.tagName?.toLowerCase();
   return tag==="input"||tag==="textarea"||tag==="select"||el.isContentEditable
 }
-if($("assistantBtn"))$("assistantBtn").onclick=()=>openCommandPalette("command");
+if($("assistantBtn"))$("assistantBtn").onclick=()=>openCommandPalette("assistant");
+if($("gitaAvatarBtn")){
+  const gitaBtn=$("gitaAvatarBtn");
+  const gitaBubble=$("gitaGreeting");
+  gitaBtn.onclick=()=>{gitaBubble?.classList.remove("show");openCommandPalette("assistant")};
+  gitaBtn.onpointerenter=e=>{
+    const r=gitaBtn.getBoundingClientRect();
+    const x=((e.clientX-r.left)/Math.max(r.width,1)-.5)*2;
+    const y=((e.clientY-r.top)/Math.max(r.height,1)-.5)*2;
+    gitaBtn.style.setProperty("--gita-rx",(y*-7).toFixed(1)+"deg");
+    gitaBtn.style.setProperty("--gita-ry",(x*7).toFixed(1)+"deg")
+  };
+  gitaBtn.onpointermove=gitaBtn.onpointerenter;
+  gitaBtn.onpointerleave=()=>{gitaBtn.style.setProperty("--gita-rx","0deg");gitaBtn.style.setProperty("--gita-ry","0deg")};
+  if(gitaBubble){
+    setTimeout(()=>{if(!$("appView")?.classList.contains("hidden"))gitaBubble.classList.add("show")},1100);
+    setTimeout(()=>gitaBubble.classList.remove("show"),6500);
+    gitaBubble.onclick=()=>{gitaBubble.classList.remove("show");openCommandPalette("assistant")}
+  }
+}
 if($("commandPaletteClose"))$("commandPaletteClose").onclick=closeCommandPalette;
 if($("commandPalette"))$("commandPalette").onclick=e=>{if(e.target===$("commandPalette"))closeCommandPalette()};
 if($("commandPaletteInput")){
