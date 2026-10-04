@@ -19,10 +19,12 @@ window.gsmartInstallPWA = async () => {
   return true;
 };
 
+// Daftarkan service worker segera setelah script dieksekusi.
+// FCM membutuhkan registration aktif dan tidak perlu menunggu window.load.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(error => {
-      console.warn('G-Smart service worker gagal didaftarkan:', error);
-    });
+  navigator.serviceWorker.register('./sw.js').then(registration => {
+    console.info('G-Smart service worker aktif:', registration.scope);
+  }).catch(error => {
+    console.warn('G-Smart service worker gagal didaftarkan:', error);
   });
 }
