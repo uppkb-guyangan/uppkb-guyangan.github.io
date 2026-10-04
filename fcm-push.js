@@ -26,7 +26,7 @@ import {
 
 // ============================================================
 // G-SMART FCM PUSH NOTIFICATION
-// Hanya untuk ADMIN dan WASATPEL
+// ADMIN & WASATPEL
 // ============================================================
 
 const VAPID_KEY =
@@ -35,10 +35,11 @@ const VAPID_KEY =
 const REGISTER_URL =
   `${supabaseConfig.url}/functions/v1/register-push-token`;
 
-const ALLOWED_ROLES = new Set([
-  "ADMIN",
-  "WASATPEL"
-]);
+const ALLOWED_ROLES =
+  new Set([
+    "ADMIN",
+    "WASATPEL"
+  ]);
 
 
 // ============================================================
@@ -50,13 +51,15 @@ const app =
     ? getApps()[0]
     : initializeApp(firebaseConfig);
 
-const auth = getAuth(app);
+const auth =
+  getAuth(app);
 
-const db = getFirestore(app);
+const db =
+  getFirestore(app);
 
 
 // ============================================================
-// HELPER
+// HELPERS
 // ============================================================
 
 function normalizeRole(value) {
@@ -66,8 +69,41 @@ function normalizeRole(value) {
 }
 
 
+function reasonText(reason) {
+
+  const messages = {
+
+    not_authenticated:
+      "User Firebase belum terdeteksi login.",
+
+    role_not_allowed:
+      "Role akun bukan ADMIN atau WASATPEL.",
+
+    unsupported:
+      "Browser/perangkat belum mendukung FCM Web Push.",
+
+    denied:
+      "Izin notifikasi diblokir. Aktifkan izin notifikasi G-Smart melalui pengaturan Chrome/PWA.",
+
+    default:
+      "Izin notifikasi belum diberikan.",
+
+    token_empty:
+      "Firebase tidak menghasilkan token perangkat."
+  };
+
+  return (
+    messages[reason] ||
+    String(
+      reason ||
+      "Status tidak diketahui."
+    )
+  );
+}
+
+
 // ============================================================
-// AMBIL ROLE DARI FIRESTORE
+// ROLE FIRESTORE
 // ============================================================
 
 async function getUserRole(uid) {
@@ -76,14 +112,14 @@ async function getUserRole(uid) {
     return "";
   }
 
-  const userRef = doc(
-    db,
-    "users",
-    uid
-  );
-
   const snapshot =
-    await getDoc(userRef);
+    await getDoc(
+      doc(
+        db,
+        "users",
+        uid
+      )
+    );
 
   if (!snapshot.exists()) {
     return "";
@@ -96,17 +132,7 @@ async function getUserRole(uid) {
 
 
 // ============================================================
-// KIRIM TOKEN KE SUPABASE EDGE FUNCTION
-//
-// PENTING:
-// Frontend TIDAK mengirim firebase_uid atau role
-// sebagai identitas yang dipercaya.
-//
-// Edge Function akan:
-// 1. Verifikasi Firebase ID Token
-// 2. Mendapatkan UID asli
-// 3. Membaca role asli
-// 4. Memastikan hanya ADMIN/WASATPEL
+// REGISTER TOKEN KE SUPABASE
 // ============================================================
 
 async function registerTokenOnServer(
@@ -123,32 +149,35 @@ async function registerTokenOnServer(
   const firebaseIdToken =
     await user.getIdToken(true);
 
-  const response = await fetch(
-    REGISTER_URL,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      REGISTER_URL,
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+        headers: {
+          "Content-Type":
+            "application/json",
 
-        "apikey":
-          supabaseConfig.publishableKey
-      },
+          "apikey":
+            supabaseConfig.publishableKey
+        },
 
-      body: JSON.stringify({
-        token: fcmToken,
+        body: JSON.stringify({
 
-        firebase_id_token:
-          firebaseIdToken,
+          token:
+            fcmToken,
 
-        platform:
-          navigator.userAgentData?.platform ||
-          navigator.platform ||
-          "web-pwa"
-      })
-    }
-  );
+          firebase_id_token:
+            firebaseIdToken,
+
+          platform:
+            navigator.userAgentData?.platform ||
+            navigator.platform ||
+            "web-pwa"
+        })
+      }
+    );
 
   const result =
     await response
@@ -162,6 +191,7 @@ async function registerTokenOnServer(
 
     throw new Error(
       result?.error ||
+      result?.detail ||
       `Registrasi push gagal (${response.status})`
     );
   }
@@ -180,9 +210,9 @@ export async function registerGSmartPush({
   requestPermission = false
 } = {}) {
 
-  // ------------------------------
-  // User harus login
-  // ------------------------------
+  // --------------------------------
+  // AUTH
+  // --------------------------------
 
   if (!user?.uid) {
 
@@ -193,20 +223,18 @@ export async function registerGSmartPush({
   }
 
 
-  // ------------------------------
-  // Ambil role
-  // ------------------------------
+  // --------------------------------
+  // ROLE
+  // --------------------------------
 
   const currentRole =
     normalizeRole(
       role ||
-      await getUserRole(user.uid)
+      await getUserRole(
+        user.uid
+      )
     );
 
-
-  // ------------------------------
-  // Hanya ADMIN / WASATPEL
-  // ------------------------------
 
   if (
     !ALLOWED_ROLES.has(
@@ -216,14 +244,17 @@ export async function registerGSmartPush({
 
     return {
       enabled: false,
-      reason: "role_not_allowed"
+      reason: "role_not_allowed",
+      role:
+        currentRole ||
+        "KOSONG"
     };
   }
 
 
-  // ------------------------------
-  // Cek dukungan browser
-  // ------------------------------
+  // --------------------------------
+  // SUPPORT
+  // --------------------------------
 
   const supported =
     await isSupported();
@@ -236,17 +267,19 @@ export async function registerGSmartPush({
 
     return {
       enabled: false,
-      reason: "unsupported"
+      reason: "unsupported",
+      role: currentRole
     };
   }
 
 
-  // ------------------------------
-  // Permission
-  // ------------------------------
+  // --------------------------------
+  // PERMISSION
+  // --------------------------------
 
   let permission =
     Notification.permission;
+
 
   if (
     permission === "default" &&
@@ -265,14 +298,15 @@ export async function registerGSmartPush({
 
     return {
       enabled: false,
-      reason: permission
+      reason: permission,
+      role: currentRole
     };
   }
 
 
-  // ------------------------------
-  // Tunggu Service Worker
-  // ------------------------------
+  // --------------------------------
+  // SERVICE WORKER
+  // --------------------------------
 
   const registration =
     await navigator
@@ -280,12 +314,13 @@ export async function registerGSmartPush({
       .ready;
 
 
-  // ------------------------------
-  // Ambil FCM token
-  // ------------------------------
+  // --------------------------------
+  // FCM TOKEN
+  // --------------------------------
 
   const messaging =
     getMessaging(app);
+
 
   const fcmToken =
     await getToken(
@@ -304,14 +339,15 @@ export async function registerGSmartPush({
 
     return {
       enabled: false,
-      reason: "token_empty"
+      reason: "token_empty",
+      role: currentRole
     };
   }
 
 
-  // ------------------------------
-  // Register ke backend
-  // ------------------------------
+  // --------------------------------
+  // BACKEND
+  // --------------------------------
 
   const serverResult =
     await registerTokenOnServer(
@@ -321,6 +357,7 @@ export async function registerGSmartPush({
 
 
   return {
+
     enabled: true,
 
     token:
@@ -336,7 +373,7 @@ export async function registerGSmartPush({
 
 
 // ============================================================
-// USER MEMINTA AKTIFKAN PUSH
+// ENABLE PUSH
 // ============================================================
 
 export async function enableGSmartPush(
@@ -353,7 +390,7 @@ export async function enableGSmartPush(
 
 
 // ============================================================
-// TOMBOL NOTIFIKASI
+// PUSH BUTTON
 // ============================================================
 
 function removePushButton() {
@@ -366,18 +403,93 @@ function removePushButton() {
 }
 
 
-function showPushButton(
+// ============================================================
+// TUNGGU TOPBAR
+//
+// FIX PENTING:
+// Versi lama hanya mencari .topbar-actions sekali.
+// Jika UI belum selesai render, tombol tidak pernah muncul.
+//
+// Versi ini menunggu sampai topbar tersedia.
+// ============================================================
+
+function waitForTopbar(
+  timeoutMs = 15000
+) {
+
+  return new Promise(
+    (resolve) => {
+
+      const existing =
+        document.querySelector(
+          ".topbar-actions"
+        );
+
+
+      if (existing) {
+
+        resolve(existing);
+
+        return;
+      }
+
+
+      const observer =
+        new MutationObserver(
+          () => {
+
+            const host =
+              document.querySelector(
+                ".topbar-actions"
+              );
+
+
+            if (host) {
+
+              observer.disconnect();
+
+              resolve(host);
+            }
+          }
+        );
+
+
+      observer.observe(
+        document.documentElement,
+        {
+          childList: true,
+          subtree: true
+        }
+      );
+
+
+      setTimeout(
+        () => {
+
+          observer.disconnect();
+
+          resolve(
+            document.querySelector(
+              ".topbar-actions"
+            )
+          );
+
+        },
+        timeoutMs
+      );
+    }
+  );
+}
+
+
+// ============================================================
+// SHOW BUTTON
+// ============================================================
+
+async function showPushButton(
   user,
   role
 ) {
-
-  if (
-    Notification.permission !==
-    "default"
-  ) {
-    return;
-  }
-
 
   if (
     document.getElementById(
@@ -389,14 +501,13 @@ function showPushButton(
 
 
   const host =
-    document.querySelector(
-      ".topbar-actions"
-    );
+    await waitForTopbar();
 
 
   if (!host) {
-    console.info(
-      "G-Smart FCM: .topbar-actions belum tersedia."
+
+    console.warn(
+      "G-Smart FCM: topbar tidak ditemukan."
     );
 
     return;
@@ -419,16 +530,30 @@ function showPushButton(
     "icon-btn";
 
   button.title =
-    "Aktifkan push notification";
+    "Notifikasi G-Smart";
 
   button.setAttribute(
     "aria-label",
-    "Aktifkan push notification"
+    "Notifikasi G-Smart"
   );
 
-  button.textContent =
-    "🔔";
 
+  // Tombol tetap terlihat walaupun
+  // permission sudah GRANTED.
+
+  button.textContent =
+    (
+      "Notification" in window &&
+      Notification.permission ===
+        "granted"
+    )
+      ? "🔔✓"
+      : "🔔";
+
+
+  // --------------------------------
+  // CLICK
+  // --------------------------------
 
   button.addEventListener(
     "click",
@@ -436,6 +561,7 @@ function showPushButton(
 
       button.disabled =
         true;
+
 
       try {
 
@@ -450,32 +576,35 @@ function showPushButton(
           result.enabled
         ) {
 
-          removePushButton();
+          button.textContent =
+            "🔔✓";
+
 
           alert(
-            "Notifikasi G-Smart berhasil diaktifkan pada perangkat ini."
+            "Notifikasi G-Smart AKTIF.\n\n" +
+            `Role: ${result.role}\n` +
+            "FCM Token: berhasil\n" +
+            "Registrasi Supabase: berhasil\n\n" +
+            "Perangkat ini siap menerima push notification."
           );
+
 
           return;
         }
 
 
-        if (
-          result.reason ===
-          "denied"
-        ) {
-
-          alert(
-            "Izin notifikasi ditolak. Aktifkan kembali melalui pengaturan browser/PWA."
-          );
-
-          return;
-        }
-
-
-        console.warn(
-          "G-Smart push belum aktif:",
-          result
+        alert(
+          "Notifikasi G-Smart BELUM AKTIF.\n\n" +
+          `Role: ${
+            result.role ||
+            role ||
+            "tidak terbaca"
+          }\n` +
+          `Status: ${
+            reasonText(
+              result.reason
+            )
+          }`
         );
 
       } catch (error) {
@@ -485,8 +614,14 @@ function showPushButton(
           error
         );
 
+
         alert(
-          "Notifikasi belum dapat diaktifkan. Silakan coba lagi."
+          "Registrasi notifikasi gagal.\n\n" +
+          (
+            error instanceof Error
+              ? error.message
+              : String(error)
+          )
         );
 
       } finally {
@@ -505,7 +640,7 @@ function showPushButton(
 
 
 // ============================================================
-// AUTO REGISTER SETELAH LOGIN
+// FIREBASE AUTH LISTENER
 // ============================================================
 
 onAuthStateChanged(
@@ -516,6 +651,11 @@ onAuthStateChanged(
 
 
     if (!user) {
+
+      console.info(
+        "G-Smart FCM: belum login."
+      );
+
       return;
     }
 
@@ -528,69 +668,107 @@ onAuthStateChanged(
         );
 
 
+      // --------------------------------
+      // DIAGNOSTIC LOG
+      // --------------------------------
+
+      console.info(
+        "G-Smart FCM diagnostic:",
+        {
+
+          uidDetected:
+            true,
+
+          role:
+            role ||
+            "KOSONG",
+
+          notificationPermission:
+            "Notification" in window
+              ? Notification.permission
+              : "unsupported",
+
+          serviceWorker:
+            "serviceWorker" in navigator
+        }
+      );
+
+
+      // --------------------------------
+      // ROLE SECURITY
+      // --------------------------------
+
       if (
         !ALLOWED_ROLES.has(
           role
         )
       ) {
 
-        console.info(
-          "G-Smart FCM: role tidak memiliki akses push."
+        console.warn(
+          `G-Smart FCM: role '${
+            role ||
+            "KOSONG"
+          }' tidak memiliki akses push.`
         );
 
         return;
       }
 
 
-      // Jika permission sebelumnya sudah diberikan,
-      // token langsung diperbarui.
+      // ======================================================
+      // ADMIN/WASATPEL:
+      // tombol SELALU tersedia.
+      // ======================================================
+
+      await showPushButton(
+        user,
+        role
+      );
+
+
+      // --------------------------------
+      // AUTO REFRESH TOKEN
+      // --------------------------------
 
       if (
+        "Notification" in window &&
         Notification.permission ===
-        "granted"
+          "granted"
       ) {
 
-        const result =
-          await registerGSmartPush({
-            user,
-            role,
-            requestPermission:
-              false
-          });
+        try {
+
+          const result =
+            await registerGSmartPush({
+              user,
+              role,
+              requestPermission:
+                false
+            });
 
 
-        console.info(
-          "G-Smart FCM:",
-          result.enabled
-            ? "perangkat terdaftar"
-            : result.reason
-        );
+          console.info(
+            "G-Smart FCM auto registration:",
+            result.enabled
+              ? "berhasil"
+              : reasonText(
+                  result.reason
+                )
+          );
 
-        return;
-      }
+        } catch (error) {
 
-
-      // Jika user belum pernah memilih,
-      // tampilkan tombol lonceng.
-      //
-      // Permission TIDAK diminta otomatis
-      // agar browser tidak memblokir prompt.
-
-      if (
-        Notification.permission ===
-        "default"
-      ) {
-
-        showPushButton(
-          user,
-          role
-        );
+          console.warn(
+            "G-Smart FCM auto registration gagal:",
+            error
+          );
+        }
       }
 
     } catch (error) {
 
       console.warn(
-        "G-Smart FCM auto registration:",
+        "G-Smart FCM initialization:",
         error
       );
     }
@@ -620,9 +798,6 @@ if (
       );
 
 
-      // Bisa digunakan UI G-Smart
-      // untuk toast / badge / refresh data.
-
       window.dispatchEvent(
         new CustomEvent(
           "gsmart:fcm-message",
@@ -638,7 +813,7 @@ if (
 
 
 // ============================================================
-// GLOBAL API
+// GLOBAL DIAGNOSTIC API
 // ============================================================
 
 window.GSmartPush = {
@@ -647,5 +822,40 @@ window.GSmartPush = {
     registerGSmartPush,
 
   enable:
-    enableGSmartPush
+    enableGSmartPush,
+
+
+  diagnostics:
+    async () => {
+
+      const user =
+        auth.currentUser;
+
+
+      return {
+
+        loggedIn:
+          Boolean(
+            user?.uid
+          ),
+
+        role:
+          user?.uid
+            ? await getUserRole(
+                user.uid
+              )
+            : "",
+
+        supported:
+          await isSupported(),
+
+        notificationPermission:
+          "Notification" in window
+            ? Notification.permission
+            : "unsupported",
+
+        serviceWorker:
+          "serviceWorker" in navigator
+      };
+    }
 };
