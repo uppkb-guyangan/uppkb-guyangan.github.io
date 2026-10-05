@@ -1,10 +1,8 @@
 // G-Smart: enrichment TNKB untuk halaman Perpindahan Proses.
-// Menambahkan TNKB dari etle_cases ke record gsmart_case_history tanpa mengubah database.
+// Menambahkan TNKB dari etle_cases ke tabel history tanpa menambah request
+// dan tanpa menahan proses login / pemuatan dashboard.
 (() => {
   const caseTnkb = new Map();
-  let resolveCasesReady;
-  const casesReady = new Promise(resolve => { resolveCasesReady = resolve; });
-  let casesResolved = false;
 
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
@@ -24,31 +22,7 @@
               if (id && tnkb) caseTnkb.set(id, tnkb);
             });
           }
-          if (!casesResolved) {
-            casesResolved = true;
-            resolveCasesReady();
-          }
           queueMicrotask(enrichHistoryTable);
-          return data;
-        };
-      }
-
-      if (url.includes("/rest/v1/gsmart_case_history")) {
-        const originalJson = response.json.bind(response);
-        response.json = async () => {
-          const data = await originalJson();
-          if (!casesResolved) {
-            await Promise.race([
-              casesReady,
-              new Promise(resolve => setTimeout(resolve, 2500))
-            ]);
-          }
-          if (Array.isArray(data)) {
-            data.forEach(row => {
-              const id = String(row?.case_id || "").trim();
-              if (id && !row.tnkb) row.tnkb = caseTnkb.get(id) || "";
-            });
-          }
           return data;
         };
       }
@@ -73,8 +47,7 @@
         const th = document.createElement("th");
         th.className = "history-tnkb-col";
         th.textContent = "TNKB";
-        const first = headerRow.children[0];
-        first?.after(th);
+        headerRow.children[0]?.after(th);
       }
 
       table.querySelectorAll("tbody tr[data-case]").forEach(tr => {
@@ -85,10 +58,9 @@
           td = document.createElement("td");
           td.className = "history-tnkb-col";
           td.dataset.label = "TNKB";
-          const first = tr.children[0];
-          first?.after(td);
+          tr.children[0]?.after(td);
         }
-        td.textContent = tnkb;
+        if (td.textContent !== tnkb) td.textContent = tnkb;
       });
     });
   }
