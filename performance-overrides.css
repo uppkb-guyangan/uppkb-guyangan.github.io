@@ -1,0 +1,64 @@
+/* G-Smart performance overrides — 2026-10-05
+   Lightweight rendering overrides. No data/business logic changes. */
+
+/* Truck-follow cursor is intentionally disabled. */
+.hero-truck-cursor{display:none!important}
+
+/* Give frequently animated UI its own compositor layer. */
+.sidebar{
+  will-change:transform;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  transform:translateZ(0);
+  contain:layout paint style;
+}
+.mobile-nav-backdrop{
+  will-change:opacity;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+
+@media(max-width:800px){
+  /* Transform-only animation is substantially cheaper on mobile GPUs. */
+  .sidebar{
+    transform:translate3d(-100%,0,0);
+    transition:transform .18s cubic-bezier(.2,.8,.2,1)!important;
+    box-shadow:4px 0 16px rgba(7,26,49,.12)!important;
+  }
+  .sidebar.open{transform:translate3d(0,0,0)}
+
+  /* Avoid expensive blur/repaint while the navigation drawer is visible. */
+  body.mobile-nav-open .topbar{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body.mobile-nav-open .dashboard-hero:after,
+  body.mobile-nav-open .hero-building-bg,
+  body.mobile-nav-open .hero-wave,
+  body.mobile-nav-open .hero-online i,
+  body.mobile-nav-open .hero-user-photo,
+  body.mobile-nav-open .activity-live-dot,
+  body.mobile-nav-open .gita-pulse{
+    animation-play-state:paused!important;
+  }
+  body.mobile-nav-open .hero-stats span,
+  body.mobile-nav-open .hero-search-btn,
+  body.mobile-nav-open .hero-meta,
+  body.mobile-nav-open .hero-user-fallback{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  /* Main page stays visually intact but does less paint work behind drawer. */
+  body.mobile-nav-open #content{
+    pointer-events:none;
+    contain:paint;
+  }
+}
+
+/* Respect reduced-motion devices and lower-end configurations automatically. */
+@media(prefers-reduced-motion:reduce){
+  .hero-building-bg,.dashboard-hero:after,.hero-wave,.hero-online i,
+  .hero-user-photo,.activity-live-dot,.gita-pulse{animation:none!important}
+  .sidebar{transition-duration:.01ms!important}
+}
