@@ -1,26 +1,13 @@
-name: Set Firebase Push Role Claim
+name: Restore Firebase Supabase Access
 
 on:
   workflow_dispatch:
-    inputs:
-      firebase_uid:
-        description: "Firebase UID user"
-        required: true
-        type: string
-      role:
-        description: "Role push notification"
-        required: true
-        default: "ADMIN"
-        type: choice
-        options:
-          - ADMIN
-          - WASATPEL
 
 permissions:
   contents: read
 
 jobs:
-  set-claim:
+  restore-auth-claim:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -36,9 +23,7 @@ jobs:
       - name: Install Firebase Admin
         run: npm install --no-save firebase-admin@12
 
-      - name: Set Firebase custom claim
+      - name: Restore authenticated claim for Supabase
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_UID: ${{ inputs.firebase_uid }}
-          FIREBASE_ROLE: ${{ inputs.role }}
         run: node scripts/set-push-role-claim.cjs
