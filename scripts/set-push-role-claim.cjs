@@ -4,9 +4,6 @@ const { getAuth } = require("firebase-admin/auth");
 const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT is missing");
 
-const uid = String(process.env.FIREBASE_UID || "").trim();
-if (!uid) throw new Error("FIREBASE_UID is missing");
-
 const serviceAccount = JSON.parse(raw);
 if (typeof serviceAccount.private_key === "string") {
   serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
@@ -16,20 +13,31 @@ initializeApp({ credential: cert(serviceAccount) });
 
 async function main() {
   const auth = getAuth();
-  const user = await auth.getUser(uid);
-  const claims = { ...(user.customClaims || {}) };
+  let pageToken;
+  let updated = 0;
 
-  // Roll back the push-notification experiment. Supabase/PostgREST uses the
-  // JWT `role` claim for database authorization, so ADMIN/WASATPEL must not be
-  // stored in Firebase's reserved `role` claim. Application roles remain in
-  // Firestore users/{uid}.role as before.
-  delete claims.role;
+  do {
+    const page = await auth.listUsers(1000, pageToken);
 
-  await auth.setCustomUserClaims(uid, claims);
+    for (const user of page.users) {
+      const claims = { ...(user.customClaims || {}) };
 
-  const refreshed = await auth.getUser(uid);
-  console.log(`ROLLED BACK ${refreshed.email || uid}: Firebase custom role claim removed`);
-  console.log("User must sign out and sign in again so the client receives a fresh ID token.");
+      // IMPORTANT:
+      // Supabase Third-Party Auth expects the reserved JWT `role` claim to be
+      // exactly `authenticated`. Application roles such as ADMIN/WASATPEL stay
+      // in Firestore users/{uid}.role and must never replace this JWT role.
+      claims.role = "authenticated";
+
+      await auth.setCustomUserClaims(user.uid, claims);
+      updated += 1;
+      console.log(`RESTORED ${user.email || user.uid}: role=authenticated`);
+    }
+
+    pageToken = page.pageToken;
+  } while (pageToken);
+
+  console.log(`DONE: ${updated} Firebase user(s) restored for Supabase access.`);
+  console.log("Users must sign out and sign in again so clients receive fresh ID tokens.");
 }
 
 main().catch((error) => {
