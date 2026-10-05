@@ -5,9 +5,7 @@ const ASSETS={
 };
 const blobUrlPromises={};
 let activePromise=null;
-function usePortrait(){
-  return window.matchMedia("(max-width:800px) and (orientation:portrait)").matches
-}
+function usePortrait(){return window.matchMedia("(max-width:800px) and (orientation:portrait)").matches}
 function decodeBase64Video(kind){
   const asset=ASSETS[kind];
   if(blobUrlPromises[kind])return blobUrlPromises[kind];
@@ -26,7 +24,18 @@ function decodeBase64Video(kind){
 function overlay(){return document.getElementById("gsmartSplash")}
 function video(){return document.getElementById("gsmartSplashVideo")}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function hideImmediately(){
+  const o=overlay();
+  if(o)o.classList.add("hidden");
+  document.documentElement.classList.remove("splash-lock");
+  document.body.classList.remove("splash-lock")
+}
 async function playSplash(reason="opening"){
+  // Setelah login jangan memutar splash lagi. Data dashboard langsung ditampilkan.
+  if(reason==="post-login"){
+    hideImmediately();
+    return
+  }
   if(activePromise)return activePromise;
   activePromise=(async()=>{
     const o=overlay(),v=video();
@@ -41,8 +50,8 @@ async function playSplash(reason="opening"){
       v.src=await decodeBase64Video(kind);
       v.muted=true;
       v.playsInline=true;
-      v.defaultPlaybackRate=2;
-      v.playbackRate=2;
+      v.defaultPlaybackRate=2.5;
+      v.playbackRate=2.5;
       v.currentTime=0;
       const finished=new Promise(resolve=>{
         const done=()=>resolve();
@@ -51,14 +60,14 @@ async function playSplash(reason="opening"){
       });
       const started=v.play();
       if(started&&typeof started.catch==="function")await started.catch(()=>{});
-      await Promise.race([finished,wait(5600)])
+      await Promise.race([finished,wait(2600)])
     }catch(err){
       console.warn("G-Smart splash fallback:",err);
       o.classList.add("show-fallback");
-      await wait(1100)
+      await wait(350)
     }
     o.classList.add("is-closing");
-    await wait(360);
+    await wait(180);
     o.classList.add("hidden");
     o.classList.remove("is-closing");
     document.documentElement.classList.remove("splash-lock");
