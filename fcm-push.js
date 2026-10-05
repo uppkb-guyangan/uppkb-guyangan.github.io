@@ -13,10 +13,11 @@ const db = getFirestore(app);
 
 function normalizeRole(value) { return String(value || "").trim().toUpperCase(); }
 function withTimeout(promise, timeoutMs, message) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), timeoutMs))
-  ]);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 function reasonText(reason) {
   const messages = {
@@ -38,7 +39,6 @@ async function getUserRole(uid) {
 
 async function getGSmartServiceWorker() {
   if (!("serviceWorker" in navigator)) throw new Error("Service Worker tidak didukung browser ini.");
-
   let registration = await navigator.serviceWorker.getRegistration("./");
   if (!registration) {
     registration = await withTimeout(
@@ -47,9 +47,6 @@ async function getGSmartServiceWorker() {
       "Registrasi Service Worker G-Smart timeout setelah 12 detik."
     );
   }
-
-  try { await registration.update(); } catch (error) { console.warn("G-Smart SW update:", error); }
-
   if (registration.active) return registration;
   const worker = registration.installing || registration.waiting;
   if (worker) {
@@ -60,20 +57,18 @@ async function getGSmartServiceWorker() {
         else if (worker.state === "redundant") { worker.removeEventListener("statechange", onStateChange); reject(new Error("Service Worker menjadi redundant saat aktivasi.")); }
       };
       worker.addEventListener("statechange", onStateChange);
-    }), 15000, "Service Worker terdaftar tetapi belum aktif setelah 15 detik.");
+    }), 12000, "Service Worker terdaftar tetapi belum aktif setelah 12 detik.");
   }
-
-  if (!registration.active) {
-    const refreshed = await navigator.serviceWorker.getRegistration("./");
-    if (refreshed?.active) return refreshed;
-    throw new Error("Service Worker G-Smart terdaftar tetapi tidak memiliki worker aktif.");
-  }
-  return registration;
+  const refreshed = await navigator.serviceWorker.getRegistration("./");
+  if (refreshed?.active) return refreshed;
+  throw new Error("Service Worker G-Smart terdaftar tetapi tidak memiliki worker aktif.");
 }
 
 async function registerTokenOnServer(user, fcmToken) {
   if (!user) throw new Error("User Firebase belum login.");
-  const firebaseIdToken = await withTimeout(user.getIdToken(true), 10000, "Timeout saat mengambil Firebase ID token.");
+  // Tidak memaksa refresh token setiap registrasi; token valid yang masih aktif
+  // lebih cepat dan mengurangi request jaringan saat startup.
+  const firebaseIdToken = await withTimeout(user.getIdToken(false), 8000, "Timeout saat mengambil Firebase ID token.");
   const response = await withTimeout(fetch(REGISTER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", "apikey": supabaseConfig.publishableKey },
@@ -82,9 +77,15 @@ async function registerTokenOnServer(user, fcmToken) {
       firebase_id_token: firebaseIdToken,
       platform: navigator.userAgentData?.platform || navigator.platform || "web-pwa"
     })
-  }), 15000, "Timeout saat menghubungi register-push-token Supabase.");
+  }), 18000, "Timeout saat menghubungi register-push-token Supabase.");
+
   const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result?.success) throw new Error(result?.error || result?.detail || `Registrasi push gagal (${response.status})`);
+  if (!response.ok || !result?.success) {
+    const stage = result?.stage ? ` [${result.stage}]` : "";
+    const timing = Number.isFinite(result?.elapsed_ms) ? ` (${result.elapsed_ms} ms)` : "";
+    const detail = result?.detail && result?.detail !== result?.error ? `\n${result.detail}` : "";
+    throw new Error(`${result?.error || `Registrasi push gagal (${response.status})`}${stage}${timing}${detail}`);
+  }
   return result;
 }
 
@@ -92,7 +93,6 @@ export async function registerGSmartPush({ user = auth.currentUser, role = null,
   if (!user?.uid) return { enabled: false, reason: "not_authenticated" };
   const currentRole = normalizeRole(role || await getUserRole(user.uid));
   if (!ALLOWED_ROLES.has(currentRole)) return { enabled: false, reason: "role_not_allowed", role: currentRole || "KOSONG" };
-
   const supported = await isSupported();
   if (!supported || !("serviceWorker" in navigator) || !("Notification" in window)) return { enabled: false, reason: "unsupported", role: currentRole };
 
@@ -101,17 +101,20 @@ export async function registerGSmartPush({ user = auth.currentUser, role = null,
   if (permission !== "granted") return { enabled: false, reason: permission, role: currentRole };
 
   const registration = await getGSmartServiceWorker();
-  console.info("G-Smart FCM SW ready:", { scope: registration.scope, active: Boolean(registration.active) });
-
   const fcmToken = await withTimeout(
     getToken(getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration }),
-    15000,
-    "Firebase FCM tidak menghasilkan token setelah 15 detik."
+    12000,
+    "Firebase FCM tidak menghasilkan token setelah 12 detik."
   );
   if (!fcmToken) return { enabled: false, reason: "token_empty", role: currentRole };
 
   const serverResult = await registerTokenOnServer(user, fcmToken);
-  return { enabled: true, token: fcmToken, role: normalizeRole(serverResult?.role || currentRole) };
+  return {
+    enabled: true,
+    token: fcmToken,
+    role: normalizeRole(serverResult?.role || currentRole),
+    elapsedMs: serverResult?.elapsed_ms ?? null
+  };
 }
 
 export async function enableGSmartPush(user = auth.currentUser, role = null) {
@@ -135,7 +138,7 @@ function waitForTopbar(timeoutMs = 15000) {
 async function showPushButton(user, role) {
   if (document.getElementById("gsmartEnablePushBtn")) return;
   const host = await waitForTopbar();
-  if (!host) return console.warn("G-Smart FCM: topbar tidak ditemukan.");
+  if (!host) return;
   const button = document.createElement("button");
   button.id = "gsmartEnablePushBtn";
   button.type = "button";
@@ -143,7 +146,6 @@ async function showPushButton(user, role) {
   button.title = "Notifikasi G-Smart";
   button.setAttribute("aria-label", "Notifikasi G-Smart");
   button.textContent = ("Notification" in window && Notification.permission === "granted") ? "🔔✓" : "🔔";
-
   button.addEventListener("click", async () => {
     button.disabled = true;
     const oldTitle = button.title;
@@ -152,7 +154,8 @@ async function showPushButton(user, role) {
       const result = await enableGSmartPush(user, role);
       if (result.enabled) {
         button.textContent = "🔔✓";
-        alert("Notifikasi G-Smart AKTIF.\n\n" + `Role: ${result.role}\n` + "Service Worker: aktif\nFCM Token: berhasil\nRegistrasi Supabase: berhasil\n\nPerangkat ini siap menerima push notification.");
+        const timing = result.elapsedMs != null ? `\nBackend: ${result.elapsedMs} ms` : "";
+        alert("Notifikasi G-Smart AKTIF.\n\n" + `Role: ${result.role}\n` + "Service Worker: aktif\nFCM Token: berhasil\nRegistrasi Supabase: berhasil" + timing + "\n\nPerangkat ini siap menerima push notification.");
       } else {
         alert("Notifikasi G-Smart BELUM AKTIF.\n\n" + `Role: ${result.role || role || "tidak terbaca"}\n` + `Status: ${reasonText(result.reason)}`);
       }
@@ -167,21 +170,19 @@ async function showPushButton(user, role) {
   host.prepend(button);
 }
 
+// FCM dimuat kembali, tetapi registrasi jaringan TIDAK dijalankan otomatis saat
+// login/startup. Ini menjaga optimasi performa; request berat baru berjalan saat
+// ADMIN/WASATPEL menekan tombol lonceng.
 onAuthStateChanged(auth, async user => {
   removePushButton();
-  if (!user) return console.info("G-Smart FCM: belum login.");
+  if (!user) return;
   try {
     const role = await getUserRole(user.uid);
-    console.info("G-Smart FCM diagnostic:", { uidDetected: true, role: role || "KOSONG", notificationPermission: "Notification" in window ? Notification.permission : "unsupported", serviceWorker: "serviceWorker" in navigator });
-    if (!ALLOWED_ROLES.has(role)) return console.warn(`G-Smart FCM: role '${role || "KOSONG"}' tidak memiliki akses push.`);
+    if (!ALLOWED_ROLES.has(role)) return;
     await showPushButton(user, role);
-    if ("Notification" in window && Notification.permission === "granted") {
-      try {
-        const result = await registerGSmartPush({ user, role, requestPermission: false });
-        console.info("G-Smart FCM auto registration:", result.enabled ? "berhasil" : reasonText(result.reason));
-      } catch (error) { console.warn("G-Smart FCM auto registration gagal:", error); }
-    }
-  } catch (error) { console.warn("G-Smart FCM initialization:", error); }
+  } catch (error) {
+    console.warn("G-Smart FCM initialization:", error);
+  }
 });
 
 if (await isSupported()) {
