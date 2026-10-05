@@ -1,7 +1,6 @@
-const CACHE_NAME = 'gsmart-shell-v39';
+const CACHE_NAME = 'gsmart-shell-v40';
 
-// Hanya precache shell kecil/kritis. Asset video/base64 besar dan FCM
-// sengaja tidak diprecache agar instalasi/update PWA tidak membebani startup.
+// Precache hanya shell kecil/kritis agar instalasi dan update PWA tetap ringan.
 const APP_SHELL = [
   './styles-v2.css?v=20261004-gita37',
   './dashboard-redesign.css?v=20261003-truck35',
@@ -68,61 +67,15 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Navigasi/HTML tetap network-first supaya deployment baru cepat terlihat.
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(networkFirst(event.request));
     return;
   }
 
-  // JS/CSS/gambar/font lokal cache-first untuk mempercepat buka ulang PWA.
   if (STATIC_DESTINATIONS.has(event.request.destination)) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
 
-  // Request lokal lainnya network-first agar data/config dinamis tidak basi.
   event.respondWith(networkFirst(event.request));
-});
-
-// Push notification sedang dipending. Listener push dipertahankan pasif agar
-// instalasi PWA yang sudah ada tidak rusak; tidak ada registrasi FCM saat startup.
-self.addEventListener('push', event => {
-  if (!event.data) return;
-
-  let payload = {};
-  try {
-    payload = event.data.json();
-  } catch (_) {
-    payload = { data: { body: event.data.text() } };
-  }
-
-  const notification = payload.notification || {};
-  const data = payload.data || {};
-  const title = notification.title || data.title || 'G-Smart UPPKB Guyangan';
-  const options = {
-    body: notification.body || data.body || 'Ada pembaruan data G-Smart.',
-    icon: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
-    badge: './G-SMART%20Traffic%20Monitoring%20Emblem.png',
-    tag: data.tag || 'gsmart-update',
-    data: { url: data.url || './' }
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  const targetUrl = new URL(event.notification?.data?.url || './', self.location.origin).href;
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      for (const client of windowClients) {
-        if ('focus' in client) {
-          client.navigate(targetUrl).catch(() => {});
-          return client.focus();
-        }
-      }
-      return clients.openWindow ? clients.openWindow(targetUrl) : undefined;
-    })
-  );
 });
