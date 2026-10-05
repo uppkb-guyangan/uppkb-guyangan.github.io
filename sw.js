@@ -1,36 +1,28 @@
-const CACHE_NAME = 'gsmart-shell-v38';
+const CACHE_NAME = 'gsmart-shell-v39';
+
+// Hanya precache shell kecil/kritis. Asset video/base64 besar dan FCM
+// sengaja tidak diprecache agar instalasi/update PWA tidak membebani startup.
 const APP_SHELL = [
-  './',
-  './index.html',
   './styles-v2.css?v=20261004-gita37',
   './dashboard-redesign.css?v=20261003-truck35',
   './detail-redesign.css?v=20261003-ux33',
   './splash.css?v=20261003-splash3',
   './branding-overrides.css?v=20261002-brand1',
-  './splash.js?v=20261003-splash3',
   './app-v2.js?v=20261004-gita37',
-  './fcm-push.js?v=20261005-fcm2',
   './analytics-drilldown.js?v=20261002-1',
   './court-enhancement.js?v=20261002-4',
   './config.js?v=20261002-3',
-  './assets/gsmart-splash-landscape-hq.b64?v=20261003-splash3',
-  './assets/gsmart-splash-portrait-360.b64?v=20261003-splash2',
   './G-SMART%20Traffic%20Monitoring%20Emblem.png',
-  './Gemini_Generated_Image_pckqrmpckqrmpckq.jpg',
   './manifest.webmanifest?v=20261003-maskable1'
 ];
 
+const STATIC_DESTINATIONS = new Set(['style', 'script', 'image', 'font']);
+
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      for (const url of APP_SHELL) {
-        try {
-          await cache.add(url);
-        } catch (error) {
-          console.warn('G-Smart SW cache skip:', url, error);
-        }
-      }
-    })
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(APP_SHELL.map(url => cache.add(url)))
+    )
   );
   self.skipWaiting();
 });
@@ -43,32 +35,57 @@ self.addEventListener('activate', event => {
   );
 });
 
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response && response.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone()).catch(() => {});
+  }
+  return response;
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(event.request).then(cached => cached || caches.match('./index.html'))
-      )
-  );
+  // Navigasi/HTML tetap network-first supaya deployment baru cepat terlihat.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  // JS/CSS/gambar/font lokal cache-first untuk mempercepat buka ulang PWA.
+  if (STATIC_DESTINATIONS.has(event.request.destination)) {
+    event.respondWith(cacheFirst(event.request));
+    return;
+  }
+
+  // Request lokal lainnya network-first agar data/config dinamis tidak basi.
+  event.respondWith(networkFirst(event.request));
 });
 
-// Tahap diagnostik FCM:
-// Firebase Messaging sengaja tidak di-import di service worker ini.
-// Tujuannya memastikan service worker dasar dapat install + activate
-// dengan stabil di Chrome Android sebelum background messaging
-// ditambahkan kembali.
-
+// Push notification sedang dipending. Listener push dipertahankan pasif agar
+// instalasi PWA yang sudah ada tidak rusak; tidak ada registrasi FCM saat startup.
 self.addEventListener('push', event => {
   if (!event.data) return;
 
