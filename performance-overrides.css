@@ -1,8 +1,13 @@
 /* G-Smart performance overrides — 2026-10-05
    Lightweight rendering overrides. No data/business logic changes. */
 
-/* Truck-follow cursor is intentionally disabled. */
+/* Truck-follow cursor is disabled, but always restore the normal OS pointer
+   because dashboard-redesign.css previously hid it over the hero. */
 .hero-truck-cursor{display:none!important}
+@media(hover:hover) and (pointer:fine){
+  .dashboard-hero,.dashboard-hero *{cursor:default!important}
+  .dashboard-hero button,.dashboard-hero a,.dashboard-hero [role="button"]{cursor:pointer!important}
+}
 
 /* Give frequently animated UI its own compositor layer. */
 .sidebar{
@@ -16,6 +21,35 @@
   will-change:opacity;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
+}
+
+/* Desktop: never animate grid-template-columns. That property forces layout
+   and repaint of the entire dashboard on every animation frame. Keep the
+   existing expand/collapse behavior, but make the content resize immediately
+   and animate only the sidebar transform/opacity on the compositor. */
+@media(min-width:801px){
+  .app-shell{transition:none!important}
+  .sidebar{transition:transform .14s cubic-bezier(.2,.8,.2,1),opacity .10s linear!important}
+
+  /* Background-position parallax repaints the hero continuously on mousemove.
+     Disable only that paint-heavy movement on desktop; hero visuals remain. */
+  .hero-building-bg{
+    background-position:center 47%!important;
+    transition:none!important;
+  }
+
+  /* Keep the right-side hero content static instead of updating a compositor
+     transform for every pointer movement. */
+  .hero-side{
+    transform:none!important;
+    transition:none!important;
+    will-change:auto!important;
+  }
+
+  /* The continuously moving background is attractive but expensive on large
+     desktop surfaces. A static building keeps the same design with less GPU
+     and paint work. */
+  .hero-building-bg{animation:none!important;transform:scale(1.04)!important}
 }
 
 @media(max-width:800px){
