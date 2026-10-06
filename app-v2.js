@@ -360,7 +360,10 @@ function dashboard(b){
     ["Data Baru",c.newData,"newData","new"],
     ["Perpindahan Proses",c.transitions,"transitions","history"]
   ];
-  const recent=b.cases.filter(x=>period(x.tanggal_pelanggaran)).sort((a,z)=>String(z.tanggal_pelanggaran).localeCompare(String(a.tanggal_pelanggaran))).slice(0,12);
+  const recent=b.cases
+    .filter(x=>x.tanggal_pelanggaran&&period(x.tanggal_pelanggaran))
+    .sort((a,z)=>new Date(z.tanggal_pelanggaran).getTime()-new Date(a.tanggal_pelanggaran).getTime())
+    .slice(0,12);
   const profileName=state.profile?.nama||"Petugas";
   const profileRole=String(state.profile?.role||"PETUGAS").trim().toUpperCase();
   const profilePhoto=String(state.profile?.photoUrl||"").trim();
