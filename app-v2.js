@@ -372,12 +372,17 @@ function dashboard(b){
   const heroTimeClass=hourWib>=5&&hourWib<11?"hero-morning":hourWib>=11&&hourWib<15?"hero-day":hourWib>=15&&hourWib<18?"hero-evening":"hero-night";
   const online=navigator.onLine;
   const syncLabel=$("syncState")?.textContent||"Siap";
-  const uniqueTnkb=new Set(b.cases.filter(x=>period(x.tanggal_pelanggaran)&&x.tnkb).map(x=>norm(x.tnkb))).size;
+  const repeatTnkbCounts={};
+  b.cases.filter(x=>period(x.tanggal_pelanggaran)&&x.tnkb).forEach(x=>{
+    const key=norm(x.tnkb);
+    if(key)repeatTnkbCounts[key]=(repeatTnkbCounts[key]||0)+1;
+  });
+  const repeatedViolations=Object.values(repeatTnkbCounts).filter(n=>n>1).length;
   const railRows=[
     ["＋","Data baru",c.newData],
     ["▣","Blanko terbit",c.blanko],
     ["⚖","Persidangan",c.court],
-    ["✓","TNKB unik",uniqueTnkb]
+    ["↻","Pelanggaran berulang",repeatedViolations]
   ];
   $("content").innerHTML=
     '<section class="dashboard-hero hero-animated '+heroTimeClass+'">'+
