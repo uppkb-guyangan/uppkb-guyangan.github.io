@@ -547,12 +547,13 @@ function analytics(b){
   const byTnkb={};
   const byOwner={};
   const byType={DOKUMEN:0,"DAYA ANGKUT":0,KOMBINASI:0,LAINNYA:0};
+  let missingTypeCount=0;
   const daily={};
   const monthly={};
 
   const classifyType=value=>{
     const s=String(value||"").trim().toUpperCase();
-    if(!s)return"LAINNYA";
+    if(!s)return null;
     if(s.includes("KOMBINASI"))return"KOMBINASI";
     if(s.includes("DOKUMEN"))return"DOKUMEN";
     if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
@@ -584,7 +585,9 @@ function analytics(b){
       byOwner[k]=byOwner[k]||{label:x.nama_pemilik,n:0,key:k};
       byOwner[k].n++
     }
-    byType[classifyType(x.jenis_pelanggaran)]++;
+    const typeKey=classifyType(x.jenis_pelanggaran);
+    if(typeKey)byType[typeKey]++;
+    else missingTypeCount++;
     const day=wibDateKey(x.tanggal_pelanggaran);
     if(day)daily[day]=(daily[day]||0)+1
   });
@@ -621,7 +624,7 @@ function analytics(b){
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
-      '<div class="panel analytics-type-panel"><div class="title-row"><h3>Jenis Pelanggaran</h3><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
+      '<div class="panel analytics-type-panel"><div class="title-row"><div><h3>Jenis Pelanggaran</h3>'+(missingTypeCount?'<p class="search-hint">'+missingTypeCount+' perkara belum memiliki data jenis pelanggaran.</p>':'')+'</div><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel analytics-daily-panel"><div class="title-row"><h3>Tren Harian · '+esc(periodLabel)+'</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(dailyRows,{kind:"day"})+'</div>'+
@@ -763,7 +766,7 @@ function openAnalyticsDetail(kind,key){
   }else if(kind==="type"){
     const classify=value=>{
       const s=String(value||"").trim().toUpperCase();
-      if(!s)return"LAINNYA";
+      if(!s)return null;
       if(s.includes("KOMBINASI"))return"KOMBINASI";
       if(s.includes("DOKUMEN"))return"DOKUMEN";
       if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
