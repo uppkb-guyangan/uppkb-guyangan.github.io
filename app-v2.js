@@ -620,11 +620,11 @@ function analytics(b){
       metric("court","Persidangan",c.court,periodLabel)+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik batang</span></div>'+analyticsBars(monthlyRows,{kind:"month"})+'</div>'+
       '<div class="panel"><div class="title-row"><h3>Jenis Pelanggaran</h3><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><div class="title-row"><h3>Tren Harian · '+esc(periodLabel)+'</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(dailyRows,{kind:"day"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Harian · '+esc(periodLabel)+'</h3><span class="badge">Klik batang</span></div>'+analyticsBars(dailyRows,{kind:"day"})+'</div>'+
       '<div class="panel"><div class="title-row"><h3>Hari Dengan Perkara Tertinggi</h3><span class="badge">Klik batang</span></div>'+analyticsBars(topDays,{gold:true,kind:"day"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
@@ -641,39 +641,6 @@ function analytics(b){
   document.querySelectorAll(".owner-analytics-row").forEach(btn=>{
     btn.onclick=()=>openOwnerAnalyticsDetail(btn.dataset.ownerKey||"")
   })
-}
-function analyticsLineChart(rows,{kind=""}={}){
-  if(!rows.length)return'<div class="empty">Belum ada data.</div>';
-  const width=Math.max(620,rows.length*42);
-  const height=250;
-  const left=42,right=24,top=24,bottom=42;
-  const plotW=width-left-right;
-  const plotH=height-top-bottom;
-  const max=Math.max(...rows.map(x=>Number(x.n)||0),1);
-  const x=i=>rows.length===1?left+plotW/2:left+(i*plotW/(rows.length-1));
-  const y=n=>top+plotH-(Number(n||0)/max)*plotH;
-  const points=rows.map((r,i)=>x(i).toFixed(1)+","+y(r.n).toFixed(1)).join(" ");
-  const area=left+","+(top+plotH)+" "+points+" "+(left+plotW)+","+(top+plotH);
-  const grid=[0,.25,.5,.75,1].map(p=>{
-    const yy=(top+plotH-(p*plotH)).toFixed(1);
-    const val=Math.round(max*p);
-    return '<line x1="'+left+'" y1="'+yy+'" x2="'+(left+plotW)+'" y2="'+yy+'" class="analytics-grid-line"></line>'+
-      '<text x="'+(left-8)+'" y="'+(Number(yy)+4)+'" text-anchor="end" class="analytics-axis-label">'+val+'</text>'
-  }).join("");
-  const pointNodes=rows.map((r,i)=>{
-    const xx=x(i).toFixed(1),yy=y(r.n).toFixed(1);
-    return '<g class="analytics-line-point analytics-action" data-analytics-kind="'+esc(kind)+'" data-analytics-key="'+esc(r.key??r.label)+'" tabindex="0" role="button" aria-label="'+esc(r.label)+': '+r.n+' perkara">'+
-      '<circle cx="'+xx+'" cy="'+yy+'" r="5"></circle>'+
-      '<text x="'+xx+'" y="'+(Number(yy)-10)+'" text-anchor="middle" class="analytics-point-value">'+r.n+'</text>'+
-      '<text x="'+xx+'" y="'+(height-13)+'" text-anchor="middle" class="analytics-axis-label analytics-x-label">'+esc(r.label)+'</text>'+
-    '</g>'
-  }).join("");
-  return '<div class="analytics-line-scroll"><svg class="analytics-line-chart" viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" aria-label="Grafik tren">'+
-    grid+
-    '<polygon points="'+area+'" class="analytics-line-area"></polygon>'+
-    '<polyline points="'+points+'" class="analytics-line-path"></polyline>'+
-    pointNodes+
-  '</svg></div>'
 }
 function analyticsBars(rows,{gold=false,kind=""}={}){
   if(!rows.length)return'<div class="empty">Belum ada data.</div>';
