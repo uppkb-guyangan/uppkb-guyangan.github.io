@@ -9,7 +9,7 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Data Baru"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
 const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",favorites:"★",search:"⌕",report:"▧"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat tilang dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -225,7 +225,7 @@ function buildSmartActivities(b,c){
   const today=wibDateKey();
   const sameDay=v=>v&&wibDateKey(v)===today;
   const todayRows=[
-    {id:"new",icon:"＋",count:b.cases.filter(x=>sameDay(x.first_seen_at)).length,label:"data baru masuk hari ini",go:"new"},
+    {id:"new",icon:"＋",count:b.cases.filter(x=>sameDay(x.first_seen_at)).length,label:"pelanggaran terdata hari ini",go:"new"},
     {id:"blanko",icon:"▣",count:b.cases.filter(x=>x.no_blanko&&sameDay(x.tanggal_blanko)).length,label:"blanko terbit hari ini",go:"blanko"},
     {id:"shipping",icon:"✉",count:b.shipping.filter(x=>sameDay(x.printed_date)||sameDay(x.delivered_at)).length,label:"aktivitas pengiriman hari ini",go:"shipping"},
     {id:"disputes",icon:"⚑",count:activeDisputes(b).filter(x=>sameDay(x.confirmation_date)).length,label:"sanggahan aktif hari ini",go:"disputes"},
@@ -237,7 +237,7 @@ function buildSmartActivities(b,c){
 
   const periodLabel=state.month?monthName(state.month):"periode aktif";
   return [
-    {id:"new",icon:"＋",count:c.newData,label:"data baru pada "+periodLabel,go:"new"},
+    {id:"new",icon:"＋",count:c.newData,label:"pelanggaran terdata pada "+periodLabel,go:"new"},
     {id:"blanko",icon:"▣",count:c.blanko,label:"blanko terbit pada "+periodLabel,go:"blanko"},
     {id:"shipping",icon:"✉",count:c.shipping,label:"pengiriman surat pada "+periodLabel,go:"shipping"},
     {id:"disputes",icon:"⚑",count:c.disputes,label:"sanggahan aktif pada "+periodLabel,go:"disputes"},
@@ -357,7 +357,7 @@ function dashboard(b){
     ["Persidangan",c.court,"court","court"],
     ["Tersanggah",c.disputes,"disputes","disputes"],
     ["Dihentikan",c.terminated,"terminated","terminated"],
-    ["Data Baru",c.newData,"newData","new"],
+    ["Pelanggaran Terdata",c.newData,"newData","new"],
     ["Perpindahan Proses",c.transitions,"transitions","history"]
   ];
   const recent=b.cases
@@ -382,7 +382,7 @@ function dashboard(b){
   });
   const repeatedViolations=Object.values(repeatTnkbCounts).filter(n=>n>1).length;
   const railRows=[
-    ["＋","Data baru",c.newData],
+    ["＋","Pelanggaran terdata",c.newData],
     ["▣","Blanko terbit",c.blanko],
     ["⚖","Persidangan",c.court],
     ["↻","Pelanggaran berulang",repeatedViolations]
@@ -889,7 +889,7 @@ const commandItems=[
   {id:"court",label:"Persidangan",icon:"⚖",keys:"S",keywords:"sidang pengadilan"},
   {id:"disputes",label:"Pelanggaran Tersanggah",icon:"⚑",keys:"",keywords:"sanggah keberatan"},
   {id:"terminated",label:"Pelanggaran Dihentikan",icon:"⊘",keys:"",keywords:"dihentikan terminated"},
-  {id:"new",label:"Data Baru",icon:"+",keys:"N",keywords:"baru masuk"},
+  {id:"new",label:"Pelanggaran Terdata",icon:"+",keys:"N",keywords:"data baru pelanggaran baru terdata masuk"},
   {id:"history",label:"Perpindahan Proses",icon:"↻",keys:"H",keywords:"histori riwayat proses"},
   {id:"analytics",label:"Analitik ETLE",icon:"▥",keys:"A",keywords:"analitik statistik grafik"},
   {id:"vehicles",label:"Profil Kendaraan",icon:"▤",keys:"V",keywords:"kendaraan tnkb"},
@@ -934,7 +934,7 @@ function renderCommandPalette(){
         '<div><kbd>P</kbd><span>Pengiriman Surat</span></div>'+
         '<div><kbd>B</kbd><span>Blanko Tilang</span></div>'+
         '<div><kbd>S</kbd><span>Persidangan</span></div>'+
-        '<div><kbd>N</kbd><span>Data Baru</span></div>'+
+        '<div><kbd>N</kbd><span>Pelanggaran Terdata</span></div>'+
         '<div><kbd>H</kbd><span>Perpindahan Proses</span></div>'+
         '<div><kbd>A</kbd><span>Analitik ETLE</span></div>'+
         '<div><kbd>V</kbd><span>Profil Kendaraan</span></div>'+
@@ -1061,7 +1061,7 @@ function assistantAnswerHtml(question){
     {test:/dihentikan|penghentian/,label:"pelanggaran dihentikan",rows:()=>assistantDateFilter(b.terminated||[],x=>x.terminated_at,question),page:"terminated"},
     {test:/pengiriman|surat|jne|resi/,label:"pengiriman surat",rows:()=>assistantDateFilter(b.shipping||[],x=>x.printed_date||x.delivered_at,question),page:"shipping"},
     {test:/blanko/,label:"blanko terbit",rows:()=>assistantDateFilter(cases.filter(c=>c.no_blanko),x=>x.tanggal_blanko,question),page:"blanko"},
-    {test:/data baru|perkara baru/,label:"data baru",rows:()=>assistantDateFilter(cases,x=>x.first_seen_at,question),page:"new"}
+    {test:/data baru|perkara baru|pelanggaran baru|pelanggaran terdata/,label:"pelanggaran terdata",rows:()=>assistantDateFilter(cases,x=>x.first_seen_at,question),page:"new"}
   ];
   const cat=categoryMap.find(x=>x.test.test(q));
   if(cat&&(q.includes("berapa")||q.includes("jumlah")||q.includes("hari ini")||q.includes("bulan"))){
