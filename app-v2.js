@@ -581,7 +581,7 @@ function analytics(b){
     }
     if(x.nama_pemilik){
       const k=norm(x.nama_pemilik);
-      byOwner[k]=byOwner[k]||{label:x.nama_pemilik,n:0};
+      byOwner[k]=byOwner[k]||{label:x.nama_pemilik,n:0,key:k};
       byOwner[k].n++
     }
     byType[classifyType(x.jenis_pelanggaran)]++;
@@ -599,6 +599,7 @@ function analytics(b){
   const dailyRows=Object.entries(daily).sort((a,z)=>a[0].localeCompare(z[0])).map(([key,n])=>({label:dayLabel(key),n,key}));
   const topDays=[...dailyRows].sort((a,z)=>z.n-a.n||z.key.localeCompare(a.key)).slice(0,5);
   const typeRows=Object.entries(byType).map(([label,n])=>({label,n})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
+  const ownerRows=Object.values(byOwner).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,10);
   const periodLabel=monthName(state.month);
 
   const metric=(label,value,note="")=>'<div class="card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'</div>';
@@ -627,9 +628,56 @@ function analytics(b){
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel"><div class="title-row"><h3>Pelanggaran Berulang</h3><span class="badge">'+repeatRows.length+' kendaraan</span></div>'+repeatTable+'</div>'+
-      '<div class="panel"><h3 class="section-heading">Pemilik Terbanyak</h3>'+bars(Object.values(byOwner).sort((a,z)=>z.n-a.n).slice(0,10))+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Pemilik Terbanyak</h3><span class="badge">Klik untuk detail</span></div>'+ownerBars(ownerRows)+'</div>'+
     '</div>';
 
+  bindDetailRows();
+  document.querySelectorAll(".owner-analytics-row").forEach(btn=>{
+    btn.onclick=()=>openOwnerAnalyticsDetail(btn.dataset.ownerKey||"")
+  })
+}
+function ownerBars(rows){
+  if(!rows.length)return'<div class="empty">Belum ada data.</div>';
+  const max=Math.max(...rows.map(x=>x.n),1);
+  return'<div class="chart-list">'+rows.map(x=>
+    '<button type="button" class="bar-row owner-analytics-row" data-owner-key="'+esc(x.key||norm(x.label))+'" title="Lihat detail '+esc(x.label)+'">'+
+      '<span class="bar-label">'+esc(x.label)+'</span>'+
+      '<span class="bar-track"><span class="bar-fill" style="width:'+Math.max(3,x.n/max*100)+'%"></span></span>'+
+      '<b>'+x.n+'</b>'+
+    '</button>'
+  ).join("")+'</div>'
+}
+function openOwnerAnalyticsDetail(ownerKey){
+  const b=state.bundle||demo;
+  const rows=b.cases
+    .filter(x=>period(x.tanggal_pelanggaran)&&norm(x.nama_pemilik)===ownerKey)
+    .sort((a,z)=>String(z.tanggal_pelanggaran||"").localeCompare(String(a.tanggal_pelanggaran||"")));
+  if(!rows.length){toast("Data pemilik tidak ditemukan.");return}
+  const owner=rows[0].nama_pemilik||"-";
+  const uniquePlates=new Set(rows.map(x=>norm(x.tnkb)).filter(Boolean)).size;
+  const repeatPlates={};
+  rows.forEach(x=>{const k=norm(x.tnkb);if(k)repeatPlates[k]=(repeatPlates[k]||0)+1});
+  const repeated=Object.values(repeatPlates).filter(n=>n>1).length;
+  $("modalBackdrop").classList.remove("hidden");
+  $("modalTitle").textContent="Detail Pemilik";
+  $("modalSubtitle").textContent=owner+" · "+monthName(state.month);
+  $("modalBody").innerHTML=
+    '<div class="cards owner-detail-metrics">'+
+      '<div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+rows.length+'</div></div>'+
+      '<div class="card"><div class="metric-label">Total TNKB</div><div class="metric-value">'+uniquePlates+'</div></div>'+
+      '<div class="card"><div class="metric-label">Pelanggaran Berulang</div><div class="metric-value">'+repeated+'</div></div>'+
+    '</div>'+
+    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+
+      '<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Tanggal</th><th>Jenis Pelanggaran</th><th>Status ETLE</th><th>No. Blanko</th></tr></thead><tbody>'+
+        rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id||"")+'">'+
+          '<td data-label="TNKB">'+esc(r.tnkb||"-")+'</td>'+
+          '<td data-label="Tanggal">'+fmtDate(r.tanggal_pelanggaran)+'</td>'+
+          '<td data-label="Jenis Pelanggaran">'+esc(r.jenis_pelanggaran||"-")+'</td>'+
+          '<td data-label="Status ETLE">'+statusBadge(r.status_etle||"-")+'</td>'+
+          '<td data-label="No. Blanko">'+esc(r.no_blanko||"-")+'</td>'+
+        '</tr>').join("")+
+      '</tbody></table></div>'+
+    '</div>';
   bindDetailRows()
 }
 function bars(rows,gold=false){if(!rows.length)return'<div class="empty">Belum ada data.</div>';const max=Math.max(...rows.map(x=>x.n),1);return'<div class="chart-list">'+rows.map(x=>'<div class="bar-row"><span class="bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></div></div><b>'+x.n+'</b></div>').join("")+'</div>'}
