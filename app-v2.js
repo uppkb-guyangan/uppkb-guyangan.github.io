@@ -574,7 +574,7 @@ function analytics(b){
     if(x.tnkb){
       const k=norm(x.tnkb);
       if(k){
-        byTnkb[k]=byTnkb[k]||{label:x.tnkb,n:0,case_id:x.case_id};
+        byTnkb[k]=byTnkb[k]||{label:x.tnkb,n:0,case_id:x.case_id,key:k};
         byTnkb[k].n++;
         byTnkb[k].case_id=x.case_id||byTnkb[k].case_id
       }
@@ -594,47 +594,64 @@ function analytics(b){
     if(m)monthly[m]=(monthly[m]||0)+1
   });
 
-  const repeatRows=Object.values(byTnkb).filter(x=>x.n>1).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,12);
-  const monthlyRows=Object.entries(monthly).sort((a,z)=>a[0].localeCompare(z[0])).map(([key,n])=>({label:monthLabel(key),n}));
+  const repeatAll=Object.values(byTnkb).filter(x=>x.n>1).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label)));
+  const repeatRows=repeatAll.slice(0,12);
+  const monthlyRows=Object.entries(monthly).sort((a,z)=>a[0].localeCompare(z[0])).map(([key,n])=>({label:monthLabel(key),n,key}));
   const dailyRows=Object.entries(daily).sort((a,z)=>a[0].localeCompare(z[0])).map(([key,n])=>({label:dayLabel(key),n,key}));
   const topDays=[...dailyRows].sort((a,z)=>z.n-a.n||z.key.localeCompare(a.key)).slice(0,5);
-  const typeRows=Object.entries(byType).map(([label,n])=>({label,n})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
+  const typeRows=Object.entries(byType).map(([label,n])=>({label,n,key:label})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
   const ownerRows=Object.values(byOwner).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,10);
   const periodLabel=monthName(state.month);
 
-  const metric=(label,value,note="")=>'<div class="card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'</div>';
+  const metric=(key,label,value,note="")=>'<button type="button" class="card analytics-action analytics-metric" data-analytics-kind="metric" data-analytics-key="'+esc(key)+'"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'<span class="metric-nav-arrow" aria-hidden="true">›</span></button>';
   const repeatTable=repeatRows.length
-    ?'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Jumlah Perkara</th></tr></thead><tbody>'+repeatRows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id||"")+'"><td data-label="TNKB">'+esc(r.label)+'</td><td data-label="Jumlah Perkara">'+r.n+'</td></tr>').join("")+'</tbody></table></div>'
+    ?'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Jumlah Perkara</th></tr></thead><tbody>'+repeatRows.map(r=>'<tr class="clickable analytics-repeat-row" data-tnkb-key="'+esc(r.key||norm(r.label))+'"><td data-label="TNKB">'+esc(r.label)+'</td><td data-label="Jumlah Perkara">'+r.n+'</td></tr>').join("")+'</tbody></table></div>'
     :'<div class="empty">Belum ada pelanggaran berulang pada periode ini.</div>';
 
   $("content").innerHTML=
     '<div class="panel"><div class="title-row"><div><h3>Analitik ETLE</h3><p class="search-hint">Ringkasan analitik perkara ETLE · '+esc(periodLabel)+'</p></div><span class="badge">'+cases.length+' perkara</span></div></div>'+
     '<div class="cards">'+
-      metric("Total Perkara",cases.length,periodLabel)+
-      metric("Total TNKB",Object.keys(byTnkb).length,periodLabel)+
-      metric("Pelanggaran Berulang",repeatRows.length,"TNKB >1 perkara")+
-      metric("Blanko Terbit",c.blanko,periodLabel)+
-      metric("Tersanggah",c.disputes,periodLabel)+
-      metric("Dihentikan",c.terminated,periodLabel)+
-      metric("Persidangan",c.court,periodLabel)+
+      metric("total","Total Perkara",cases.length,periodLabel)+
+      metric("tnkb","Total TNKB",Object.keys(byTnkb).length,periodLabel)+
+      metric("repeat","Pelanggaran Berulang",repeatAll.length,"TNKB >1 perkara")+
+      metric("blanko","Blanko Terbit",c.blanko,periodLabel)+
+      metric("disputes","Tersanggah",c.disputes,periodLabel)+
+      metric("terminated","Dihentikan",c.terminated,periodLabel)+
+      metric("court","Persidangan",c.court,periodLabel)+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><h3 class="section-heading">Tren Bulanan</h3>'+bars(monthlyRows)+'</div>'+
-      '<div class="panel"><h3 class="section-heading">Jenis Pelanggaran</h3>'+bars(typeRows,true)+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik batang</span></div>'+analyticsBars(monthlyRows,{kind:"month"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Jenis Pelanggaran</h3><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><h3 class="section-heading">Tren Harian · '+esc(periodLabel)+'</h3>'+bars(dailyRows)+'</div>'+
-      '<div class="panel"><h3 class="section-heading">Hari Dengan Perkara Tertinggi</h3>'+bars(topDays,true)+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Harian · '+esc(periodLabel)+'</h3><span class="badge">Klik batang</span></div>'+analyticsBars(dailyRows,{kind:"day"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Hari Dengan Perkara Tertinggi</h3><span class="badge">Klik batang</span></div>'+analyticsBars(topDays,{gold:true,kind:"day"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><div class="title-row"><h3>Pelanggaran Berulang</h3><span class="badge">'+repeatRows.length+' kendaraan</span></div>'+repeatTable+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Pelanggaran Berulang</h3><span class="badge">'+repeatAll.length+' kendaraan</span></div>'+repeatTable+'</div>'+
       '<div class="panel"><div class="title-row"><h3>Pemilik Terbanyak</h3><span class="badge">Klik untuk detail</span></div>'+ownerBars(ownerRows)+'</div>'+
     '</div>';
 
-  bindDetailRows();
+  document.querySelectorAll(".analytics-action[data-analytics-kind]").forEach(btn=>{
+    btn.onclick=()=>openAnalyticsDetail(btn.dataset.analyticsKind||"",btn.dataset.analyticsKey||"")
+  });
+  document.querySelectorAll(".analytics-repeat-row").forEach(row=>{
+    row.onclick=()=>openAnalyticsDetail("tnkb",row.dataset.tnkbKey||"")
+  });
   document.querySelectorAll(".owner-analytics-row").forEach(btn=>{
     btn.onclick=()=>openOwnerAnalyticsDetail(btn.dataset.ownerKey||"")
   })
+}
+function analyticsBars(rows,{gold=false,kind=""}={}){
+  if(!rows.length)return'<div class="empty">Belum ada data.</div>';
+  const max=Math.max(...rows.map(x=>x.n),1);
+  return'<div class="chart-list">'+rows.map(x=>
+    '<button type="button" class="bar-row analytics-action" data-analytics-kind="'+esc(kind)+'" data-analytics-key="'+esc(x.key??x.label)+'" title="Lihat detail '+esc(x.label)+'">'+
+      '<span class="bar-label">'+esc(x.label)+'</span>'+
+      '<span class="bar-track"><span class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></span></span>'+
+      '<b>'+x.n+'</b>'+
+    '</button>'
+  ).join("")+'</div>'
 }
 function ownerBars(rows){
   if(!rows.length)return'<div class="empty">Belum ada data.</div>';
@@ -646,6 +663,98 @@ function ownerBars(rows){
       '<b>'+x.n+'</b>'+
     '</button>'
   ).join("")+'</div>'
+}
+function analyticsCaseTable(rows){
+  if(!rows.length)return'<div class="empty">Tidak ada data pada pilihan ini.</div>';
+  return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Tanggal</th><th>Jenis Pelanggaran</th><th>Pemilik</th><th>Status ETLE</th><th>No. Blanko</th></tr></thead><tbody>'+
+    rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id||"")+'">'+
+      '<td data-label="TNKB">'+esc(r.tnkb||"-")+'</td>'+
+      '<td data-label="Tanggal">'+fmtDate(r.tanggal_pelanggaran)+'</td>'+
+      '<td data-label="Jenis Pelanggaran">'+esc(r.jenis_pelanggaran||"-")+'</td>'+
+      '<td data-label="Pemilik">'+esc(r.nama_pemilik||"-")+'</td>'+
+      '<td data-label="Status ETLE">'+statusBadge(r.status_etle||"-")+'</td>'+
+      '<td data-label="No. Blanko">'+esc(r.no_blanko||"-")+'</td>'+
+    '</tr>').join("")+
+  '</tbody></table></div>'
+}
+function openAnalyticsDetail(kind,key){
+  const b=state.bundle||demo;
+  const currentCases=b.cases.filter(x=>period(x.tanggal_pelanggaran));
+  let rows=[];
+  let title="Detail Analitik";
+  let subtitle=monthName(state.month);
+
+  if(kind==="metric"){
+    if(key==="total"){rows=currentCases;title="Total Perkara"}
+    else if(key==="tnkb"){
+      const groups={};
+      currentCases.forEach(x=>{const k=norm(x.tnkb);if(k&&!groups[k])groups[k]=x});
+      rows=Object.values(groups);
+      title="Total TNKB";
+      subtitle=rows.length+" TNKB unik · "+monthName(state.month)
+    }else if(key==="repeat"){
+      const counts={};
+      currentCases.forEach(x=>{const k=norm(x.tnkb);if(k)counts[k]=(counts[k]||0)+1});
+      rows=currentCases.filter(x=>(counts[norm(x.tnkb)]||0)>1);
+      title="Pelanggaran Berulang"
+    }else if(key==="blanko"){rows=currentCases.filter(x=>x.no_blanko);title="Blanko Terbit"}
+    else if(key==="disputes"){
+      const active=activeDisputes(b);
+      const ids=new Set(active.map(x=>x.case_id).filter(Boolean));
+      const violations=new Set(active.map(x=>norm(x.violation_id)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
+      title="Pelanggaran Tersanggah"
+    }else if(key==="terminated"){
+      const items=b.terminated.filter(x=>period(x.terminated_at));
+      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
+      const refs=new Set(items.map(x=>norm(x.ref_number)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||refs.has(norm(x.ref_number)));
+      title="Pelanggaran Dihentikan"
+    }else if(key==="court"){
+      const items=b.courts.filter(x=>period(x.tanggal_sidang));
+      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
+      const violations=new Set(items.map(x=>norm(x.violation_id)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
+      title="Persidangan"
+    }
+  }else if(kind==="month"){
+    rows=b.cases.filter(x=>ym(x.tanggal_pelanggaran)===key);
+    title="Tren Bulanan";
+    subtitle=monthName(key)
+  }else if(kind==="day"){
+    rows=currentCases.filter(x=>wibDateKey(x.tanggal_pelanggaran)===key);
+    title="Perkara Harian";
+    subtitle=key
+  }else if(kind==="type"){
+    const classify=value=>{
+      const s=String(value||"").trim().toUpperCase();
+      if(!s)return"LAINNYA";
+      if(s.includes("KOMBINASI"))return"KOMBINASI";
+      if(s.includes("DOKUMEN"))return"DOKUMEN";
+      if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
+      return"LAINNYA"
+    };
+    rows=currentCases.filter(x=>classify(x.jenis_pelanggaran)===key);
+    title="Jenis Pelanggaran";
+    subtitle=key+" · "+monthName(state.month)
+  }else if(kind==="tnkb"){
+    rows=currentCases.filter(x=>norm(x.tnkb)===key);
+    title="Detail TNKB";
+    subtitle=(rows[0]?.tnkb||key)+" · "+rows.length+" perkara"
+  }
+
+  rows=[...rows].sort((a,z)=>String(z.tanggal_pelanggaran||"").localeCompare(String(a.tanggal_pelanggaran||"")));
+  $("modalBackdrop").classList.remove("hidden");
+  $("modalTitle").textContent=title;
+  $("modalSubtitle").textContent=subtitle;
+  $("modalBody").innerHTML=
+    '<div class="cards owner-detail-metrics">'+
+      '<div class="card"><div class="metric-label">Jumlah Data</div><div class="metric-value">'+rows.length+'</div></div>'+
+      '<div class="card"><div class="metric-label">TNKB</div><div class="metric-value">'+new Set(rows.map(x=>norm(x.tnkb)).filter(Boolean)).size+'</div></div>'+
+      '<div class="card"><div class="metric-label">Blanko</div><div class="metric-value">'+rows.filter(x=>x.no_blanko).length+'</div></div>'+
+    '</div>'+
+    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
+  bindDetailRows()
 }
 function openOwnerAnalyticsDetail(ownerKey){
   const b=state.bundle||demo;
@@ -667,17 +776,7 @@ function openOwnerAnalyticsDetail(ownerKey){
       '<div class="card"><div class="metric-label">Total TNKB</div><div class="metric-value">'+uniquePlates+'</div></div>'+
       '<div class="card"><div class="metric-label">Pelanggaran Berulang</div><div class="metric-value">'+repeated+'</div></div>'+
     '</div>'+
-    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+
-      '<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Tanggal</th><th>Jenis Pelanggaran</th><th>Status ETLE</th><th>No. Blanko</th></tr></thead><tbody>'+
-        rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id||"")+'">'+
-          '<td data-label="TNKB">'+esc(r.tnkb||"-")+'</td>'+
-          '<td data-label="Tanggal">'+fmtDate(r.tanggal_pelanggaran)+'</td>'+
-          '<td data-label="Jenis Pelanggaran">'+esc(r.jenis_pelanggaran||"-")+'</td>'+
-          '<td data-label="Status ETLE">'+statusBadge(r.status_etle||"-")+'</td>'+
-          '<td data-label="No. Blanko">'+esc(r.no_blanko||"-")+'</td>'+
-        '</tr>').join("")+
-      '</tbody></table></div>'+
-    '</div>';
+    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
   bindDetailRows()
 }
 function bars(rows,gold=false){if(!rows.length)return'<div class="empty">Belum ada data.</div>';const max=Math.max(...rows.map(x=>x.n),1);return'<div class="chart-list">'+rows.map(x=>'<div class="bar-row"><span class="bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></div></div><b>'+x.n+'</b></div>').join("")+'</div>'}
