@@ -9,7 +9,7 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Data Baru"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Perkara Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Data Baru"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
 const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",favorites:"★",search:"⌕",report:"▧"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat tilang dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -145,13 +145,13 @@ function renderNav(){
   }).join("");
   $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     setMobileSidebarOpen(false);
-    if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Perkara Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
+    if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Pelanggaran Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
     openPage(b.dataset.id)
   })
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Perkara Dipantau.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
@@ -230,7 +230,7 @@ function buildSmartActivities(b,c){
     {id:"shipping",icon:"✉",count:b.shipping.filter(x=>sameDay(x.printed_date)||sameDay(x.delivered_at)).length,label:"aktivitas pengiriman hari ini",go:"shipping"},
     {id:"disputes",icon:"⚑",count:activeDisputes(b).filter(x=>sameDay(x.confirmation_date)).length,label:"sanggahan aktif hari ini",go:"disputes"},
     {id:"court",icon:"⚖",count:b.courts.filter(x=>sameDay(x.tanggal_sidang)).length,label:"jadwal sidang hari ini",go:"court"},
-    {id:"history",icon:"↻",count:new Set(b.histories.filter(x=>sameDay(x.event_time)&&x.case_id).map(x=>x.case_id)).size,label:"perkara berubah proses hari ini",go:"history"}
+    {id:"history",icon:"↻",count:new Set(b.histories.filter(x=>sameDay(x.event_time)&&x.case_id).map(x=>x.case_id)).size,label:"pelanggaran berubah proses hari ini",go:"history"}
   ].filter(x=>x.count>0);
 
   if(todayRows.length)return todayRows;
@@ -351,7 +351,7 @@ function dashboard(b){
   const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
   const smartActivities=buildSmartActivities(b,c);
   const cards=[
-    ["Total Perkara",c.total,"total","search"],
+    ["Pelanggaran Diproses",c.total,"total","search"],
     ["Pengiriman Surat",c.shipping,"shipping","shipping"],
     ["Blanko Terbit",c.blanko,"blanko","blanko"],
     ["Persidangan",c.court,"court","court"],
@@ -397,14 +397,14 @@ function dashboard(b){
           '<h1>'+esc(profileName)+'</h1>'+
           '<div class="hero-role">'+esc(profileRole)+' · UPPKB Guyangan</div>'+
           '<div class="hero-stats">'+
-            '<span><b data-stat-key="total" data-stat-value="'+c.total+'">'+(state.dashboardStats?.total??0)+'</b> Perkara</span>'+
+            '<span><b data-stat-key="total" data-stat-value="'+c.total+'">'+(state.dashboardStats?.total??0)+'</b> Pelanggaran</span>'+
             '<span><b data-stat-key="shipping" data-stat-value="'+c.shipping+'">'+(state.dashboardStats?.shipping??0)+'</b> Pengiriman</span>'+
             '<span><b data-stat-key="blanko" data-stat-value="'+c.blanko+'">'+(state.dashboardStats?.blanko??0)+'</b> Blanko</span>'+
           '</div>'+
           '<div class="hero-status-row">'+
             '<span class="hero-online '+(online?"online":"offline")+'"><i></i>'+(online?"Online":"Offline")+'</span>'+
             '<span class="hero-sync">'+esc(syncLabel)+'</span>'+
-            '<button type="button" class="hero-search-btn" data-go="search">⌕ Cari Perkara</button>'+
+            '<button type="button" class="hero-search-btn" data-go="search">⌕ Cari Pelanggaran</button>'+
           '</div>'+
         '</div>'+
         '<div class="hero-side">'+
@@ -422,7 +422,7 @@ function dashboard(b){
       '<div class="dashboard-main">'+
         '<div class="cards dashboard-metrics">'+cards.map(x=>'<button type="button" class="card dashboard-metric-link" data-go="'+x[3]+'" aria-label="Buka '+esc(x[0])+'"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div><span class="metric-nav-arrow" aria-hidden="true">›</span></button>').join("")+'</div>'+
         '<div class="grid-2">'+
-          '<div class="panel"><div class="title-row"><h3>Perkara terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
+          '<div class="panel"><div class="title-row"><h3>Pelanggaran Terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
           '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div>'+
         '</div>'+
       '</div>'+
@@ -467,7 +467,7 @@ function processPage(page,rows){
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
   const pageTitle=historyFocused?"Perpindahan Proses Hari Ini":activityFocused?titles[page]+" Hari Ini":titles[page];
   const focusNote=historyFocused
-    ?"Menampilkan satu perubahan terbaru dari setiap perkara yang berubah proses hari ini."
+    ?"Menampilkan satu perubahan terbaru dari setiap pelanggaran yang berubah proses hari ini."
     :activityFocused
       ?"Menampilkan hanya data yang membentuk angka aktivitas hari ini pada dashboard."
       :"";
@@ -532,7 +532,7 @@ function cell(k,v,row=null){
   return esc(v||"-")
 }
 function caseTable(rows){
-  if(!rows.length)return'<div class="empty">Belum ada perkara.</div>';
+  if(!rows.length)return'<div class="empty">Belum ada pelanggaran.</div>';
   const cols=[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Tanggal Pelanggaran"],["status_etle","Status ETLE"],["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["nama_pemilik","Nama Pemilik"]];
   return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr>'+
     cols.map(c=>'<th>'+c[1]+'</th>').join("")+
@@ -611,15 +611,15 @@ function analytics(b){
 
   const metric=(key,label,value,note="")=>'<button type="button" class="card analytics-action analytics-metric" data-analytics-kind="metric" data-analytics-key="'+esc(key)+'"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'<span class="metric-nav-arrow" aria-hidden="true">›</span></button>';
   const repeatTable=repeatRows.length
-    ?'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Jumlah Perkara</th></tr></thead><tbody>'+repeatRows.map(r=>'<tr class="clickable analytics-repeat-row" data-tnkb-key="'+esc(r.key||norm(r.label))+'"><td data-label="TNKB">'+esc(r.label)+'</td><td data-label="Jumlah Perkara">'+r.n+'</td></tr>').join("")+'</tbody></table></div>'
+    ?'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Jumlah Pelanggaran</th></tr></thead><tbody>'+repeatRows.map(r=>'<tr class="clickable analytics-repeat-row" data-tnkb-key="'+esc(r.key||norm(r.label))+'"><td data-label="TNKB">'+esc(r.label)+'</td><td data-label="Jumlah Pelanggaran">'+r.n+'</td></tr>').join("")+'</tbody></table></div>'
     :'<div class="empty">Belum ada pelanggaran berulang pada periode ini.</div>';
 
   $("content").innerHTML=
-    '<div class="panel"><div class="title-row"><div><h3>Analitik ETLE</h3><p class="search-hint">Ringkasan analitik perkara ETLE · '+esc(periodLabel)+'</p></div><span class="badge">'+cases.length+' perkara</span></div></div>'+
+    '<div class="panel"><div class="title-row"><div><h3>Analitik ETLE</h3><p class="search-hint">Ringkasan analitik pelanggaran ETLE · '+esc(periodLabel)+'</p></div><span class="badge">'+cases.length+' perkara</span></div></div>'+
     '<div class="cards">'+
-      metric("total","Total Perkara",cases.length,periodLabel)+
+      metric("total","Pelanggaran Diproses",cases.length,periodLabel)+
       metric("tnkb","Total TNKB",Object.keys(byTnkb).length,periodLabel)+
-      metric("repeat","Pelanggaran Berulang",repeatAll.length,"TNKB >1 perkara")+
+      metric("repeat","Pelanggaran Berulang",repeatAll.length,"TNKB >1 pelanggaran")+
       metric("blanko","Blanko Terbit",c.blanko,periodLabel)+
       metric("disputes","Tersanggah",c.disputes,periodLabel)+
       metric("terminated","Dihentikan",c.terminated,periodLabel)+
@@ -627,11 +627,11 @@ function analytics(b){
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
-      '<div class="panel analytics-type-panel"><div class="title-row"><div><h3>Jenis Pelanggaran</h3>'+(missingTypeCount?'<p class="search-hint">'+missingTypeCount+' perkara belum memiliki data jenis pelanggaran.</p>':'')+'</div><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
+      '<div class="panel analytics-type-panel"><div class="title-row"><div><h3>Jenis Pelanggaran</h3>'+(missingTypeCount?'<p class="search-hint">'+missingTypeCount+' pelanggaran belum memiliki data jenis pelanggaran.</p>':'')+'</div><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel analytics-daily-panel"><div class="title-row"><h3>Tren Harian · '+esc(periodLabel)+'</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(dailyRows,{kind:"day"})+'</div>'+
-      '<div class="panel analytics-topdays-panel"><div class="title-row"><h3>Hari Dengan Perkara Tertinggi</h3><span class="badge">Klik data</span></div>'+analyticsRankList(topDays,{kind:"day"})+'</div>'+
+      '<div class="panel analytics-topdays-panel"><div class="title-row"><h3>Hari Dengan Pelanggaran Tertinggi</h3><span class="badge">Klik data</span></div>'+analyticsRankList(topDays,{kind:"day"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
       '<div class="panel"><div class="title-row"><h3>Pelanggaran Berulang</h3><span class="badge">'+repeatAll.length+' kendaraan</span></div>'+repeatTable+'</div>'+
@@ -665,7 +665,7 @@ function analyticsLineChart(rows,{kind=""}={}){
   }).join("");
   const nodes=rows.map((r,i)=>{
     const xx=x(i).toFixed(1),yy=y(r.n).toFixed(1);
-    return '<g class="analytics-line-point analytics-action" data-analytics-kind="'+esc(kind)+'" data-analytics-key="'+esc(r.key??r.label)+'" tabindex="0" role="button" aria-label="'+esc(r.label)+': '+r.n+' perkara">'+
+    return '<g class="analytics-line-point analytics-action" data-analytics-kind="'+esc(kind)+'" data-analytics-key="'+esc(r.key??r.label)+'" tabindex="0" role="button" aria-label="'+esc(r.label)+': '+r.n+' pelanggaran">'+
       '<circle cx="'+xx+'" cy="'+yy+'" r="5"></circle>'+
       '<text x="'+xx+'" y="'+(Number(yy)-10)+'" text-anchor="middle" class="analytics-point-value">'+r.n+'</text>'+
       '<text x="'+xx+'" y="'+(height-13)+'" text-anchor="middle" class="analytics-axis-label analytics-x-label">'+esc(r.label)+'</text>'+
@@ -726,7 +726,7 @@ function openAnalyticsDetail(kind,key){
   let subtitle=monthName(state.month);
 
   if(kind==="metric"){
-    if(key==="total"){rows=currentCases;title="Total Perkara"}
+    if(key==="total"){rows=currentCases;title="Pelanggaran Diproses"}
     else if(key==="tnkb"){
       const groups={};
       currentCases.forEach(x=>{const k=norm(x.tnkb);if(k&&!groups[k])groups[k]=x});
@@ -764,7 +764,7 @@ function openAnalyticsDetail(kind,key){
     subtitle=monthName(key)
   }else if(kind==="day"){
     rows=currentCases.filter(x=>wibDateKey(x.tanggal_pelanggaran)===key);
-    title="Perkara Harian";
+    title="Pelanggaran Harian";
     subtitle=key
   }else if(kind==="type"){
     const classify=value=>{
@@ -781,7 +781,7 @@ function openAnalyticsDetail(kind,key){
   }else if(kind==="tnkb"){
     rows=currentCases.filter(x=>norm(x.tnkb)===key);
     title="Detail TNKB";
-    subtitle=(rows[0]?.tnkb||key)+" · "+rows.length+" perkara"
+    subtitle=(rows[0]?.tnkb||key)+" · "+rows.length+" pelanggaran"
   }
 
   rows=[...rows].sort((a,z)=>String(z.tanggal_pelanggaran||"").localeCompare(String(a.tanggal_pelanggaran||"")));
@@ -794,7 +794,7 @@ function openAnalyticsDetail(kind,key){
       '<div class="card"><div class="metric-label">TNKB</div><div class="metric-value">'+new Set(rows.map(x=>norm(x.tnkb)).filter(Boolean)).size+'</div></div>'+
       '<div class="card"><div class="metric-label">Blanko</div><div class="metric-value">'+rows.filter(x=>x.no_blanko).length+'</div></div>'+
     '</div>'+
-    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
+    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Pelanggaran</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
   bindDetailRows()
 }
 function openOwnerAnalyticsDetail(ownerKey){
@@ -813,16 +813,16 @@ function openOwnerAnalyticsDetail(ownerKey){
   $("modalSubtitle").textContent=owner+" · "+monthName(state.month);
   $("modalBody").innerHTML=
     '<div class="cards owner-detail-metrics">'+
-      '<div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+rows.length+'</div></div>'+
+      '<div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+rows.length+'</div></div>'+
       '<div class="card"><div class="metric-label">Total TNKB</div><div class="metric-value">'+uniquePlates+'</div></div>'+
       '<div class="card"><div class="metric-label">Pelanggaran Berulang</div><div class="metric-value">'+repeated+'</div></div>'+
     '</div>'+
-    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Perkara</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
+    '<div class="panel owner-detail-panel"><div class="title-row"><h3>Daftar Pelanggaran</h3><span class="badge">'+rows.length+' data</span></div>'+analyticsCaseTable(rows)+'</div>';
   bindDetailRows()
 }
 function bars(rows,gold=false){if(!rows.length)return'<div class="empty">Belum ada data.</div>';const max=Math.max(...rows.map(x=>x.n),1);return'<div class="chart-list">'+rows.map(x=>'<div class="bar-row"><span class="bar-label" title="'+esc(x.label)+'">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill '+(gold?"gold":"")+'" style="width:'+Math.max(3,x.n/max*100)+'%"></div></div><b>'+x.n+'</b></div>').join("")+'</div>'}
 function vehicleProfiles(b){const groups={};b.cases.forEach(x=>{const k=norm(x.tnkb);if(!k)return;if(!groups[k])groups[k]={tnkb:x.tnkb,owner:x.nama_pemilik,count:0,latest:null,case_id:x.case_id};groups[k].count++;if(!groups[k].latest||String(x.tanggal_pelanggaran)>String(groups[k].latest))groups[k].latest=x.tanggal_pelanggaran,groups[k].case_id=x.case_id});const rows=Object.values(groups).sort((a,z)=>z.count-a.count);$("content").innerHTML='<div class="panel"><div class="title-row"><h3>Profil Kendaraan</h3><span class="badge">'+rows.length+' kendaraan</span></div><div class="toolbar"><input id="filter" placeholder="Cari TNKB atau pemilik..."></div><div id="slot">'+vehicleTable(rows)+'</div></div>';$("filter").oninput=e=>{$("slot").innerHTML=vehicleTable(rows.filter(r=>JSON.stringify(r).toLowerCase().includes(norm(e.target.value))));bindDetailRows()};bindDetailRows()}
-function vehicleTable(rows){return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Nama Pemilik</th><th>Jumlah Perkara</th><th>Pelanggaran Terakhir</th></tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'"><td data-label="TNKB">'+esc(r.tnkb)+'</td><td data-label="Nama Pemilik">'+esc(r.owner||"-")+'</td><td data-label="Jumlah Perkara">'+r.count+'</td><td data-label="Pelanggaran Terakhir">'+fmtDate(r.latest)+'</td></tr>').join("")+'</tbody></table></div>'}
+function vehicleTable(rows){return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr><th>TNKB</th><th>Nama Pemilik</th><th>Jumlah Pelanggaran</th><th>Pelanggaran Terakhir</th></tr></thead><tbody>'+rows.map(r=>'<tr class="clickable" data-case="'+esc(r.case_id)+'"><td data-label="TNKB">'+esc(r.tnkb)+'</td><td data-label="Nama Pemilik">'+esc(r.owner||"-")+'</td><td data-label="Jumlah Pelanggaran">'+r.count+'</td><td data-label="Pelanggaran Terakhir">'+fmtDate(r.latest)+'</td></tr>').join("")+'</tbody></table></div>'}
 function searchTerms(v){return norm(v).split(/\s+/).filter(Boolean)}
 function caseSearchText(c,b,includePhone=false){
   const offender=b.offenders.find(o=>o.case_id===c.case_id)||{};
@@ -847,15 +847,15 @@ function favoritesPage(b){
   const rows=b.cases.filter(x=>order.has(String(x.case_id))).sort((a,z)=>order.get(String(a.case_id))-order.get(String(z.case_id)));
   $("content").innerHTML=
     '<div class="panel favorites-panel">'+
-      '<div class="title-row"><div><h3>Perkara Dipantau</h3><p class="search-hint">'+(state.favoritesRemote?"Tersinkron ke Supabase dan tersedia di semua perangkat.":"Mode lokal sementara; sinkronisasi Supabase belum aktif.")+'</p></div><span class="badge">'+rows.length+' perkara</span></div>'+
-      (rows.length?caseTable(rows):'<div class="empty favorites-empty"><b>☆</b><span>Belum ada perkara yang dipantau.</span><small>Buka Detail Perkara lalu pilih “Pantau”.</small></div>')+
+      '<div class="title-row"><div><h3>Pelanggaran Dipantau</h3><p class="search-hint">'+(state.favoritesRemote?"Tersinkron ke Supabase dan tersedia di semua perangkat.":"Mode lokal sementara; sinkronisasi Supabase belum aktif.")+'</p></div><span class="badge">'+rows.length+' pelanggaran</span></div>'+
+      (rows.length?caseTable(rows):'<div class="empty favorites-empty"><b>☆</b><span>Belum ada pelanggaran yang dipantau.</span><small>Buka Detail Perkara lalu pilih “Pantau”.</small></div>')+
     '</div>';
   bindDetailRows()
 }
 function globalSearch(b){
   $("content").innerHTML=
     '<div class="panel global-search-panel">'+
-      '<div class="title-row"><div><h3>Pencarian Global</h3><p class="search-hint">Cari lintas perkara, TNKB, registrasi, blanko, BRIVA, pelanggar, resi, status, dan persidangan.</p></div><span class="badge" id="globalSearchCount">Siap</span></div>'+
+      '<div class="title-row"><div><h3>Pencarian Global</h3><p class="search-hint">Cari lintas pelanggaran, TNKB, registrasi, blanko, BRIVA, pelanggar, resi, status, dan persidangan.</p></div><span class="badge" id="globalSearchCount">Siap</span></div>'+
       '<div class="toolbar table-toolbar"><div class="search-field-wrap global-search-wrap"><span class="search-field-icon">⌕</span><input id="globalQuery" placeholder="Contoh: AG 9632 UV, AJ0000468, BRIVA, nama pemilik, nomor resi..."><button id="clearGlobalQuery" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div></div>'+
       '<div id="searchResult"><div class="empty">Masukkan minimal 2 karakter untuk mencari.</div></div>'+
     '</div>';
@@ -875,7 +875,7 @@ function globalSearch(b){
       return terms.every(t=>haystack.includes(t))
     }).sort((a,z)=>String(z.tanggal_pelanggaran||z.first_seen_at||"").localeCompare(String(a.tanggal_pelanggaran||a.first_seen_at||""))).slice(0,100);
     $("globalSearchCount").textContent=rows.length+(rows.length===100?" hasil teratas":" hasil");
-    $("searchResult").innerHTML=rows.length?caseTable(rows):'<div class="empty">Tidak ada perkara yang cocok dengan pencarian tersebut.</div>';
+    $("searchResult").innerHTML=rows.length?caseTable(rows):'<div class="empty">Tidak ada pelanggaran yang cocok dengan pencarian tersebut.</div>';
     bindDetailRows();
   };
   $("globalQuery").oninput=run;
@@ -893,7 +893,7 @@ const commandItems=[
   {id:"history",label:"Perpindahan Proses",icon:"↻",keys:"H",keywords:"histori riwayat proses"},
   {id:"analytics",label:"Analitik ETLE",icon:"▥",keys:"A",keywords:"analitik statistik grafik"},
   {id:"vehicles",label:"Profil Kendaraan",icon:"▤",keys:"V",keywords:"kendaraan tnkb"},
-  {id:"favorites",label:"Perkara Dipantau",icon:"★",keys:"F",keywords:"pantau favorit watch"},
+  {id:"favorites",label:"Pelanggaran Dipantau",icon:"★",keys:"F",keywords:"pantau favorit watch"},
   {id:"search",label:"Pencarian Global",icon:"⌕",keys:"G",keywords:"cari search"},
   {id:"report",label:"Laporan ETLE",icon:"▧",keys:"",keywords:"laporan report"}
 ];
@@ -938,7 +938,7 @@ function renderCommandPalette(){
         '<div><kbd>H</kbd><span>Perpindahan Proses</span></div>'+
         '<div><kbd>A</kbd><span>Analitik ETLE</span></div>'+
         '<div><kbd>V</kbd><span>Profil Kendaraan</span></div>'+
-        '<div><kbd>F</kbd><span>Perkara Dipantau</span></div>'+
+        '<div><kbd>F</kbd><span>Pelanggaran Dipantau</span></div>'+
         '<div><kbd>G</kbd><span>Pencarian Global</span></div>'+
         '<div><kbd>R</kbd><span>Refresh data</span></div>'+
         '<div><kbd>Esc</kbd><span>Tutup dialog/detail</span></div>'+
@@ -951,10 +951,10 @@ function renderCommandPalette(){
     out.innerHTML=
       '<div class="gita-assistant-welcome">'+
         '<div class="gita-mini-avatar" aria-hidden="true"><span class="gita-mini-eye"></span><span class="gita-mini-eye"></span><i></i></div>'+
-        '<div><b>Halo, '+esc(firstName)+'! Saya GITA.</b><p>GITA siap membantu membaca data operasional G-Smart. Tanyakan perkara, blanko, persidangan, kendaraan berulang, atau prioritas hari ini.</p></div>'+
+        '<div><b>Halo, '+esc(firstName)+'! Saya GITA.</b><p>GITA siap membantu membaca data operasional G-Smart. Tanyakan pelanggaran, blanko, persidangan, kendaraan berulang, atau prioritas hari ini.</p></div>'+
       '</div>'+
       '<div class="cp-section-label cp-ai-label">Pertanyaan cepat <span>read-only</span></div>'+
-      ['Apa yang perlu diprioritaskan hari ini?','Berapa blanko yang belum bayar?','Berapa sidang hari ini?','Kendaraan yang punya lebih dari satu perkara'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
+      ['Apa yang perlu diprioritaskan hari ini?','Berapa blanko yang belum bayar?','Berapa sidang hari ini?','Kendaraan yang punya lebih dari satu pelanggaran'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
     bindCommandPaletteActions();
     return
   }
@@ -964,7 +964,7 @@ function renderCommandPalette(){
       '<div class="cp-section-label">Akses cepat</div>'+
       commandItems.slice(0,7).map(x=>'<button class="cp-result" data-command-page="'+x.id+'"><span class="cp-icon">'+x.icon+'</span><span><b>'+x.label+'</b><small>'+esc(x.keywords.split(" ").slice(0,3).join(" · "))+'</small></span>'+(x.keys?'<kbd>'+x.keys+'</kbd>':'')+'</button>').join("")+
       '<div class="cp-section-label cp-ai-label">✦ Asisten Data G-Smart <span>read-only</span></div>'+
-      ['Berapa blanko yang belum bayar?','Kendaraan yang punya lebih dari satu perkara','Berapa sidang hari ini?','Apa yang perlu diprioritaskan hari ini?'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
+      ['Berapa blanko yang belum bayar?','Kendaraan yang punya lebih dari satu pelanggaran','Berapa sidang hari ini?','Apa yang perlu diprioritaskan hari ini?'].map(x=>'<button class="cp-suggestion" data-ai-prompt="'+esc(x)+'">'+esc(x)+'</button>').join("");
     bindCommandPaletteActions();
     return
   }
@@ -976,7 +976,7 @@ function renderCommandPalette(){
   const cases=q.length>=2?b.cases.filter(c=>terms.every(t=>caseSearchText(c,b,isAdmin).includes(t))).slice(0,5):[];
   out.innerHTML=
     (commands.length?'<div class="cp-section-label">Menu</div>'+commands.map(x=>'<button class="cp-result" data-command-page="'+x.id+'"><span class="cp-icon">'+x.icon+'</span><span><b>'+x.label+'</b><small>Buka menu G-Smart</small></span>'+(x.keys?'<kbd>'+x.keys+'</kbd>':'')+'</button>').join(""):"")+
-    (cases.length?'<div class="cp-section-label">Perkara</div>'+cases.map(c=>'<button class="cp-result" data-command-case="'+esc(c.case_id)+'"><span class="cp-icon">🚚</span><span><b>'+esc(c.tnkb||c.ref_number||"Perkara")+'</b><small>'+esc(c.no_registrasi||c.ref_number||c.jenis_pelanggaran||"-")+'</small></span><span class="cp-status">'+esc(c.status_etle||"")+'</span></button>').join(""):"")+
+    (cases.length?'<div class="cp-section-label">Pelanggaran</div>'+cases.map(c=>'<button class="cp-result" data-command-case="'+esc(c.case_id)+'"><span class="cp-icon">🚚</span><span><b>'+esc(c.tnkb||c.ref_number||"Pelanggaran")+'</b><small>'+esc(c.no_registrasi||c.ref_number||c.jenis_pelanggaran||"-")+'</small></span><span class="cp-status">'+esc(c.status_etle||"")+'</span></button>').join(""):"")+
     '<div class="cp-section-label cp-ai-label">✦ Asisten Data G-Smart <span>read-only</span></div>'+
     '<button class="cp-result cp-ai-run" data-ai-prompt="'+esc(raw)+'"><span class="cp-icon">✦</span><span><b>Tanya Asisten</b><small>'+esc(raw)+'</small></span><kbd>Enter</kbd></button>';
   bindCommandPaletteActions()
@@ -1032,8 +1032,8 @@ function assistantAnswerHtml(question){
     const groups={};
     cases.forEach(c=>{const k=norm(c.tnkb).replace(/\s+/g,"");if(!k)return;(groups[k]??=[]).push(c)});
     const repeated=Object.values(groups).filter(x=>x.length>1).sort((a,z)=>z.length-a.length);
-    return '<div class="assistant-answer"><b>'+repeated.length+' kendaraan</b><p>memiliki lebih dari satu perkara pada data G-Smart yang sedang dimuat.</p>'+
-      (repeated.length?'<div class="assistant-list">'+repeated.slice(0,8).map(g=>'<button class="assistant-case" data-command-case="'+esc(g[0].case_id)+'"><b>'+esc(g[0].tnkb)+'</b><span>'+g.length+' perkara</span><small>Buka riwayat perkara</small></button>').join("")+'</div>':'')+'</div>'
+    return '<div class="assistant-answer"><b>'+repeated.length+' kendaraan</b><p>memiliki lebih dari satu pelanggaran pada data G-Smart yang sedang dimuat.</p>'+
+      (repeated.length?'<div class="assistant-list">'+repeated.slice(0,8).map(g=>'<button class="assistant-case" data-command-case="'+esc(g[0].case_id)+'"><b>'+esc(g[0].tnkb)+'</b><span>'+g.length+' pelanggaran</span><small>Buka riwayat pelanggaran</small></button>').join("")+'</div>':'')+'</div>'
   }
 
   if((q.includes("blanko")||q.includes("briva"))&&(q.includes("belum bayar")||q.includes("belum terbayar")||q.includes("unpaid"))){
@@ -1051,14 +1051,14 @@ function assistantAnswerHtml(question){
     const unpaidIds=new Set(cases.filter(c=>c.no_blanko&&!paid(c)).map(x=>String(x.case_id)));
     const rows=cases.filter(c=>courtIds.has(String(c.case_id))||disputeIds.has(String(c.case_id))||unpaidIds.has(String(c.case_id)))
       .sort((a,z)=>Number(courtIds.has(String(z.case_id)))-Number(courtIds.has(String(a.case_id)))).slice(0,12);
-    return '<div class="assistant-answer"><b>'+rows.length+' perkara terindikasi perlu perhatian</b><p>Indikator read-only: sidang hari ini, sanggahan aktif, atau blanko belum bayar. Ini bukan perubahan status dan tidak menulis ke database.</p>'+
+    return '<div class="assistant-answer"><b>'+rows.length+' pelanggaran terindikasi perlu perhatian</b><p>Indikator read-only: sidang hari ini, sanggahan aktif, atau blanko belum bayar. Ini bukan perubahan status dan tidak menulis ke database.</p>'+
       (rows.length?'<div class="assistant-list">'+rows.slice(0,8).map(assistantCaseButton).join("")+'</div>':'')+'</div>'
   }
 
   const categoryMap=[
     {test:/sidang|persidangan/,label:"persidangan",rows:()=>assistantDateFilter(b.courts||[],x=>x.tanggal_sidang,question),page:"court"},
     {test:/sanggah|tersanggah/,label:"sanggahan aktif",rows:()=>assistantDateFilter(activeDisputes(b),x=>x.confirmation_date,question),page:"disputes"},
-    {test:/dihentikan|penghentian/,label:"perkara dihentikan",rows:()=>assistantDateFilter(b.terminated||[],x=>x.terminated_at,question),page:"terminated"},
+    {test:/dihentikan|penghentian/,label:"pelanggaran dihentikan",rows:()=>assistantDateFilter(b.terminated||[],x=>x.terminated_at,question),page:"terminated"},
     {test:/pengiriman|surat|jne|resi/,label:"pengiriman surat",rows:()=>assistantDateFilter(b.shipping||[],x=>x.printed_date||x.delivered_at,question),page:"shipping"},
     {test:/blanko/,label:"blanko terbit",rows:()=>assistantDateFilter(cases.filter(c=>c.no_blanko),x=>x.tanggal_blanko,question),page:"blanko"},
     {test:/data baru|perkara baru/,label:"data baru",rows:()=>assistantDateFilter(cases,x=>x.first_seen_at,question),page:"new"}
@@ -1079,17 +1079,17 @@ function assistantAnswerHtml(question){
       const c=matches[0];
       const ship=(b.shipping||[]).find(x=>String(x.case_id)===String(c.case_id));
       const court=(b.courts||[]).find(x=>String(x.case_id)===String(c.case_id));
-      return '<div class="assistant-answer"><b>'+esc(c.tnkb||"Perkara")+'</b><p>'+
+      return '<div class="assistant-answer"><b>'+esc(c.tnkb||"Pelanggaran")+'</b><p>'+
         esc(c.jenis_pelanggaran||"Pelanggaran ETLE")+' · '+esc(c.status_etle||"Status belum tersedia")+
         (c.no_blanko?' · Blanko '+esc(c.no_blanko):'')+
         (ship?.status?' · Pengiriman '+esc(ship.status):'')+
         (court?.tanggal_sidang?' · Sidang '+fmtDate(court.tanggal_sidang):'')+
         '</p><button class="assistant-open-page" data-command-case="'+esc(c.case_id)+'">Buka Detail Perkara →</button></div>'
     }
-    if(matches.length>1)return '<div class="assistant-answer"><b>'+matches.length+' perkara cocok</b><p>Pilih perkara yang dimaksud.</p><div class="assistant-list">'+matches.map(assistantCaseButton).join("")+'</div></div>'
+    if(matches.length>1)return '<div class="assistant-answer"><b>'+matches.length+' pelanggaran cocok</b><p>Pilih pelanggaran yang dimaksud.</p><div class="assistant-list">'+matches.map(assistantCaseButton).join("")+'</div></div>'
   }
 
-  return '<div class="assistant-answer assistant-help"><b>Saya belum memahami pertanyaan itu.</b><p>Versi awal Asisten G-Smart bersifat read-only dan fokus pada data operasional. Coba pertanyaan seperti:</p><div class="assistant-examples"><button data-ai-prompt="Berapa sidang hari ini?">Berapa sidang hari ini?</button><button data-ai-prompt="Berapa blanko yang belum bayar?">Blanko belum bayar</button><button data-ai-prompt="Kendaraan yang punya lebih dari satu perkara">Kendaraan berulang</button><button data-ai-prompt="Apa yang perlu diprioritaskan hari ini?">Prioritas hari ini</button></div></div>'
+  return '<div class="assistant-answer assistant-help"><b>Saya belum memahami pertanyaan itu.</b><p>Versi awal Asisten G-Smart bersifat read-only dan fokus pada data operasional. Coba pertanyaan seperti:</p><div class="assistant-examples"><button data-ai-prompt="Berapa sidang hari ini?">Berapa sidang hari ini?</button><button data-ai-prompt="Berapa blanko yang belum bayar?">Blanko belum bayar</button><button data-ai-prompt="Kendaraan yang punya lebih dari satu pelanggaran">Kendaraan berulang</button><button data-ai-prompt="Apa yang perlu diprioritaskan hari ini?">Prioritas hari ini</button></div></div>'
 }
 function runAssistantQuery(question){
   const out=$("commandPaletteResults");
@@ -1104,8 +1104,8 @@ function runAssistantQuery(question){
 }
 
 function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const shipping=new Set(b.shipping.map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
-function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Total Perkara: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' perkara\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' perkara ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
-function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Perkara</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
+function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
+function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
 async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
 async function removeRows(table,filters={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{method:"DELETE",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,Prefer:"return=minimal"}});if(!r.ok)throw new Error("Gagal menghapus "+table+" (HTTP "+r.status+")")}
