@@ -518,3 +518,12 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
   .gita-pulse,.gita-eyes i{animation:none!important}
   .gita-avatar-btn,.gita-greeting{transition:none!important}
 }
+
+/* Analytics owner drill-down */
+.owner-analytics-row{width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.owner-analytics-row:hover{background:#f3f7fb}
+.owner-analytics-row:focus-visible{outline:2px solid #2f80ed;outline-offset:3px}
+.owner-analytics-row .bar-track{display:block}
+.owner-analytics-row .bar-fill{display:block}
+.owner-detail-metrics{margin-bottom:14px}
+.owner-detail-panel{margin-top:0}
