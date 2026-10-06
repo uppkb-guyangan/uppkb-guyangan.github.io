@@ -527,3 +527,12 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
 .owner-analytics-row .bar-fill{display:block}
 .owner-detail-metrics{margin-bottom:14px}
 .owner-detail-panel{margin-top:0}
+
+/* Interactive ETLE analytics */
+.analytics-action{cursor:pointer}
+button.analytics-metric{position:relative;width:100%;text-align:left;color:inherit;font:inherit;border:1px solid var(--border)}
+button.analytics-metric:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,37,76,.08)}
+button.analytics-metric:focus-visible,.analytics-action:focus-visible{outline:2px solid #2f80ed;outline-offset:3px}
+button.bar-row.analytics-action{width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left}
+button.bar-row.analytics-action:hover{background:#f3f7fb}
+.analytics-repeat-row{cursor:pointer}
