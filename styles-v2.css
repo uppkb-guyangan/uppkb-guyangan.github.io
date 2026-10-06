@@ -536,3 +536,17 @@ button.analytics-metric:focus-visible,.analytics-action:focus-visible{outline:2p
 button.bar-row.analytics-action{width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left}
 button.bar-row.analytics-action:hover{background:#f3f7fb}
 .analytics-repeat-row{cursor:pointer}
+
+/* Scaled analytics line charts */
+.analytics-line-scroll{overflow-x:auto;overflow-y:hidden;padding:4px 2px 2px;scrollbar-width:thin}
+.analytics-line-chart{display:block;max-width:none;min-width:100%;height:250px;overflow:visible}
+.analytics-grid-line{stroke:#e7edf4;stroke-width:1}
+.analytics-line-area{fill:rgba(39,92,154,.08)}
+.analytics-line-path{fill:none;stroke:#275c9a;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.analytics-line-point{cursor:pointer;outline:none}
+.analytics-line-point circle{fill:#fff;stroke:#275c9a;stroke-width:3;transition:.15s}
+.analytics-line-point:hover circle,.analytics-line-point:focus circle{r:7;fill:#eaf2fb}
+.analytics-axis-label{font-size:10px;fill:#6b7a90;user-select:none}
+.analytics-point-value{font-size:11px;font-weight:700;fill:#193b63;user-select:none}
+.analytics-x-label{font-size:9px}
+@media(max-width:800px){.analytics-line-chart{height:220px}}
