@@ -1391,6 +1391,14 @@ function renderDetail(d){
   const owner=d.vehicle?.nama_pemilik||c.nama_pemilik||d.offender?.nama||"-";
   const vehicleLabel=[d.vehicle?.merk,d.vehicle?.tipe].filter(Boolean).join(" ")||d.vehicle?.jenis_kendaraan||"-";
   const paymentFine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:(positiveAmount(d?.payment?.denda_pengadilan)?d.payment.denda_pengadilan:null);
+  const vehicleDetail=d.vehicle?{...d.vehicle}:null;
+  if(vehicleDetail){
+    const jbi=Number(vehicleDetail.jbi);
+    const lebih=Number(vehicleDetail.berat_lebih);
+    if(Number.isFinite(jbi)&&jbi>0&&Number.isFinite(lebih)&&lebih>=0){
+      vehicleDetail.persentase_lebih=(lebih/jbi*100).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+    }
+  }
 
   $("modalBody").innerHTML=
     '<section class="detail-hero">'+
@@ -1434,7 +1442,7 @@ function renderDetail(d){
           infoGrid(d.offender,[["nama","Nama"],["alamat","Alamat"],...(p.copyPhone?[["no_telp","No. Telepon"]]:[]),["email","Email"],["no_ktp","No. KTP"],["golongan_sim","Golongan SIM"],["tempat_lahir","Tempat Lahir"],["tanggal_lahir","Tanggal Lahir","date"],["pekerjaan","Pekerjaan"]])+
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▤</span>Kendaraan & KIR</h3>'+
-          infoGrid(d.vehicle,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"]])+
+          infoGrid(vehicleDetail,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"],["persentase_lebih","Persentase Lebih"]])+
         '</section>'+
         (photos.length?'<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▧</span>Foto ETLE</h3><div class="detail-photos-strip">'+photos.map((x,i)=>'<button type="button" class="detail-photo-thumb'+(i===0?" active":"")+'" data-photo="'+esc(x.photo_url)+'" aria-label="Tampilkan '+esc(x.description||x.photo_type||"foto ETLE")+'"><img src="'+esc(x.photo_url)+'" alt="'+esc(x.description||x.photo_type||"Foto ETLE")+'" loading="lazy" decoding="async" fetchpriority="low"></button>').join("")+'</div></section>':"")+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">↻</span>Timeline Perkara</h3>'+timelineSection(d.history||[]).replace('<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3>','').replace('</section>','')+'</section>'+
