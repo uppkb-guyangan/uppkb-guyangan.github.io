@@ -987,13 +987,13 @@ body{background:var(--ux-bg)}
   background:#fff;box-shadow:inset 0 0 0 1px rgba(0,95,189,.10),0 4px 10px rgba(0,95,189,.10);
   z-index:2;overflow:hidden;
 }
-.metric-jne-logo b{font-size:14px;font-weight:950;font-style:italic;letter-spacing:-.8px;color:#0756a3;line-height:1}
-.metric-jne-logo:before,.metric-jne-logo:after,.metric-jne-logo i{
-  content:"";position:absolute;height:3px;border-radius:4px;transform:skewX(-24deg);right:7px
+.metric-jne-logo img{
+  display:block;
+  width:34px;
+  height:auto;
+  max-height:24px;
+  object-fit:contain;
 }
-.metric-jne-logo:before{width:19px;background:#e5242a;top:12px}
-.metric-jne-logo:after{width:15px;background:#f7941d;bottom:11px}
-.metric-jne-logo i{width:12px;background:#0756a3;bottom:16px}
 
 .dashboard-metrics .metric-blanko{background:#fff0d2!important;color:#a95e00!important;border-color:#ffd994!important}
 .dashboard-metrics .metric-blanko:after{content:"▤"!important}
@@ -1015,5 +1015,4 @@ body{background:var(--ux-bg)}
 
 @media(max-width:520px){
   .metric-jne-logo{left:13px;width:40px;height:40px}
-  .metric-jne-logo b{font-size:12px}
 }
