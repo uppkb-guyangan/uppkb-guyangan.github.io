@@ -429,10 +429,10 @@ function dashboard(b){
     '</section>':"")+
     '<div class="dashboard-layout">'+
       '<div class="dashboard-main">'+
-        '<div class="cards dashboard-metrics">'+cards.map(x=>'<button type="button" class="card dashboard-metric-link" data-go="'+x[3]+'" aria-label="Buka '+esc(x[0])+'"><div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div><span class="metric-nav-arrow" aria-hidden="true">›</span></button>').join("")+'</div>'+
+        '<div class="cards dashboard-metrics">'+cards.map(x=>'<button type="button" class="card dashboard-metric-link metric-'+x[2]+'" data-go="'+x[3]+'" aria-label="Buka '+esc(x[0])+'">'+(x[2]==="shipping"?'<span class="metric-jne-logo" aria-label="JNE"><b>JNE</b><i></i></span>':'')+'<div class="metric-label">'+x[0]+'</div><div class="metric-value" data-stat-key="'+x[2]+'" data-stat-value="'+x[1]+'">'+(state.dashboardStats?.[x[2]]??0)+'</div><div class="metric-note">'+monthName(state.month)+'</div><span class="metric-nav-arrow" aria-hidden="true">›</span></button>').join("")+'</div>'+
         '<div class="grid-2">'+
           '<div class="panel"><div class="title-row"><h3>Pelanggaran Terbaru</h3><span class="badge">'+recent.length+' tampil</span></div>'+caseTable(recent)+'</div>'+
-          '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(b.shipping.filter(x=>period(x.printed_date)))+'</div>'+
+          '<div class="panel"><h3 class="section-heading">Status Pengiriman</h3>'+shippingSummary(activeShippingRows(b).filter(x=>period(x.printed_date)))+'</div>'+
         '</div>'+
       '</div>'+
       '<aside class="dashboard-rail">'+
