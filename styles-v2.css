@@ -586,3 +586,22 @@ button.bar-row.analytics-action:hover{background:#f3f7fb}
   .analytics-swipe-hint{display:block;position:sticky;left:0;width:max-content;max-width:calc(100vw - 72px);margin:4px auto 0;padding:4px 9px;border-radius:999px;background:rgba(238,244,251,.94);color:#5e7188;font-size:10px;line-height:1.2;pointer-events:none;transition:opacity .2s ease}
   .analytics-line-scroll.is-scrolled .analytics-swipe-hint{opacity:0}
 }
+
+/* Mobile monthly trend: fit the full 4-point chart inside the card */
+@media(max-width:800px){
+  .analytics-line-scroll[data-chart-kind="month"]{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+    overflow-y:hidden;
+    padding-left:0;
+    padding-right:0
+  }
+  .analytics-line-scroll[data-chart-kind="month"] .analytics-line-chart{
+    display:block;
+    width:100% !important;
+    min-width:100% !important;
+    max-width:100% !important;
+    height:210px
+  }
+}
