@@ -638,6 +638,16 @@ function analytics(b){
       '<div class="panel"><div class="title-row"><h3>Pemilik Terbanyak</h3><span class="badge">Klik untuk detail</span></div>'+ownerBars(ownerRows)+'</div>'+
     '</div>';
 
+  if(window.matchMedia&&window.matchMedia("(max-width: 800px)").matches){
+    requestAnimationFrame(()=>{
+      const dailyScroll=document.querySelector('.analytics-daily-panel .analytics-line-scroll[data-chart-kind="day"]');
+      if(dailyScroll){
+        dailyScroll.scrollLeft=Math.max(0,dailyScroll.scrollWidth-dailyScroll.clientWidth);
+        const hideHint=()=>{dailyScroll.classList.add("is-scrolled");dailyScroll.removeEventListener("scroll",hideHint)};
+        dailyScroll.addEventListener("scroll",hideHint,{passive:true})
+      }
+    })
+  }
   document.querySelectorAll(".analytics-action[data-analytics-kind]").forEach(btn=>{
     btn.onclick=()=>openAnalyticsDetail(btn.dataset.analyticsKind||"",btn.dataset.analyticsKey||"")
   });
@@ -671,9 +681,9 @@ function analyticsLineChart(rows,{kind=""}={}){
       '<text x="'+xx+'" y="'+(height-13)+'" text-anchor="middle" class="analytics-axis-label analytics-x-label">'+esc(r.label)+'</text>'+
     '</g>'
   }).join("");
-  return '<div class="analytics-line-scroll"><svg class="analytics-line-chart" viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" aria-label="Grafik tren">'+
+  return '<div class="analytics-line-scroll" data-chart-kind="'+esc(kind)+'"><svg class="analytics-line-chart" viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" aria-label="Grafik tren">'+
     grid+'<polygon points="'+area+'" class="analytics-line-area"></polygon><polyline points="'+points+'" class="analytics-line-path"></polyline>'+nodes+
-  '</svg></div>'
+  '</svg>'+(kind==="day"?'<div class="analytics-swipe-hint" aria-hidden="true">‹ Geser untuk melihat tanggal lainnya ›</div>':'')+'</div>'
 }
 function analyticsRankList(rows,{kind=""}={}){
   if(!rows.length)return'<div class="empty">Belum ada data.</div>';
