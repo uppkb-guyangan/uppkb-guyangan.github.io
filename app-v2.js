@@ -9,8 +9,8 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"]];
-const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",favorites:"★",search:"⌕",report:"▧"};
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["loginHistory","Riwayat Login"]];
+const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",favorites:"★",search:"⌕",report:"▧",loginHistory:"◷"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
@@ -136,8 +136,9 @@ function renderNav(){
   const b=state.bundle||demo;
   const c=counts(b);
   const canWatch=perms().watchCases;
+  const isAdmin=perms().admin;
   const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,favorites:canWatch?getFavoriteIds().length:null};
-  $("nav").innerHTML=menu.map(([id,t])=>{
+  $("nav").innerHTML=menu.filter(([id])=>id!=="loginHistory"||isAdmin).map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':(id==="favorites"&&!canWatch?'<span class="nav-lock" aria-label="Akses dibatasi">🔒</span>':"");
     const restricted=id==="favorites"&&!canWatch;
@@ -146,12 +147,13 @@ function renderNav(){
   $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     setMobileSidebarOpen(false);
     if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Pelanggaran Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
+    if(b.dataset.id==="loginHistory"&&!perms().admin){toast("Riwayat Login hanya dapat diakses Admin.");return}
     openPage(b.dataset.id)
   })
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if(p==="loginHistory"&&!perms().admin){$("content").innerHTML='<div class="notice">Riwayat Login hanya dapat diakses Admin.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
@@ -188,7 +190,7 @@ function filteredRows(page,b){
     default:return[]
   }
 }
-function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);return processPage(state.page,filteredRows(state.page,b))}
+function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);if(state.page==="loginHistory")return loginHistoryPage();return processPage(state.page,filteredRows(state.page,b))}
 function animateDashboardStats(nextStats){
   const previous=state.dashboardStats||{};
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -1121,6 +1123,95 @@ function runAssistantQuery(question){
 function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const shipping=new Set(b.shipping.map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
 function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
+
+function loginAuditDeviceMeta(){
+  const ua=navigator.userAgent||"";
+  let browser="Browser";
+  if(/Edg\//.test(ua))browser="Microsoft Edge";
+  else if(/OPR\//.test(ua))browser="Opera";
+  else if(/SamsungBrowser\//.test(ua))browser="Samsung Internet";
+  else if(/Chrome\//.test(ua))browser="Google Chrome";
+  else if(/Firefox\//.test(ua))browser="Mozilla Firefox";
+  else if(/Safari\//.test(ua))browser="Safari";
+  let platform=navigator.userAgentData?.platform||navigator.platform||"";
+  if(/Android/i.test(ua))platform="Android";
+  else if(/iPhone|iPad|iPod/i.test(ua))platform="iOS";
+  else if(/Windows/i.test(ua))platform="Windows";
+  else if(/Macintosh|Mac OS X/i.test(ua))platform="macOS";
+  else if(/Linux/i.test(ua)&&!/Android/i.test(ua))platform="Linux";
+  const deviceType=/iPad|Tablet/i.test(ua)?"Tablet":(/Android|iPhone|iPod|Mobile/i.test(ua)?"Mobile":"Desktop");
+  const standalone=window.matchMedia?.("(display-mode: standalone)")?.matches||navigator.standalone===true;
+  return{
+    browser,
+    platform,
+    deviceType,
+    accessMode:standalone?"PWA":"Browser",
+    userAgent:ua,
+    screenWidth:Math.round(window.screen?.width||window.innerWidth||0),
+    screenHeight:Math.round(window.screen?.height||window.innerHeight||0)
+  }
+}
+async function callLoginAudit(action,payload={}){
+  if(state.demo||!auth.currentUser)return null;
+  const token=await auth.currentUser.getIdToken(false);
+  const r=await fetch(supabaseConfig.url+"/functions/v1/login-audit",{
+    method:"POST",
+    headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify({action,...payload})
+  });
+  if(!r.ok){
+    const err=await r.json().catch(()=>({}));
+    throw new Error(err?.error||("LOGIN_AUDIT_HTTP_"+r.status))
+  }
+  return r.json()
+}
+async function recordSuccessfulLogin(){
+  try{await callLoginAudit("record",{meta:loginAuditDeviceMeta()})}
+  catch(err){console.warn("Login audit tidak tercatat:",err)}
+}
+function loginHistoryTime(v){
+  if(!v)return"-";
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return esc(v);
+  return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(d)+" WIB"
+}
+async function loginHistoryPage(days=30){
+  if(!perms().admin){
+    $("content").innerHTML='<div class="notice">Riwayat Login hanya dapat diakses Admin.</div>';
+    return
+  }
+  $("content").innerHTML='<div class="panel"><div class="loading">Memuat riwayat login...</div></div>';
+  try{
+    const data=await callLoginAudit("list",{days:Number(days),limit:500});
+    const rows=Array.isArray(data?.rows)?data.rows:[];
+    const today=wibDateKey();
+    const todayRows=rows.filter(x=>wibDateKey(x.login_at)===today);
+    const uniqueUsers=new Set(rows.map(x=>x.firebase_uid).filter(Boolean)).size;
+    const latestByUser=new Map();
+    rows.forEach(x=>{if(x.firebase_uid&&!latestByUser.has(x.firebase_uid))latestByUser.set(x.firebase_uid,x)});
+    const rangeLabel=Number(days)===0?"Semua riwayat":Number(days)+" hari terakhir";
+    $("content").innerHTML=
+      '<div class="panel"><div class="title-row"><div><h3>Riwayat Login</h3><p class="search-hint">Audit login berhasil G-Smart · khusus ADMIN</p></div><span class="badge">'+esc(rangeLabel)+'</span></div>'+
+      '<div class="login-audit-toolbar"><label>Periode <select id="loginAuditDays"><option value="7">7 hari</option><option value="30">30 hari</option><option value="90">90 hari</option><option value="365">1 tahun</option><option value="0">Semua</option></select></label><button id="loginAuditRefresh" class="action-btn">↻ Muat ulang</button></div></div>'+
+      '<div class="cards login-audit-metrics">'+
+        '<div class="card"><div class="metric-label">Login Hari Ini</div><div class="metric-value">'+todayRows.length+'</div></div>'+
+        '<div class="card"><div class="metric-label">User Tercatat</div><div class="metric-value">'+uniqueUsers+'</div></div>'+
+        '<div class="card"><div class="metric-label">Total Login</div><div class="metric-value">'+rows.length+'</div></div>'+
+        '<div class="card"><div class="metric-label">User Login Terakhir</div><div class="metric-value login-audit-latest">'+esc(rows[0]?.display_name||"-")+'</div></div>'+
+      '</div>'+
+      '<div class="panel"><div class="title-row"><h3>Aktivitas Login</h3><span class="badge">'+rows.length+' data</span></div>'+
+      (rows.length?'<div class="table-wrap responsive-table"><table class="data-table login-audit-table"><thead><tr><th>Waktu Login</th><th>User</th><th>Role</th><th>Perangkat</th><th>Platform</th><th>Browser</th><th>Akses</th></tr></thead><tbody>'+
+        rows.map(r=>'<tr><td data-label="Waktu Login">'+loginHistoryTime(r.login_at)+'</td><td data-label="User"><b>'+esc(r.display_name||"-")+'</b><small class="login-audit-email">'+esc(r.email||"")+'</small></td><td data-label="Role">'+esc(r.app_role||"-")+'</td><td data-label="Perangkat">'+esc(r.device_type||"-")+'</td><td data-label="Platform">'+esc(r.platform||"-")+'</td><td data-label="Browser">'+esc(r.browser||"-")+'</td><td data-label="Akses">'+esc(r.access_mode||"-")+'</td></tr>').join("")+
+      '</tbody></table></div>':'<div class="empty">Belum ada riwayat login pada periode ini.</div>')+
+      '</div>';
+    const select=$("loginAuditDays");
+    if(select){select.value=String(days);select.onchange=()=>loginHistoryPage(Number(select.value))}
+    if($("loginAuditRefresh"))$("loginAuditRefresh").onclick=()=>loginHistoryPage(Number($("loginAuditDays")?.value||days))
+  }catch(err){
+    console.error(err);
+    $("content").innerHTML='<div class="notice">Riwayat login belum dapat dimuat. Coba beberapa saat lagi.</div>'
+  }
+}
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
 async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
 async function removeRows(table,filters={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{method:"DELETE",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,Prefer:"return=minimal"}});if(!r.ok)throw new Error("Gagal menghapus "+table+" (HTTP "+r.status+")")}
@@ -1403,7 +1494,7 @@ async function loadDashboard(){
   await loadFavoriteIds();
   setSync("Diperbarui "+syncTimeLabel())
 }
-$("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
+$("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;recordSuccessfulLogin();await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
 $("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
