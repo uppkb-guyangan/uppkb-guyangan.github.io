@@ -156,7 +156,13 @@ $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();rende
 function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if(p==="loginHistory"&&!perms().admin){$("content").innerHTML='<div class="notice">Riwayat Login hanya dapat diakses Admin.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
-function counts(b){return{shipping:b.shipping.filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,archive:b.cases.filter(x=>x.is_archived&&period(x.archived_at||x.tanggal_pelanggaran)).length,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
+function socializationCaseIds(b){return new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id).filter(Boolean))}
+function activeShippingRows(b){
+  const confirmed=socializationCaseIds(b);
+  const confirmedRefs=new Set(b.cases.filter(x=>x.is_archived&&x.ref_number).map(x=>norm(x.ref_number)));
+  return b.shipping.filter(x=>!confirmed.has(x.case_id)&&!(x.ref_number&&confirmedRefs.has(norm(x.ref_number))))
+}
+function counts(b){return{shipping:activeShippingRows(b).filter(x=>period(x.printed_date)).length,blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,disputes:activeDisputes(b).length,terminated:b.terminated.filter(x=>period(x.terminated_at)).length,court:b.courts.filter(x=>period(x.tanggal_sidang)).length,newData:b.cases.filter(x=>period(x.first_seen_at)).length,transitions:new Set(b.histories.filter(x=>period(x.event_time)&&x.case_id).map(x=>x.case_id)).size,archive:b.cases.filter(x=>x.is_archived&&period(x.archived_at||x.tanggal_pelanggaran)).length,total:b.cases.filter(x=>period(x.tanggal_pelanggaran)).length}}
 function latestHistoryPerCase(rows){
   const sorted=[...rows].filter(x=>x?.case_id).sort((a,z)=>String(z.event_time||"").localeCompare(String(a.event_time||"")));
   const seen=new Set();
@@ -169,13 +175,13 @@ function filteredRows(page,b){
     switch(page){
       case"new":return b.cases.filter(x=>wibDateKey(x.first_seen_at)===day);
       case"blanko":return b.cases.filter(x=>x.no_blanko&&wibDateKey(x.tanggal_blanko)===day);
-      case"shipping":return b.shipping.filter(x=>wibDateKey(x.printed_date)===day||wibDateKey(x.delivered_at)===day);
+      case"shipping":return activeShippingRows(b).filter(x=>wibDateKey(x.printed_date)===day||wibDateKey(x.delivered_at)===day);
       case"disputes":return activeDisputes(b).filter(x=>wibDateKey(x.confirmation_date)===day);
       case"court":return b.courts.filter(x=>wibDateKey(x.tanggal_sidang)===day);
     }
   }
   switch(page){
-    case"shipping":return b.shipping.filter(x=>period(x.printed_date));
+    case"shipping":return activeShippingRows(b).filter(x=>period(x.printed_date));
     case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
     case"disputes":return activeDisputes(b);
     case"terminated":return b.terminated.filter(x=>period(x.terminated_at));
@@ -229,7 +235,7 @@ function buildSmartActivities(b,c){
   const todayRows=[
     {id:"new",icon:"＋",count:b.cases.filter(x=>sameDay(x.first_seen_at)).length,label:"pelanggaran terdata hari ini",go:"new"},
     {id:"blanko",icon:"▣",count:b.cases.filter(x=>x.no_blanko&&sameDay(x.tanggal_blanko)).length,label:"blanko terbit hari ini",go:"blanko"},
-    {id:"shipping",icon:"✉",count:b.shipping.filter(x=>sameDay(x.printed_date)||sameDay(x.delivered_at)).length,label:"aktivitas pengiriman hari ini",go:"shipping"},
+    {id:"shipping",icon:"✉",count:activeShippingRows(b).filter(x=>sameDay(x.printed_date)||sameDay(x.delivered_at)).length,label:"aktivitas pengiriman hari ini",go:"shipping"},
     {id:"disputes",icon:"⚑",count:activeDisputes(b).filter(x=>sameDay(x.confirmation_date)).length,label:"sanggahan aktif hari ini",go:"disputes"},
     {id:"court",icon:"⚖",count:b.courts.filter(x=>sameDay(x.tanggal_sidang)).length,label:"jadwal sidang hari ini",go:"court"},
     {id:"history",icon:"↻",count:new Set(b.histories.filter(x=>sameDay(x.event_time)&&x.case_id).map(x=>x.case_id)).size,label:"pelanggaran berubah proses hari ini",go:"history"}
@@ -243,6 +249,7 @@ function buildSmartActivities(b,c){
     {id:"blanko",icon:"▣",count:c.blanko,label:"blanko terbit pada "+periodLabel,go:"blanko"},
     {id:"shipping",icon:"✉",count:c.shipping,label:"pengiriman surat pada "+periodLabel,go:"shipping"},
     {id:"disputes",icon:"⚑",count:c.disputes,label:"sanggahan aktif pada "+periodLabel,go:"disputes"},
+    {id:"archive",icon:"▦",count:c.archive,label:"konfirmasi Daya Angkut sosialisasi pada "+periodLabel,go:"archive"},
     {id:"court",icon:"⚖",count:c.court,label:"persidangan pada "+periodLabel,go:"court"}
   ].filter(x=>x.count>0).slice(0,5)
 }
@@ -350,7 +357,7 @@ function bindHeroParallax(){
 
 function dashboard(b){
   const c=counts(b);
-  const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
+  const dashboardStats={total:c.total,shipping:c.shipping,blanko:c.blanko,court:c.court,disputes:c.disputes,archive:c.archive,terminated:c.terminated,newData:c.newData,transitions:c.transitions};
   const smartActivities=buildSmartActivities(b,c);
   const cards=[
     ["Pelanggaran Diproses",c.total,"total","search"],
@@ -358,6 +365,7 @@ function dashboard(b){
     ["Blanko Terbit",c.blanko,"blanko","blanko"],
     ["Persidangan",c.court,"court","court"],
     ["Tersanggah",c.disputes,"disputes","disputes"],
+    ["Konfirmasi Daya Angkut Sosialisasi",c.archive,"archive","archive"],
     ["Dihentikan",c.terminated,"terminated","terminated"],
     ["Pelanggaran Terdata",c.newData,"newData","new"],
     ["Perpindahan Proses",c.transitions,"transitions","history"]
@@ -523,7 +531,10 @@ function genericTable(page,rows){
     '</tbody></table></div>'
 }
 function historyDisplayTitle(h){
-  if(String(h?.event_type||"").toUpperCase()==="LETTER_PRINTED")return"Surat Konfirmasi Dicetak";
+  const type=String(h?.event_type||"").toUpperCase();
+  if(type==="LETTER_PRINTED")return"Surat Konfirmasi Dicetak";
+  if(type==="SOURCE_ARCHIVED")return"Konfirmasi Daya Angkut Sosialisasi";
+  if(type==="SOURCE_RESTORED")return"Data kembali tercatat di Pengiriman Surat";
   return h?.title||h?.event_type||"-"
 }
 function cell(k,v,row=null){
@@ -918,6 +929,7 @@ const commandItems=[
   {id:"blanko",label:"Blanko Tilang Terbit",icon:"▣",keys:"B",keywords:"blanko briva bayar"},
   {id:"court",label:"Persidangan",icon:"⚖",keys:"S",keywords:"sidang pengadilan"},
   {id:"disputes",label:"Pelanggaran Tersanggah",icon:"⚑",keys:"",keywords:"sanggah keberatan"},
+  {id:"archive",label:"Konfirmasi Daya Angkut Sosialisasi",icon:"▦",keys:"",keywords:"konfirmasi daya angkut sosialisasi"},
   {id:"terminated",label:"Pelanggaran Dihentikan",icon:"⊘",keys:"",keywords:"dihentikan terminated"},
   {id:"new",label:"Pelanggaran Terdata",icon:"+",keys:"N",keywords:"data baru pelanggaran baru terdata masuk"},
   {id:"history",label:"Perpindahan Proses",icon:"↻",keys:"H",keywords:"histori riwayat proses"},
@@ -1133,8 +1145,8 @@ function runAssistantQuery(question){
   },120)
 }
 
-function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const shipping=new Set(b.shipping.map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
-function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
+function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const socialization=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));const shipping=new Set(activeShippingRows(b).map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id)||socialization.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,socialization:ids.filter(x=>socialization.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
+function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Konfirmasi Daya Angkut Sosialisasi: '+s.socialization+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 
 function loginAuditDeviceMeta(){
@@ -1383,7 +1395,7 @@ function renderDetail(d){
   const showManualStatus=state.detailSource!=="SHIPPING";
   const photos=d.photos?.filter(x=>x.photo_url)||[];
   const mainPhoto=photos[0]?.photo_url;
-  const statusText=c.status_etle||d.shipping?.status||d.court?.status_sidang||"DATA PERKARA";
+  const statusText=c.is_archived?"Konfirmasi Daya Angkut Sosialisasi":(c.status_etle||d.shipping?.status||d.court?.status_sidang||"DATA PERKARA");
   const owner=d.vehicle?.nama_pemilik||c.nama_pemilik||d.offender?.nama||"-";
   const vehicleLabel=[d.vehicle?.merk,d.vehicle?.tipe].filter(Boolean).join(" ")||d.vehicle?.jenis_kendaraan||"-";
   const paymentFine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:(positiveAmount(d?.payment?.denda_pengadilan)?d.payment.denda_pengadilan:null);
