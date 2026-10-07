@@ -367,8 +367,7 @@ function dashboard(b){
     ["Tersanggah",c.disputes,"disputes","disputes"],
     ["Konfirmasi Daya Angkut Sosialisasi",c.archive,"archive","archive"],
     ["Dihentikan",c.terminated,"terminated","terminated"],
-    ["Pelanggaran Terdata",c.newData,"newData","new"],
-    ["Perpindahan Proses",c.transitions,"transitions","history"]
+    ["Pelanggaran Terdata",c.newData,"newData","new"]
   ];
   const recent=b.cases
     .filter(x=>x.tanggal_pelanggaran&&period(x.tanggal_pelanggaran))
