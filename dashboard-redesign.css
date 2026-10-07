@@ -957,3 +957,63 @@ body{background:var(--ux-bg)}
 @media(prefers-reduced-motion:reduce){
   .hero-truck-cursor{transition:opacity .12s ease!important}
 }
+
+
+/* Dashboard metric palette — semantic, stronger, still institutional */
+.dashboard-metrics .dashboard-metric-link{
+  overflow:hidden;
+  border-width:1px;
+  border-style:solid;
+  box-shadow:0 7px 18px rgba(15,42,71,.08);
+}
+.dashboard-metrics .dashboard-metric-link:before{
+  background:rgba(255,255,255,.72);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.82),0 5px 12px rgba(27,54,86,.08);
+}
+.dashboard-metrics .dashboard-metric-link .metric-label{opacity:.96;font-weight:800}
+.dashboard-metrics .dashboard-metric-link .metric-value{font-weight:900;letter-spacing:-.02em}
+.dashboard-metrics .dashboard-metric-link .metric-note{opacity:.76;font-weight:650}
+.dashboard-metrics .dashboard-metric-link:hover{transform:translateY(-2px);box-shadow:0 11px 26px rgba(19,48,82,.13)}
+
+.dashboard-metrics .metric-total{background:#ffe6eb!important;color:#bd1f3d!important;border-color:#ffc5d0!important}
+.dashboard-metrics .metric-total:after{content:"◫"!important}
+
+.dashboard-metrics .metric-shipping{background:#e4f1ff!important;color:#005fbd!important;border-color:#bcdcff!important}
+.dashboard-metrics .metric-shipping:after{content:none!important}
+.dashboard-metrics .metric-shipping:before{background:#fff!important}
+.metric-jne-logo{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  background:#fff;box-shadow:inset 0 0 0 1px rgba(0,95,189,.10),0 4px 10px rgba(0,95,189,.10);
+  z-index:2;overflow:hidden;
+}
+.metric-jne-logo b{font-size:14px;font-weight:950;font-style:italic;letter-spacing:-.8px;color:#0756a3;line-height:1}
+.metric-jne-logo:before,.metric-jne-logo:after,.metric-jne-logo i{
+  content:"";position:absolute;height:3px;border-radius:4px;transform:skewX(-24deg);right:7px
+}
+.metric-jne-logo:before{width:19px;background:#e5242a;top:12px}
+.metric-jne-logo:after{width:15px;background:#f7941d;bottom:11px}
+.metric-jne-logo i{width:12px;background:#0756a3;bottom:16px}
+
+.dashboard-metrics .metric-blanko{background:#fff0d2!important;color:#a95e00!important;border-color:#ffd994!important}
+.dashboard-metrics .metric-blanko:after{content:"▤"!important}
+
+.dashboard-metrics .metric-court{background:#eee7ff!important;color:#5832b5!important;border-color:#d8c7ff!important}
+.dashboard-metrics .metric-court:after{content:"⚖"!important}
+
+.dashboard-metrics .metric-disputes{background:#def7ec!important;color:#087457!important;border-color:#b6ead6!important}
+.dashboard-metrics .metric-disputes:after{content:"⚑"!important}
+
+.dashboard-metrics .metric-archive{background:#f3e3ff!important;color:#842eaa!important;border-color:#dfbdf6!important}
+.dashboard-metrics .metric-archive:after{content:"✓"!important}
+
+.dashboard-metrics .metric-terminated{background:#e8edf4!important;color:#3f526a!important;border-color:#cfd8e4!important}
+.dashboard-metrics .metric-terminated:after{content:"⊘"!important}
+
+.dashboard-metrics .metric-newData{background:#ddf4fa!important;color:#087389!important;border-color:#b7e4ee!important}
+.dashboard-metrics .metric-newData:after{content:"＋"!important}
+
+@media(max-width:520px){
+  .metric-jne-logo{left:13px;width:40px;height:40px}
+  .metric-jne-logo b{font-size:12px}
+}
