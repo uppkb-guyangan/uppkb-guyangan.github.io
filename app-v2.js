@@ -9,8 +9,8 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["loginHistory","Riwayat Login"]];
-const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",loginHistory:"◷"};
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"]];
+const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",health:"♡",loginHistory:"◷"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
@@ -138,7 +138,7 @@ function renderNav(){
   const canWatch=perms().watchCases;
   const isAdmin=perms().admin;
   const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,archive:c.archive,favorites:canWatch?getFavoriteIds().length:null};
-  $("nav").innerHTML=menu.filter(([id])=>id!=="loginHistory"||isAdmin).map(([id,t])=>{
+  $("nav").innerHTML=menu.filter(([id])=>(id!=="loginHistory"&&id!=="health")||isAdmin).map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':(id==="favorites"&&!canWatch?'<span class="nav-lock" aria-label="Akses dibatasi">🔒</span>':"");
     const restricted=id==="favorites"&&!canWatch;
@@ -147,13 +147,13 @@ function renderNav(){
   $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     setMobileSidebarOpen(false);
     if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Pelanggaran Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
-    if(b.dataset.id==="loginHistory"&&!perms().admin){toast("Riwayat Login hanya dapat diakses Admin.");return}
+    if((b.dataset.id==="loginHistory"||b.dataset.id==="health")&&!perms().admin){toast("Menu ini hanya dapat diakses Admin.");return}
     openPage(b.dataset.id)
   })
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if(p==="loginHistory"&&!perms().admin){$("content").innerHTML='<div class="notice">Riwayat Login hanya dapat diakses Admin.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&!perms().admin){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function socializationCaseIds(b){return new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id).filter(Boolean))}
@@ -196,7 +196,7 @@ function filteredRows(page,b){
     default:return[]
   }
 }
-function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="archive")return archivePage(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);if(state.page==="loginHistory")return loginHistoryPage();return processPage(state.page,filteredRows(state.page,b))}
+function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="archive")return archivePage(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);if(state.page==="loginHistory")return loginHistoryPage();if(state.page==="health")return healthPage();return processPage(state.page,filteredRows(state.page,b))}
 function animateDashboardStats(nextStats){
   const previous=state.dashboardStats||{};
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -1199,6 +1199,150 @@ function loginHistoryTime(v){
   if(Number.isNaN(d.getTime()))return esc(v);
   return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(d)+" WIB"
 }
+
+/* Kesehatan Sistem: read-only administrative monitoring. No ETLE sync is triggered here. */
+function healthTime(v){
+  if(!v)return "Belum tercatat";
+  return loginHistoryTime(v);
+}
+function healthAgeHours(v){
+  const ms=new Date(v||"").getTime();
+  return Number.isFinite(ms)?Math.max(0,(Date.now()-ms)/3600000):Infinity;
+}
+function healthPill(level,label){
+  return '<span class="health-pill '+level+'">'+esc(label)+'</span>';
+}
+function healthWorkflowStatus(run,limitHours){
+  if(!run)return {level:"unknown",label:"Belum tercatat",detail:"Belum ada eksekusi yang dapat diverifikasi."};
+  const status=String(run.status||"").toLowerCase();
+  const conclusion=String(run.conclusion||"").toLowerCase();
+  if(status!=="completed"){
+    return {level:"warn",label:"Sedang berjalan",detail:"Workflow belum selesai."};
+  }
+  if(conclusion==="failure"||conclusion==="timed_out"||conclusion==="startup_failure"||conclusion==="action_required"){
+    return {level:"danger",label:"Gagal",detail:"Eksekusi terakhir gagal; perlu pemeriksaan log."};
+  }
+  if(conclusion==="cancelled"||conclusion==="skipped"){
+    return {level:"warn",label:"Dibatalkan",detail:"Eksekusi terakhir tidak selesai."};
+  }
+  if(conclusion!=="success"){
+    return {level:"unknown",label:"Belum diketahui",detail:"Hasil terakhir tidak tersedia."};
+  }
+  if(healthAgeHours(run.started_at)>limitHours){
+    return {level:"warn",label:"Terlambat",detail:"Eksekusi terakhir berhasil, tetapi sudah melewati batas keterlambatan."};
+  }
+  return {level:"good",label:"Berhasil",detail:"Eksekusi terakhir selesai tanpa kesalahan GitHub Actions."};
+}
+function healthModuleStatus(row,limitHours){
+  if(!row)return {level:"unknown",label:"Belum tercatat"};
+  const status=String(row.status||"").toUpperCase();
+  if(status==="FAILED"||status==="FAILURE"||status==="ERROR")return {level:"danger",label:"Gagal"};
+  if(status==="PARTIAL"||Number(row.rows_failed)>0)return {level:"warn",label:"Sebagian berhasil"};
+  if(status!=="SUCCESS")return {level:"unknown",label:status||"Tidak diketahui"};
+  return healthAgeHours(row.finished_at||row.started_at)>limitHours
+    ? {level:"warn",label:"Belum diperbarui"}:{level:"good",label:"Berhasil"};
+}
+async function requestHealthCheck(){
+  if(state.demo||!perms().admin||!auth.currentUser)throw new Error("UNAUTHORIZED");
+  const token=await auth.currentUser.getIdToken(false);
+  const response=await fetch(supabaseConfig.url+"/functions/v1/system-health",{
+    method:"POST",
+    headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify({action:"status"}),
+    cache:"no-store"
+  });
+  if(!response.ok){
+    const error=await response.json().catch(()=>({}));
+    throw new Error(error.error||("HEALTH_HTTP_"+response.status));
+  }
+  return response.json();
+}
+async function healthPage(){
+  if(!perms().admin){
+    $("content").innerHTML='<div class="notice">Kesehatan Sistem hanya dapat diakses Admin.</div>';
+    return;
+  }
+  $("content").innerHTML='<div class="panel health-panel"><div class="loading">Memeriksa kesehatan sistem...</div></div>';
+  try{
+    const data=await requestHealthCheck();
+    if(state.page!=="health")return;
+    const runs=Array.isArray(data.github?.runs)?data.github.runs:[];
+    const byWorkflow=Object.fromEntries(runs.map(r=>[r.key,r]));
+    const jobs=[
+      {key:"incremental",name:"Incremental Sync",maxAge:3,url:"https://github.com/julastri-cloud/gsmart-etle-cloud/actions/workflows/sync_supabase.yml"},
+      {key:"full",name:"Full Weekly",maxAge:216,url:"https://github.com/julastri-cloud/gsmart-etle-cloud/actions/workflows/full_sync_weekly.yml"},
+      {key:"sosialisasi",name:"Konfirmasi Daya Angkut Sosialisasi",maxAge:36,url:"https://github.com/julastri-cloud/gsmart-etle-cloud/actions/workflows/daya_angkut_sosialisasi.yml"}
+    ];
+    const logRows=Array.isArray(data.logs)?data.logs:[];
+    const syncStates=Array.isArray(data.states)?data.states:[];
+    const logByModule=new Map();
+    logRows.forEach(r=>{if(r.module&&!logByModule.has(r.module))logByModule.set(r.module,r)});
+    const stateByModule=new Map(syncStates.map(r=>[r.module,r]));
+    const githubOk=data.github?.available===true;
+    const jobStatuses=jobs.map(job=>githubOk?healthWorkflowStatus(byWorkflow[job.key],job.maxAge):{level:"unknown",label:"Belum terhubung",detail:"Status GitHub Actions tidak dapat diperiksa secara otomatis."});
+    const overall=jobStatuses.some(x=>x.level==="danger")?"danger":
+      jobStatuses.some(x=>x.level==="warn")?"warn":
+      jobStatuses.some(x=>x.level==="unknown")?"unknown":"good";
+    const overallHeading=overall==="good"?"Workflow berjalan normal":overall==="danger"?"Ada workflow gagal":overall==="warn"?"Perlu perhatian":"Pemeriksaan belum lengkap";
+    const overallDescription=overall==="good"?"Seluruh workflow terpantau berhasil dalam rentang pemeriksaan.":
+      overall==="danger"?"Satu atau lebih eksekusi GitHub Actions mengalami kegagalan.":
+      overall==="warn"?"Ada workflow yang terlambat atau masih berjalan.":
+      "Data Supabase dapat diperiksa, tetapi status GitHub Actions belum lengkap.";
+    const jobCards=jobs.map((job,index)=>{
+      const run=byWorkflow[job.key];
+      const st=jobStatuses[index];
+      const link=run?.html_url||job.url;
+      return '<div class="health-card"><div class="health-card-line"><div class="health-card-title">'+esc(job.name)+'</div>'+healthPill(st.level,st.label)+'</div>'+
+        '<div class="health-card-meta">Terakhir berjalan: '+esc(githubOk?healthTime(run?.started_at):"Belum dapat diperiksa")+'</div>'+
+        '<div class="health-card-meta">'+esc(st.detail)+'</div>'+
+        '<a class="health-link" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Lihat GitHub Actions ↗</a></div>';
+    }).join("");
+    const modules=[["SHIPPING","Pengiriman Surat",4],["BLANKO","Blanko Tilang",4],["DISPUTES","Pelanggaran Tersanggah",4],["TERMINATED","Pelanggaran Dihentikan",4]];
+    const moduleCards=modules.map(([key,name,limit])=>{
+      const log=logByModule.get(key);
+      const st=healthModuleStatus(log,limit);
+      const stateRow=stateByModule.get(key);
+      return '<div class="health-card"><div class="health-card-line"><div class="health-card-title">'+esc(name)+'</div>'+healthPill(st.level,st.label)+'</div>'+
+        '<div class="health-card-meta">Terakhir dicatat: '+esc(healthTime(log?.finished_at||log?.started_at))+'</div>'+
+        '<div class="health-card-meta">Terakhir sukses: '+esc(healthTime(stateRow?.last_success_at))+'</div>'+
+        '<div class="health-card-meta">Ditemukan: '+esc(log?.rows_found??"-")+' · Diperbarui: '+esc(log?.rows_updated??"-")+' · Gagal: '+esc(log?.rows_failed??"-")+'</div></div>';
+    }).join("");
+    const historyRows=logRows.slice(0,15).map(log=>{
+      const st=healthModuleStatus(log,Infinity);
+      return '<tr><td class="health-time">'+esc(healthTime(log.started_at))+'</td><td>'+esc(log.module||"-")+'</td><td>'+healthPill(st.level,st.label)+'</td>'+
+        '<td>'+esc(log.rows_found??0)+'</td><td>'+esc(log.rows_failed??0)+'</td></tr>';
+    }).join("");
+    const ghNote=githubOk?
+      '<div class="health-note">GitHub Actions terbaca. Status workflow berasal dari eksekusi terakhir, bukan dari indikator internet perangkat.</div>':
+      '<div class="health-note">Status GitHub Actions belum dapat dibaca dari server (misalnya karena repo privat belum diberi akses). Data sinkronisasi Supabase tetap ditampilkan. Jangan menganggap status tidak diketahui sebagai berhasil.</div>';
+    $("content").innerHTML=
+      '<div class="health-page">'+
+      '<div class="panel health-panel"><div class="health-head"><div><h3>Kesehatan Sistem</h3><p>Monitoring baca-saja · hanya Admin · Diperiksa: '+esc(healthTime(data.checked_at))+'</p></div>'+
+      '<button type="button" class="action-btn health-refresh" id="healthRefresh">↻ Perbarui status</button></div></div>'+
+      '<div class="health-overview health-'+(overall==="unknown"?"warn":overall)+'"><span class="health-main-icon" aria-hidden="true">'+(overall==="good"?"✓":overall==="danger"?"!":"i")+'</span>'+
+      '<div><h3>'+esc(overallHeading)+'</h3><p>'+esc(overallDescription)+'</p></div></div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Workflow GitHub Actions</h3><p class="health-status-footnote">Status terakhir tiap workflow · ambang: Incremental 3 jam, Full Weekly 9 hari, Sosialisasi 36 jam.</p><div class="health-grid">'+jobCards+'</div>'+ghNote+'</div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Pencatatan Sinkronisasi Supabase</h3><p class="health-status-footnote">Hanya menunjukkan aktivitas yang sempat mencatat hasil ke database. Kegagalan sebelum Python berjalan tidak muncul di bagian ini.</p><div class="health-grid">'+moduleCards+'</div></div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Riwayat Pemrosesan Terakhir</h3>'+
+      '<div class="health-table-wrap"><table class="health-table"><thead><tr><th>Waktu WIB</th><th>Modul</th><th>Status</th><th>Data</th><th>Gagal</th></tr></thead><tbody>'+(
+        historyRows||'<tr><td colspan="5">Belum ada catatan yang bisa ditampilkan.</td></tr>'
+      )+'</tbody></table></div></div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Ketersediaan ETLE Hub</h3>'+
+      '<div class="health-note">Belum diperiksa secara langsung. Website ETLE Hub menggunakan sesi login, sehingga kondisi server tidak boleh disimpulkan hanya dari koneksi internet G-Smart atau waktu pembaruan data.</div></div>'+
+      '</div>';
+    $("healthRefresh")?.addEventListener("click",()=>healthPage());
+  }catch(err){
+    if(state.page!=="health")return;
+    const msg=String(err?.message||"");
+    const label=msg==="FORBIDDEN"?"Akses hanya untuk Admin aktif.":
+      msg==="UNAUTHORIZED"?"Sesi login perlu diperbarui.":
+      "Layanan pemeriksaan belum dapat dihubungi.";
+    $("content").innerHTML='<div class="panel health-panel"><h3 class="health-small-title">Kesehatan Sistem</h3><div class="notice">'+esc(label)+
+      '</div><button type="button" id="healthRefresh" class="action-btn">↻ Coba lagi</button></div>';
+    $("healthRefresh")?.addEventListener("click",()=>healthPage());
+  }
+}
+
 async function loginHistoryPage(days=30){
   if(!perms().admin){
     $("content").innerHTML='<div class="notice">Riwayat Login hanya dapat diakses Admin.</div>';
