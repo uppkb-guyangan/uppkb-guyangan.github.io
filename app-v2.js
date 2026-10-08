@@ -124,10 +124,11 @@ function sourceSyncSummary(logs){
   const records=[...latestByModule.values()];
   if(!records.length)return {level:"unknown",label:"Belum ada catatan",detail:"Catatan sinkronisasi ETLE belum tersedia pada data yang dimuat."};
   const newest=rows[0];
-  const checked=new Date(newest.finished_at||newest.started_at||0).getTime();
+  const lastRecordedAt=newest.finished_at||newest.started_at;
+  const checked=lastRecordedAt?new Date(lastRecordedAt).getTime():NaN;
   const failed=records.some(r=>["FAILED","FAILURE","ERROR"].includes(String(r.status||"").toUpperCase()));
   const partial=records.some(r=>String(r.status||"").toUpperCase()==="PARTIAL"||Number(r.rows_failed)>0);
-  const stale=records.some(r=>{const ms=new Date(r.finished_at||r.started_at||0).getTime();return !Number.isFinite(ms)||Date.now()-ms>4*3600000});
+  const stale=records.some(r=>{const at=r.finished_at||r.started_at;const ms=at?new Date(at).getTime():NaN;return !Number.isFinite(ms)||Date.now()-ms>4*3600000});
   const allSuccess=records.every(r=>String(r.status||"").toUpperCase()==="SUCCESS"&&!(Number(r.rows_failed)>0));
   let level="unknown",label="Perlu diperiksa";
   if(failed){level="danger";label="Ada kegagalan tercatat"}
@@ -149,7 +150,7 @@ function gsmartDataStatusHtml(){
       '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Koneksi perangkat</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+(online?"good":"danger")+'"></i>'+(online?"Online":"Offline")+'</strong><small>Bukan status server ETLE Hub</small></div>'+
       '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Data G-Smart dimuat</span><strong class="gsmart-data-status-value">'+esc(loaded)+'</strong><small>'+ (state.demo?"Preview data contoh":"Waktu terakhir berhasil dibaca dari Supabase")+'</small></div>'+
       '<div class="gsmart-data-status-cell gsmart-data-status-source"><span class="gsmart-data-status-caption">Catatan sinkronisasi ETLE</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+sync.level+'"></i>'+esc(sync.label)+'</strong><small>'+esc(sync.detail)+'</small>'+
-      (perms().admin?'<button id="gsmartHealthShortcut" type="button" class="gsmart-data-status-link">Periksa Kesehatan Sistem →</button>':"")+'</div>'+
+      (perms().admin&&!state.demo?'<button id="gsmartHealthShortcut" type="button" class="gsmart-data-status-link">Periksa Kesehatan Sistem →</button>':"")+'</div>'+
     '</div></section>';
 }
 function updateGsmartDataStatus(){
