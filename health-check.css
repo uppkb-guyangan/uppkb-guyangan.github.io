@@ -1,0 +1,44 @@
+/* G-Smart health check – ADMIN only, independent of operational dashboard. */
+.health-page{display:grid;gap:14px;max-width:1220px;margin:auto}
+.health-panel{margin:0!important;min-width:0}
+.health-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.health-head h3{margin:0;font-size:18px;color:#102b4f}
+.health-head p{margin:6px 0 0;font-size:12px;color:#667b92;line-height:1.5}
+.health-refresh{background:#1478ff!important;color:white!important;border-color:#1478ff!important;min-height:38px}
+.health-overview{display:flex;gap:13px;align-items:flex-start;padding:17px;border:1px solid #dbe7f3;border-radius:14px;background:#f5f9ff}
+.health-overview .health-main-icon{font-size:26px;line-height:1}
+.health-overview h3{font-size:16px;margin:0 0 5px}
+.health-overview p{font-size:12px;margin:0;line-height:1.5;color:#576c85}
+.health-overview.health-danger{border-color:#ffd0cd;background:#fff2f1}
+.health-overview.health-warn{border-color:#ffe1a5;background:#fffaf0}
+.health-overview.health-good{border-color:#bce8d2;background:#f0fbf5}
+.health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.health-card{min-width:0;padding:15px;border:1px solid #e1e9f2;border-radius:14px;background:#fff;display:grid;gap:9px}
+.health-card-title{font-weight:800;color:#193553;font-size:13px;line-height:1.4}
+.health-card-meta{font-size:11px;color:#6b7e93;line-height:1.55;overflow-wrap:anywhere}
+.health-card-line{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.health-pill{display:inline-flex;align-items:center;justify-content:center;width:max-content;padding:5px 9px;border-radius:999px;font-weight:800;font-size:11px;white-space:nowrap}
+.health-pill.good{color:#10643e;background:#dff8e9}
+.health-pill.danger{color:#a9252a;background:#ffe6e5}
+.health-pill.warn{color:#9b5700;background:#fff0d1}
+.health-pill.unknown{color:#475e77;background:#ecf1f6}
+.health-link{font-size:11px;font-weight:750;color:#086abd;text-decoration:none}
+.health-link:hover{text-decoration:underline}
+.health-small-title{margin:0;color:#1b3857;font-size:14px}
+.health-note{font-size:12px;line-height:1.6;color:#526984;background:#f4f7fb;border-radius:11px;padding:10px 12px}
+.health-table-wrap{width:100%;overflow:auto}
+.health-table{width:100%;border-collapse:collapse;font-size:12px}
+.health-table th,.health-table td{padding:10px 9px;text-align:left;border-bottom:1px solid #e8eef4;vertical-align:middle}
+.health-table th{color:#53677e;font-size:11px;background:#f7f9fc;white-space:nowrap}
+.health-table td{color:#2e435d}
+.health-table tr:last-child td{border-bottom:0}
+.health-time{white-space:nowrap;font-variant-numeric:tabular-nums}
+.health-status-footnote{color:#7d8da1;font-size:11px;line-height:1.6}
+@media(max-width:1040px){.health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+ .health-grid{grid-template-columns:1fr}
+ .health-head{align-items:stretch}
+ .health-refresh{width:100%}
+ .health-card{padding:13px}
+ .health-overview{padding:13px}
+}
