@@ -98,10 +98,66 @@ async function setFavoriteCase(caseId,active){
 function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
 const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
-function syncTimeLabel(){
-  return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(new Date())+" WIB"
+function syncTimeLabel(when=new Date()){
+  return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(when)+" WIB"
 }
-function setSync(t){if($("syncState"))$("syncState").textContent=t}
+function dataStatusTime(v){
+  if(!v)return "Belum tersedia";
+  const d=new Date(v);
+  if(!Number.isFinite(d.getTime()))return "Waktu tidak tersedia";
+  return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(d)+" WIB"
+}
+function setSync(t){
+  const el=$("syncState");
+  if(!el)return;
+  const label=t==="Siap"&&state.lastDataLoadedAt?"Data dimuat "+syncTimeLabel(state.lastDataLoadedAt):t;
+  el.textContent=label;
+  const parent=el.closest(".status");
+  if(parent)parent.title="Status pemuatan data G-Smart dari Supabase. Bukan status sinkronisasi sumber ETLE Hub.";
+}
+function sourceSyncSummary(logs){
+  const names={SHIPPING:"Pengiriman Surat",BLANKO:"Blanko Tilang",DISPUTES:"Pelanggaran Tersanggah",TERMINATED:"Pelanggaran Dihentikan"};
+  const rows=(Array.isArray(logs)?logs:[]).filter(r=>r&&Object.hasOwn(names,String(r.module||"").toUpperCase()))
+    .sort((a,b)=>new Date(b.finished_at||b.started_at||0)-new Date(a.finished_at||a.started_at||0));
+  const latestByModule=new Map();
+  rows.forEach(r=>{const key=String(r.module||"").toUpperCase();if(!latestByModule.has(key))latestByModule.set(key,r)});
+  const records=[...latestByModule.values()];
+  if(!records.length)return {level:"unknown",label:"Belum ada catatan",detail:"Catatan sinkronisasi ETLE belum tersedia pada data yang dimuat."};
+  const newest=rows[0];
+  const checked=new Date(newest.finished_at||newest.started_at||0).getTime();
+  const failed=records.some(r=>["FAILED","FAILURE","ERROR"].includes(String(r.status||"").toUpperCase()));
+  const partial=records.some(r=>String(r.status||"").toUpperCase()==="PARTIAL"||Number(r.rows_failed)>0);
+  const stale=records.some(r=>{const ms=new Date(r.finished_at||r.started_at||0).getTime();return !Number.isFinite(ms)||Date.now()-ms>4*3600000});
+  const allSuccess=records.every(r=>String(r.status||"").toUpperCase()==="SUCCESS"&&!(Number(r.rows_failed)>0));
+  let level="unknown",label="Perlu diperiksa";
+  if(failed){level="danger";label="Ada kegagalan tercatat"}
+  else if(partial){level="warn";label="Sebagian berhasil"}
+  else if(records.length<4){level="unknown";label=records.length+"/4 modul tercatat"}
+  else if(stale){level="warn";label="Catatan belum mutakhir"}
+  else if(allSuccess){level="good";label="4 modul tercatat berhasil"}
+  const recentLabel=names[String(newest.module||"").toUpperCase()]||"ETLE";
+  const when=Number.isFinite(checked)?dataStatusTime(checked):"waktu tidak tersedia";
+  return {level,label,detail:"Catatan terakhir: "+recentLabel+" · "+when+". Ini bukan pemeriksaan langsung server ETLE Hub."};
+}
+function gsmartDataStatusHtml(){
+  const online=navigator.onLine;
+  const loaded=state.demo?"Data contoh":(state.lastDataLoadedAt?dataStatusTime(state.lastDataLoadedAt):"Belum dimuat");
+  const sync=state.demo?{level:"unknown",label:"Mode demonstrasi",detail:"Contoh data, tidak terhubung ke sinkronisasi operasional."}:sourceSyncSummary(state.bundle?.syncLogs);
+  return '<section id="gsmartDataStatus" class="gsmart-data-status" aria-label="Kejelasan status data">'+
+    '<div class="gsmart-data-status-head"><b>Status Data G-Smart</b><span>Jaringan, data aplikasi, dan sinkronisasi sumber ditampilkan terpisah</span></div>'+
+    '<div class="gsmart-data-status-grid">'+
+      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Koneksi perangkat</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+(online?"good":"danger")+'"></i>'+(online?"Online":"Offline")+'</strong><small>Bukan status server ETLE Hub</small></div>'+
+      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Data G-Smart dimuat</span><strong class="gsmart-data-status-value">'+esc(loaded)+'</strong><small>'+ (state.demo?"Preview data contoh":"Waktu terakhir berhasil dibaca dari Supabase")+'</small></div>'+
+      '<div class="gsmart-data-status-cell gsmart-data-status-source"><span class="gsmart-data-status-caption">Catatan sinkronisasi ETLE</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+sync.level+'"></i>'+esc(sync.label)+'</strong><small>'+esc(sync.detail)+'</small>'+
+      (perms().admin?'<button id="gsmartHealthShortcut" type="button" class="gsmart-data-status-link">Periksa Kesehatan Sistem →</button>':"")+'</div>'+
+    '</div></section>';
+}
+function updateGsmartDataStatus(){
+  const slot=$("gsmartDataStatus");
+  if(!slot)return;
+  slot.outerHTML=gsmartDataStatusHtml();
+  $("gsmartHealthShortcut")?.addEventListener("click",()=>openPage("health"));
+}
 function updateConnectionStatus(){
   const el=$("connectionState");
   const wrap=$("connectionBadge");
@@ -110,7 +166,8 @@ function updateConnectionStatus(){
   el.textContent=online?"Online":"Offline";
   wrap.classList.toggle("offline",!online);
   wrap.classList.toggle("online",online);
-  wrap.title=online?"Perangkat terhubung ke jaringan":"Perangkat sedang offline";
+  wrap.title=online?"Perangkat terhubung ke jaringan; status server ETLE Hub tidak diperiksa":"Perangkat sedang offline";
+  updateGsmartDataStatus();
 }
 window.addEventListener("online",()=>{updateConnectionStatus();toast("Koneksi kembali online")});
 window.addEventListener("offline",()=>{updateConnectionStatus();toast("Perangkat sedang offline")});
@@ -422,6 +479,7 @@ function dashboard(b){
         '</div>'+
       '</div>'+
     '</section>'+
+    gsmartDataStatusHtml()+
     (smartActivities.length?'<section id="smartActivityTracker" class="smart-activity-tracker" aria-label="Aktivitas G-Smart">'+
       '<div class="activity-label"><span class="activity-live-dot"></span><b>Aktivitas</b></div>'+
       '<div class="activity-stage">'+smartActivities.map((a,i)=>'<button type="button" class="activity-item'+(i===0?" active":"")+'" data-go="'+a.go+'"><span class="activity-icon">'+a.icon+'</span><span><strong>'+a.count+'</strong> '+esc(a.label)+'</span><span class="activity-arrow">›</span></button>').join("")+'</div>'+
@@ -446,6 +504,7 @@ function dashboard(b){
       '</aside>'+
     '</div>';
   animateDashboardStats(dashboardStats);
+  $("gsmartHealthShortcut")?.addEventListener("click",()=>openPage("health"));
   bindHeroParallax();
   bindSmartActivityTracker();
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go], .dashboard-metric-link[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
@@ -1676,12 +1735,13 @@ async function loadDashboard(){
   ]);
   state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};
   await loadFavoriteIds();
-  setSync("Diperbarui "+syncTimeLabel())
+  state.lastDataLoadedAt=new Date();
+  setSync("Data dimuat "+syncTimeLabel(state.lastDataLoadedAt))
 }
 $("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;recordSuccessfulLogin();await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
-$("demoBtn").onclick=()=>{state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
-$("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
+$("demoBtn").onclick=()=>{state.lastDataLoadedAt=null;state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
+$("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.lastDataLoadedAt=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
 if($("refreshDataBtn"))$("refreshDataBtn").onclick=async()=>{
   if(state.demo){toast("Mode preview menggunakan data contoh");return}
   const btn=$("refreshDataBtn");
