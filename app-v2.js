@@ -122,7 +122,7 @@ function sourceSyncSummary(logs){
   const latestByModule=new Map();
   rows.forEach(r=>{const key=String(r.module||"").toUpperCase();if(!latestByModule.has(key))latestByModule.set(key,r)});
   const records=[...latestByModule.values()];
-  if(!records.length)return {level:"unknown",label:"Belum ada catatan",detail:"Catatan sinkronisasi ETLE belum tersedia pada data yang dimuat."};
+  if(!records.length)return {level:"unknown",label:"Informasi belum tersedia",detail:"Waktu pembaruan terakhir dari ETLE Hub belum dapat ditampilkan."};
   const newest=rows[0];
   const lastRecordedAt=newest.finished_at||newest.started_at;
   const checked=lastRecordedAt?new Date(lastRecordedAt).getTime():NaN;
@@ -131,26 +131,26 @@ function sourceSyncSummary(logs){
   const stale=records.some(r=>{const at=r.finished_at||r.started_at;const ms=at?new Date(at).getTime():NaN;return !Number.isFinite(ms)||Date.now()-ms>4*3600000});
   const allSuccess=records.every(r=>String(r.status||"").toUpperCase()==="SUCCESS"&&!(Number(r.rows_failed)>0));
   let level="unknown",label="Perlu diperiksa";
-  if(failed){level="danger";label="Ada kegagalan tercatat"}
-  else if(partial){level="warn";label="Sebagian berhasil"}
-  else if(records.length<4){level="unknown";label=records.length+"/4 modul tercatat"}
-  else if(stale){level="warn";label="Catatan belum mutakhir"}
-  else if(allSuccess){level="good";label="4 modul tercatat berhasil"}
+  if(failed){level="danger";label="Ada pembaruan yang gagal"}
+  else if(partial){level="warn";label="Sebagian data berhasil diperbarui"}
+  else if(records.length<4){level="unknown";label="Informasi tersedia untuk "+records.length+" dari 4 jenis data"}
+  else if(stale){level="warn";label="Pembaruan terakhir sudah lama"}
+  else if(allSuccess){level="good";label="Pembaruan seluruh jenis data berhasil"}
   const recentLabel=names[String(newest.module||"").toUpperCase()]||"ETLE";
   const when=Number.isFinite(checked)?dataStatusTime(checked):"waktu tidak tersedia";
-  return {level,label,detail:"Catatan terakhir: "+recentLabel+" · "+when+". Ini bukan pemeriksaan langsung server ETLE Hub."};
+  return {level,label,detail:"Pembaruan terakhir: "+recentLabel+" · "+when+". Ini bukan informasi kondisi langsung server ETLE Hub."};
 }
 function gsmartDataStatusHtml(){
   const online=navigator.onLine;
   const loaded=state.demo?"Data contoh":(state.lastDataLoadedAt?dataStatusTime(state.lastDataLoadedAt):"Belum dimuat");
   const sync=state.demo?{level:"unknown",label:"Mode demonstrasi",detail:"Contoh data, tidak terhubung ke sinkronisasi operasional."}:sourceSyncSummary(state.bundle?.syncLogs);
   return '<section id="gsmartDataStatus" class="gsmart-data-status" aria-label="Kejelasan status data">'+
-    '<div class="gsmart-data-status-head"><b>Status Data G-Smart</b><span>Jaringan, data aplikasi, dan sinkronisasi sumber ditampilkan terpisah</span></div>'+
+    '<div class="gsmart-data-status-head"><b>Informasi Layanan G-Smart</b><span>Informasi koneksi dan pembaruan data ditampilkan secara terpisah</span></div>'+
     '<div class="gsmart-data-status-grid">'+
-      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Koneksi perangkat</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+(online?"good":"danger")+'"></i>'+(online?"Online":"Offline")+'</strong><small>Bukan status server ETLE Hub</small></div>'+
-      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Data G-Smart dimuat</span><strong class="gsmart-data-status-value">'+esc(loaded)+'</strong><small>'+ (state.demo?"Preview data contoh":"Waktu terakhir berhasil dibaca dari Supabase")+'</small></div>'+
-      '<div class="gsmart-data-status-cell gsmart-data-status-source"><span class="gsmart-data-status-caption">Catatan sinkronisasi ETLE</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+sync.level+'"></i>'+esc(sync.label)+'</strong><small>'+esc(sync.detail)+'</small>'+
-      (perms().admin&&!state.demo?'<button id="gsmartHealthShortcut" type="button" class="gsmart-data-status-link">Periksa Kesehatan Sistem →</button>':"")+'</div>'+
+      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Koneksi Internet</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+(online?"good":"danger")+'"></i>'+(online?"Terhubung":"Tidak terhubung")+'</strong><small>'+(online?"Perangkat terhubung ke jaringan":"Perangkat tidak terhubung ke jaringan")+'</small></div>'+
+      '<div class="gsmart-data-status-cell"><span class="gsmart-data-status-caption">Data Berhasil Ditampilkan</span><strong class="gsmart-data-status-value">'+esc(loaded)+'</strong><small>'+ (state.demo?"Menampilkan data contoh":"Waktu terakhir data ditampilkan")+'</small></div>'+
+      '<div class="gsmart-data-status-cell gsmart-data-status-source"><span class="gsmart-data-status-caption">Pembaruan Data ETLE Hub</span><strong class="gsmart-data-status-value"><i class="gsmart-data-dot '+sync.level+'"></i>'+esc(sync.label)+'</strong><small>'+esc(sync.detail)+'</small>'+
+      (perms().admin&&!state.demo?'<button id="gsmartHealthShortcut" type="button" class="gsmart-data-status-link">Lihat Detail Sistem →</button>':"")+'</div>'+
     '</div></section>';
 }
 function updateGsmartDataStatus(){
