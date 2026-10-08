@@ -42,3 +42,27 @@
  .health-card{padding:13px}
  .health-overview{padding:13px}
 }
+.health-failure-step{
+  display:block;
+  padding:7px 9px;
+  border-radius:8px;
+  border:1px solid #ffc9c9;
+  background:#fff1f1;
+  color:#a52d35;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.health-freshness{
+  padding:7px 9px;
+  border-radius:8px;
+  background:#f3f7fb;
+  color:#556c84;
+  font-size:10.5px;
+  line-height:1.5;
+}
+.health-freshness.is-stale{
+  background:#fff5dc;
+  color:#936118;
+}
