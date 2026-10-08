@@ -1043,3 +1043,43 @@ body{background:var(--ux-bg)}
   .gsmart-data-status-value{font-size:12px}
   .gsmart-data-status-cell small{font-size:10.5px}
 }
+
+
+/* G-Smart Vivid Color — solid dashboard metrics, layout unchanged */
+.dashboard-metrics .metric-total{--gsmart-vivid:#F01446}
+.dashboard-metrics .metric-shipping{--gsmart-vivid:#0868F9}
+.dashboard-metrics .metric-blanko{--gsmart-vivid:#FF8200}
+.dashboard-metrics .metric-court{--gsmart-vivid:#7432F0}
+.dashboard-metrics .metric-disputes{--gsmart-vivid:#00A782}
+.dashboard-metrics .metric-archive{--gsmart-vivid:#B51FD1}
+.dashboard-metrics .metric-terminated{--gsmart-vivid:#34496C}
+.dashboard-metrics .metric-newData{--gsmart-vivid:#008FB3}
+
+.dashboard-metrics .dashboard-metric-link{
+  background:var(--gsmart-vivid)!important;
+  color:#fff!important;
+  border-color:transparent!important;
+  box-shadow:0 7px 18px rgba(13,32,68,.13);
+}
+.dashboard-metrics .dashboard-metric-link .metric-label,
+.dashboard-metrics .dashboard-metric-link .metric-value,
+.dashboard-metrics .dashboard-metric-link .metric-note{
+  color:#fff!important;
+}
+.dashboard-metrics .dashboard-metric-link:before,
+.dashboard-metrics .dashboard-metric-link.metric-shipping:before{
+  background:rgba(255,255,255,.19)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);
+}
+.dashboard-metrics .dashboard-metric-link:after{
+  color:#fff!important;
+}
+.dashboard-metrics .dashboard-metric-link .metric-nav-arrow{
+  color:#fff;
+}
+@media (hover:hover) and (pointer:fine){
+  .dashboard-metrics .dashboard-metric-link:hover{
+    box-shadow:0 12px 24px rgba(13,32,68,.22);
+    filter:brightness(1.035);
+  }
+}
