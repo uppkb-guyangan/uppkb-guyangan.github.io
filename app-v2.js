@@ -480,7 +480,6 @@ function dashboard(b){
         '</div>'+
       '</div>'+
     '</section>'+
-    gsmartDataStatusHtml()+
     (smartActivities.length?'<section id="smartActivityTracker" class="smart-activity-tracker" aria-label="Aktivitas G-Smart">'+
       '<div class="activity-label"><span class="activity-live-dot"></span><b>Aktivitas</b></div>'+
       '<div class="activity-stage">'+smartActivities.map((a,i)=>'<button type="button" class="activity-item'+(i===0?" active":"")+'" data-go="'+a.go+'"><span class="activity-icon">'+a.icon+'</span><span><strong>'+a.count+'</strong> '+esc(a.label)+'</span><span class="activity-arrow">›</span></button>').join("")+'</div>'+
@@ -503,7 +502,8 @@ function dashboard(b){
           '<button class="quick-btn" data-go="analytics"><b>▥</b>Analitik ETLE</button>'+
         '</div></div>'+
       '</aside>'+
-    '</div>';
+    '</div>'+
+    gsmartDataStatusHtml();
   animateDashboardStats(dashboardStats);
   $("gsmartHealthShortcut")?.addEventListener("click",()=>openPage("health"));
   bindHeroParallax();
