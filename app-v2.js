@@ -1212,35 +1212,38 @@ function healthAgeHours(v){
 function healthPill(level,label){
   return '<span class="health-pill '+level+'">'+esc(label)+'</span>';
 }
-function healthWorkflowStatus(run,limitHours){
-  if(!run)return {level:"unknown",label:"Belum tercatat",detail:"Belum ada eksekusi yang dapat diverifikasi."};
+function healthWorkflowStatus(report,limitHours){
+  if(!report||!report.available)return {level:"unknown",label:"Belum terhubung",detail:"Pemeriksaan workflow belum tersedia."};
+  const run=report.run;
+  if(!run)return {level:"unknown",label:"Belum ada eksekusi",detail:"Workflow terdaftar, tetapi riwayat eksekusinya belum ditemukan."};
   const status=String(run.status||"").toLowerCase();
   const conclusion=String(run.conclusion||"").toLowerCase();
-  if(status!=="completed"){
-    return {level:"warn",label:"Sedang berjalan",detail:"Workflow belum selesai."};
-  }
-  if(conclusion==="failure"||conclusion==="timed_out"||conclusion==="startup_failure"||conclusion==="action_required"){
-    return {level:"danger",label:"Gagal",detail:"Eksekusi terakhir gagal; perlu pemeriksaan log."};
-  }
-  if(conclusion==="cancelled"||conclusion==="skipped"){
-    return {level:"warn",label:"Dibatalkan",detail:"Eksekusi terakhir tidak selesai."};
-  }
-  if(conclusion!=="success"){
-    return {level:"unknown",label:"Belum diketahui",detail:"Hasil terakhir tidak tersedia."};
-  }
-  if(healthAgeHours(run.started_at)>limitHours){
-    return {level:"warn",label:"Terlambat",detail:"Eksekusi terakhir berhasil, tetapi sudah melewati batas keterlambatan."};
-  }
+  if(status!=="completed")return {level:"warn",label:"Sedang berjalan",detail:"Eksekusi sedang berjalan atau masih menunggu antrean."};
+  if(["failure","timed_out","startup_failure","action_required"].includes(conclusion))return {level:"danger",label:"Gagal",detail:run.explanation||"Eksekusi terakhir gagal. Periksa tahapan dan log GitHub Actions."};
+  if(conclusion==="cancelled"||conclusion==="skipped")return {level:"warn",label:conclusion==="cancelled"?"Dibatalkan":"Dilewati",detail:"Eksekusi terakhir tidak selesai."};
+  if(conclusion!=="success")return {level:"unknown",label:"Belum diketahui",detail:"Hasil eksekusi terakhir tidak tersedia."};
+  if(healthAgeHours(run.started_at)>limitHours)return {level:"warn",label:"Terlambat",detail:"Eksekusi terakhir berhasil, tetapi belum ada eksekusi baru dalam rentang pemantauan."};
   return {level:"good",label:"Berhasil",detail:"Eksekusi terakhir selesai tanpa kesalahan GitHub Actions."};
 }
-function healthModuleStatus(row,limitHours){
+function healthModuleStatus(row){
   if(!row)return {level:"unknown",label:"Belum tercatat"};
   const status=String(row.status||"").toUpperCase();
-  if(status==="FAILED"||status==="FAILURE"||status==="ERROR")return {level:"danger",label:"Gagal"};
+  if(["FAILED","FAILURE","ERROR"].includes(status))return {level:"danger",label:"Gagal"};
   if(status==="PARTIAL"||Number(row.rows_failed)>0)return {level:"warn",label:"Sebagian berhasil"};
   if(status!=="SUCCESS")return {level:"unknown",label:status||"Tidak diketahui"};
-  return healthAgeHours(row.finished_at||row.started_at)>limitHours
-    ? {level:"warn",label:"Belum diperbarui"}:{level:"good",label:"Berhasil"};
+  return {level:"good",label:"Berhasil"};
+}
+function healthModuleFreshness(row,limitHours){
+  if(!row)return {stale:false,text:"Belum memiliki catatan sinkronisasi."};
+  const hours=healthAgeHours(row.finished_at||row.started_at);
+  if(!Number.isFinite(hours))return {stale:false,text:"Waktu sinkronisasi tidak tersedia."};
+  if(hours>limitHours){
+    const elapsed=hours>=24?Math.floor(hours/24)+" hari":Math.floor(hours)+" jam";
+    return {stale:true,text:"Belum ada pencatatan sinkronisasi baru selama "+elapsed+". Ini tidak berarti proses terakhir gagal."};
+  }
+  if(Number(row.rows_found)===0&&String(row.status).toUpperCase()==="SUCCESS")
+    return {stale:false,text:"Proses terakhir berhasil tanpa data yang perlu diproses."};
+  return {stale:false,text:"Catatan pemrosesan masih dalam rentang pemantauan."};
 }
 async function requestHealthCheck(){
   if(state.demo||!perms().admin||!auth.currentUser)throw new Error("UNAUTHORIZED");
@@ -1266,8 +1269,8 @@ async function healthPage(){
   try{
     const data=await requestHealthCheck();
     if(state.page!=="health")return;
-    const runs=Array.isArray(data.github?.runs)?data.github.runs:[];
-    const byWorkflow=Object.fromEntries(runs.map(r=>[r.key,r]));
+    const workflowReports=Array.isArray(data.github?.workflows)?data.github.workflows:[];
+    const byWorkflow=Object.fromEntries(workflowReports.map(r=>[r.key,r]));
     const jobs=[
       {key:"incremental",name:"Incremental Sync",maxAge:3,url:"https://github.com/julastri-cloud/gsmart-etle-cloud/actions/workflows/sync_supabase.yml"},
       {key:"full",name:"Full Weekly",maxAge:216,url:"https://github.com/julastri-cloud/gsmart-etle-cloud/actions/workflows/full_sync_weekly.yml"},
@@ -1278,8 +1281,8 @@ async function healthPage(){
     const logByModule=new Map();
     logRows.forEach(r=>{if(r.module&&!logByModule.has(r.module))logByModule.set(r.module,r)});
     const stateByModule=new Map(syncStates.map(r=>[r.module,r]));
-    const githubOk=data.github?.available===true;
-    const jobStatuses=jobs.map(job=>githubOk?healthWorkflowStatus(byWorkflow[job.key],job.maxAge):{level:"unknown",label:"Belum terhubung",detail:"Status GitHub Actions tidak dapat diperiksa secara otomatis."});
+    const githubOk=workflowReports.some(r=>r.available);
+    const jobStatuses=jobs.map(job=>healthWorkflowStatus(byWorkflow[job.key],job.maxAge));
     const overall=jobStatuses.some(x=>x.level==="danger")?"danger":
       jobStatuses.some(x=>x.level==="warn")?"warn":
       jobStatuses.some(x=>x.level==="unknown")?"unknown":"good";
@@ -1289,40 +1292,45 @@ async function healthPage(){
       overall==="warn"?"Ada workflow yang terlambat atau masih berjalan.":
       "Data Supabase dapat diperiksa, tetapi status GitHub Actions belum lengkap.";
     const jobCards=jobs.map((job,index)=>{
-      const run=byWorkflow[job.key];
+      const report=byWorkflow[job.key];
+      const run=report?.run;
       const st=jobStatuses[index];
       const link=run?.html_url||job.url;
+      const step=st.level==="danger"&&run?.failure_step?
+        '<div class="health-failure-step">Tahap gagal: '+esc(run.failure_step)+'</div>':"";
       return '<div class="health-card"><div class="health-card-line"><div class="health-card-title">'+esc(job.name)+'</div>'+healthPill(st.level,st.label)+'</div>'+
-        '<div class="health-card-meta">Terakhir berjalan: '+esc(githubOk?healthTime(run?.started_at):"Belum dapat diperiksa")+'</div>'+
-        '<div class="health-card-meta">'+esc(st.detail)+'</div>'+
+        '<div class="health-card-meta">Terakhir berjalan: '+esc(healthTime(run?.started_at))+'</div>'+
+        step+'<div class="health-card-meta">'+esc(st.detail)+'</div>'+
         '<a class="health-link" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Lihat GitHub Actions ↗</a></div>';
     }).join("");
     const modules=[["SHIPPING","Pengiriman Surat",4],["BLANKO","Blanko Tilang",4],["DISPUTES","Pelanggaran Tersanggah",4],["TERMINATED","Pelanggaran Dihentikan",4]];
     const moduleCards=modules.map(([key,name,limit])=>{
       const log=logByModule.get(key);
-      const st=healthModuleStatus(log,limit);
+      const st=healthModuleStatus(log);
+      const freshness=healthModuleFreshness(log,limit);
       const stateRow=stateByModule.get(key);
       return '<div class="health-card"><div class="health-card-line"><div class="health-card-title">'+esc(name)+'</div>'+healthPill(st.level,st.label)+'</div>'+
         '<div class="health-card-meta">Terakhir dicatat: '+esc(healthTime(log?.finished_at||log?.started_at))+'</div>'+
         '<div class="health-card-meta">Terakhir sukses: '+esc(healthTime(stateRow?.last_success_at))+'</div>'+
-        '<div class="health-card-meta">Ditemukan: '+esc(log?.rows_found??"-")+' · Diperbarui: '+esc(log?.rows_updated??"-")+' · Gagal: '+esc(log?.rows_failed??"-")+'</div></div>';
+        '<div class="health-card-meta">Ditemukan: '+esc(log?.rows_found??"-")+' · Diperbarui: '+esc(log?.rows_updated??"-")+' · Gagal: '+esc(log?.rows_failed??"-")+'</div>'+
+        '<div class="health-freshness '+(freshness.stale?"is-stale":"")+'">'+esc(freshness.text)+'</div></div>';
     }).join("");
     const historyRows=logRows.slice(0,15).map(log=>{
-      const st=healthModuleStatus(log,Infinity);
+      const st=healthModuleStatus(log);
       return '<tr><td class="health-time">'+esc(healthTime(log.started_at))+'</td><td>'+esc(log.module||"-")+'</td><td>'+healthPill(st.level,st.label)+'</td>'+
         '<td>'+esc(log.rows_found??0)+'</td><td>'+esc(log.rows_failed??0)+'</td></tr>';
     }).join("");
     const ghNote=githubOk?
-      '<div class="health-note">GitHub Actions terbaca. Status workflow berasal dari eksekusi terakhir, bukan dari indikator internet perangkat.</div>':
-      '<div class="health-note">Status GitHub Actions belum dapat dibaca dari server (misalnya karena repo privat belum diberi akses). Data sinkronisasi Supabase tetap ditampilkan. Jangan menganggap status tidak diketahui sebagai berhasil.</div>';
+      '<div class="health-note">Setiap workflow diperiksa secara terpisah. Nama tahap gagal berasal dari GitHub Actions; dugaan penyebab dinyatakan sebagai kemungkinan.</div>':
+      '<div class="health-note">Status GitHub Actions belum dapat dibaca. Kemungkinan akses ke repo sedang dibatasi; status belum diketahui tidak berarti workflow berhasil ataupun gagal.</div>';
     $("content").innerHTML=
       '<div class="health-page">'+
       '<div class="panel health-panel"><div class="health-head"><div><h3>Kesehatan Sistem</h3><p>Monitoring baca-saja · hanya Admin · Diperiksa: '+esc(healthTime(data.checked_at))+'</p></div>'+
       '<button type="button" class="action-btn health-refresh" id="healthRefresh">↻ Perbarui status</button></div></div>'+
       '<div class="health-overview health-'+(overall==="unknown"?"warn":overall)+'"><span class="health-main-icon" aria-hidden="true">'+(overall==="good"?"✓":overall==="danger"?"!":"i")+'</span>'+
       '<div><h3>'+esc(overallHeading)+'</h3><p>'+esc(overallDescription)+'</p></div></div>'+
-      '<div class="panel health-panel"><h3 class="health-small-title">Workflow GitHub Actions</h3><p class="health-status-footnote">Status terakhir tiap workflow · ambang: Incremental 3 jam, Full Weekly 9 hari, Sosialisasi 36 jam.</p><div class="health-grid">'+jobCards+'</div>'+ghNote+'</div>'+
-      '<div class="panel health-panel"><h3 class="health-small-title">Pencatatan Sinkronisasi Supabase</h3><p class="health-status-footnote">Hanya menunjukkan aktivitas yang sempat mencatat hasil ke database. Kegagalan sebelum Python berjalan tidak muncul di bagian ini.</p><div class="health-grid">'+moduleCards+'</div></div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Workflow GitHub Actions</h3><p class="health-status-footnote">Setiap workflow diperiksa secara terpisah · ambang: Incremental 3 jam, Full Weekly 9 hari, Sosialisasi 36 jam.</p><div class="health-grid">'+jobCards+'</div>'+ghNote+'</div>'+
+      '<div class="panel health-panel"><h3 class="health-small-title">Pencatatan Sinkronisasi Supabase</h3><p class="health-status-footnote">Hasil eksekusi dan kesegaran data ditampilkan terpisah. Kegagalan sebelum Python berjalan tidak tercatat di tabel ini.</p><div class="health-grid">'+moduleCards+'</div></div>'+
       '<div class="panel health-panel"><h3 class="health-small-title">Riwayat Pemrosesan Terakhir</h3>'+
       '<div class="health-table-wrap"><table class="health-table"><thead><tr><th>Waktu WIB</th><th>Modul</th><th>Status</th><th>Data</th><th>Gagal</th></tr></thead><tbody>'+(
         historyRows||'<tr><td colspan="5">Belum ada catatan yang bisa ditampilkan.</td></tr>'
