@@ -1,0 +1,39 @@
+
+
+/* Safe Settings & Management hub v1 */
+.gsmart-admin-hub{display:grid;gap:14px}
+.gsmart-admin-hub .gsmart-hub-intro,
+.gsmart-admin-hub .gsmart-hub-panel{margin-top:0}
+.gsmart-hub-intro h3,.gsmart-hub-panel h3{margin:0 0 8px;color:#0D2B4D;font-size:17px}
+.gsmart-hub-intro p,.gsmart-hub-panel p{margin:0;color:#52667F;font-size:13px;line-height:1.65}
+.gsmart-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.gsmart-hub-panel{min-width:0;display:flex;flex-direction:column;gap:12px}
+.gsmart-hub-fields{display:grid;gap:0;margin:0}
+.gsmart-hub-fields>div{display:grid;grid-template-columns:minmax(108px,.75fr) minmax(0,1.25fr);gap:10px;border-bottom:1px solid #EAF0F6;padding:9px 0}
+.gsmart-hub-fields>div:last-child{border-bottom:0}
+.gsmart-hub-fields dt{color:#657A93;font-size:12px}
+.gsmart-hub-fields dd{margin:0;color:#142F50;font-size:13px;font-weight:700;overflow-wrap:anywhere}
+.gsmart-hub-panel .gsmart-hub-note{color:#7A8AA0;font-size:11.5px}
+.gsmart-hub-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:auto}
+.gsmart-hub-actions .action-btn{min-height:40px}
+@media(max-width:760px){
+  .gsmart-hub-grid{grid-template-columns:1fr}
+  .gsmart-hub-panel{gap:10px}
+}
+@media(max-width:420px){
+  .gsmart-hub-fields>div{grid-template-columns:1fr;gap:3px}
+  .gsmart-hub-actions .action-btn{width:100%}
+}
+
+/* This sheet is used only by the isolated preview document. */
+
+.gsmart-preview-note{
+  position:fixed;z-index:100;bottom:12px;left:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  width:max-content;max-width:calc(100vw - 24px);border-radius:12px;padding:9px 13px;
+  background:rgba(6,29,54,.97);color:#fff;border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 8px 24px rgba(3,17,37,.25);font-size:11px
+}
+.gsmart-preview-note b{color:#7CE7FD;letter-spacing:.05em}
+.gsmart-preview-note span{color:#D9EAF7}
+.gsmart-preview-note a{color:#fff;text-decoration:underline;font-weight:700}
+@media(max-width:520px){.gsmart-preview-note{left:8px;bottom:8px;gap:7px;padding:7px 9px;font-size:10px}}
