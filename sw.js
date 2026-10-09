@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gsmart-shell-v48';
+const CACHE_NAME = 'gsmart-shell-v49';
 
 // Precache hanya shell kecil/kritis agar instalasi dan update PWA tetap ringan.
 const APP_SHELL = [
@@ -85,3 +85,119 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(networkFirst(event.request));
 });
+
+
+// Root service worker owns the installed standalone PWA AND its FCM registration.
+// Keep normal caching/fetch, login, and ETLE functionality unchanged.
+const GSMART_HOME = self.location.origin + '/';
+const GSMART_CASE_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+
+function gsmartCaseId(notification) {
+  const detail = notification?.data || {};
+  const message = detail.FCM_MSG || {};
+  const value = String(detail.case_id || message.data?.case_id || '').trim();
+  return GSMART_CASE_PATTERN.test(value) ? value : '';
+}
+function gsmartCaseUrl(caseId) {
+  const url = new URL(GSMART_HOME);
+  if (caseId) url.searchParams.set('case', caseId);
+  return url.href;
+}
+async function gsmartIsStandalone(client) {
+  if (typeof MessageChannel === 'undefined') return false;
+  return new Promise(resolve => {
+    let done = false;
+    const complete = value => {
+      if (done) return;
+      done = true;
+      resolve(!!value);
+    };
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => complete(false), 350);
+    channel.port1.onmessage = event => {
+      clearTimeout(timeout);
+      complete(event.data?.standalone === true);
+    };
+    try {
+      client.postMessage({type:'GSMART_IDENTIFY_WINDOW'}, [channel.port2]);
+    } catch (_) {
+      clearTimeout(timeout);
+      complete(false);
+    }
+  });
+}
+self.addEventListener('notificationclick', event => {
+  event.stopImmediatePropagation();
+  const caseId = gsmartCaseId(event.notification);
+  const target = gsmartCaseUrl(caseId);
+  event.notification.close();
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({type:'window', includeUncontrolled:true});
+    const candidates = windows.filter(client => {
+      try { const url = new URL(client.url); return url.origin === self.location.origin && url.pathname === '/'; }
+      catch (_) { return false; }
+    });
+    let pwa = null;
+    for (const candidate of candidates) {
+      if (await gsmartIsStandalone(candidate)) { pwa = candidate; break; }
+    }
+    // Reuse ONLY a verified standalone PWA, not arbitrary Chrome tabs.
+    // If the app is closed, openWindow from the ROOT worker is eligible
+    // to route the URL into the installed standalone web app.
+    if (pwa) {
+      try {
+        const client = await pwa.navigate(target) || pwa;
+        await client.focus();
+        client.postMessage({type:'GSMART_PUSH_OPEN_CASE', case_id:caseId});
+        return;
+      } catch (error) {
+        console.warn('G-Smart PWA navigation was unavailable:', error);
+      }
+    }
+    try {
+      const opened = await self.clients.openWindow(target);
+      if (opened) {
+        await opened.focus();
+        opened.postMessage({type:'GSMART_PUSH_OPEN_CASE', case_id:caseId});
+        return;
+      }
+    } catch (error) {
+      console.warn('G-Smart PWA launch failed:', error);
+    }
+    // Fallback on platforms without installed PWA handling.
+    if (candidates[0]) {
+      const client = await candidates[0].navigate(target).catch(() => null) || candidates[0];
+      await client.focus();
+      client.postMessage({type:'GSMART_PUSH_OPEN_CASE', case_id:caseId});
+    }
+  })());
+});
+
+// This background SDK must be registered in the same root SW as the installed PWA.
+try {
+  importScripts('https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging-compat.js');
+  firebase.initializeApp({
+    apiKey:'AIzaSyBbF1MPzFK_EdUFV9CNh2ZZfuHxRgilm6o',
+    authDomain:'g-smart-guyangan.firebaseapp.com',
+    projectId:'g-smart-guyangan',
+    storageBucket:'g-smart-guyangan.firebasestorage.app',
+    messagingSenderId:'513673068228',
+    appId:'1:513673068228:web:03f3f5797b706fee641391'
+  });
+  const gsmartMessaging = firebase.messaging();
+  gsmartMessaging.onBackgroundMessage(payload => {
+    // Firebase automatically shows notification payloads; no duplicate display.
+    if (payload?.notification) return;
+    const data = payload?.data || {};
+    const caseId = GSMART_CASE_PATTERN.test(String(data.case_id || '')) ? String(data.case_id) : '';
+    return self.registration.showNotification(data.title || 'G-Smart · ETLE', {
+      body:data.body || 'Ada informasi ETLE terbaru.',
+      icon:GSMART_HOME+'G-SMART%20Traffic%20Monitoring%20Emblem.png',
+      tag:data.event_key || 'gsmart-etle',
+      data:{case_id:caseId, url:gsmartCaseUrl(caseId)}
+    });
+  });
+} catch (error) {
+  console.warn('G-Smart root push unavailable; app shell remains operational:', error);
+}
