@@ -2,13 +2,25 @@
  * Do not intercept fetch, cache, login or existing root sw.js.
  */
 const HOME="https://uppkb-guyangan.github.io/";
+// Custom click behavior is registered before the FCM SDK's default click logic.
 self.addEventListener("notificationclick",event=>{
+  event.stopImmediatePropagation();
   event.notification.close();
   event.waitUntil((async()=>{
-    const open=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-    const match=open.find(c=>c.url.startsWith(HOME)&&!c.url.includes("/preview-"));
-    if(match)return match.focus();
-    if(self.clients.openWindow)return self.clients.openWindow(HOME);
+    // On Chrome Android openWindow may launch the installed G-Smart standalone PWA.
+    // Never prefer an arbitrary open Chrome tab over the installed PWA.
+    try{
+      if(self.clients.openWindow){
+        const opened=await self.clients.openWindow(HOME);
+        if(opened){
+          await opened.focus();
+          return;
+        }
+      }
+    }catch(error){console.warn("PWA launch was unavailable; checking existing windows.",error)}
+    const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+    const existing=windows.find(c=>c.url.startsWith(HOME)&&!c.url.includes("/preview-"));
+    if(existing)await existing.focus();
   })());
 });
 try{
