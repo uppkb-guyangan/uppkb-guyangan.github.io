@@ -191,7 +191,7 @@ function showApp(){$("loginView").classList.add("hidden");$("appView").classList
 function launchPushMigration(){
   if(state.demo||!auth.currentUser||!state.profile)return;
   // Independent best-effort upgrade; never blocks login, dashboard, or ETLE data.
-  import("./gsmart-web-push.js?v=20261009-root1").then(mod=>
+  import("./gsmart-web-push.js?v=20261010-compact1").then(mod=>
     mod.migratePushForInstalledPwa({user:auth.currentUser,profile:state.profile})
   ).catch(error=>console.warn("Migrasi notifikasi PWA akan dicoba pada pembukaan berikutnya:",error));
 }
@@ -686,7 +686,7 @@ function settingsPage(){
   });
   if(id==="notifications"){
     // Optional module loaded on demand, never during Firebase authentication.
-    import("./gsmart-web-push.js?v=20261009-root1").then(mod=>{
+    import("./gsmart-web-push.js?v=20261010-compact1").then(mod=>{
       if(state.page==="settings"&&state.settingsSection==="notifications")mod.mountPushSettings({
         root:document.getElementById("gsmartPushSection"),
         user:state.demo?null:auth.currentUser,
