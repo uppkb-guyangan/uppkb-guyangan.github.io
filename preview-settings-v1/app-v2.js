@@ -520,25 +520,25 @@ function settingsPage(){
   const email=state.demo?"Data contoh":(auth.currentUser?.email||"Belum tersedia");
   $("content").innerHTML=
     '<div class="gsmart-admin-hub">'+
-      '<div class="panel gsmart-hub-intro"><h3>Pengaturan G-Smart</h3><p>Informasi akun dan preferensi penggunaan aplikasi.</p></div>'+
+      '<div class="panel gsmart-hub-intro"><h3>Pengaturan G-Smart</h3><p>Lihat informasi akun dan petunjuk penggunaan G-Smart.</p></div>'+
       '<div class="gsmart-hub-grid">'+
         '<section class="panel gsmart-hub-panel"><h3>Profil Saya</h3><dl class="gsmart-hub-fields">'+
           '<div><dt>Nama petugas</dt><dd>'+esc(p.nama||"-")+'</dd></div>'+
-          '<div><dt>Role</dt><dd>'+esc(p.role||"-")+'</dd></div>'+
+          '<div><dt>Jenis akses</dt><dd>'+esc(p.role||"-")+'</dd></div>'+
           '<div><dt>NIP</dt><dd>'+esc(p.nip||"-")+'</dd></div>'+
-          '<div><dt>Username</dt><dd>'+esc(p.username||"-")+'</dd></div>'+
+          '<div><dt>Nama pengguna</dt><dd>'+esc(p.username||"-")+'</dd></div>'+
           '<div><dt>Email akun</dt><dd>'+esc(email)+'</dd></div>'+
-        '</dl><p class="gsmart-hub-note">Data profil dan hak akses dikelola administrator, bukan diubah dari halaman ini.</p></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Preferensi Aplikasi</h3>'+
-          '<p>Tampilan G-Smart Vivid Color. Menu dapat disembunyikan pada desktop dengan tombol menu di kiri atas.</p>'+
+        '</dl><p class="gsmart-hub-note">Untuk mengubah data akun, silakan hubungi Admin G-Smart.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Tampilan dan Penggunaan</h3>'+
+          '<p>G-Smart menggunakan tampilan berwarna. Untuk menyembunyikan menu di komputer, tekan tombol menu di kiri atas.</p>'+
           '<div class="gsmart-hub-actions"><button type="button" class="action-btn" id="settingsRefreshData">↻ Perbarui data G-Smart</button></div>'+
-          '<p class="gsmart-hub-note">Tombol ini memuat ulang data G-Smart yang tersedia, bukan menjalankan sinkronisasi ETLE Hub.</p></section>'+
+          '<p class="gsmart-hub-note">Memuat kembali data G-Smart yang tersedia. Tombol ini tidak mengambil data baru langsung dari ETLE Hub.</p></section>'+
         '<section class="panel gsmart-hub-panel"><h3>Keamanan Akun</h3>'+
-          '<p>Untuk mengatur ulang kata sandi, gunakan fasilitas <b>Lupa password?</b> pada halaman login G-Smart.</p>'+
-          '<p class="gsmart-hub-note">Halaman ini tidak mengubah password, role, atau status akun.</p></section>'+
+          '<p>Perlu mengatur ulang kata sandi? Pilih <b>Lupa password?</b> pada halaman masuk G-Smart.</p>'+
+          '<p class="gsmart-hub-note">Kata sandi dan kewenangan akun tidak diubah dari halaman ini.</p></section>'+
         '<section class="panel gsmart-hub-panel"><h3>Tentang G-Smart</h3>'+
-          '<p>G-Smart UPPKB Guyangan · Monitoring ETLE terintegrasi.</p>'+
-          '<p class="gsmart-hub-note">Versi Web/PWA. Pengaturan koneksi dan data ETLE tetap menggunakan konfigurasi yang telah berjalan.</p></section>'+
+          '<p>Aplikasi pemantauan data ETLE UPPKB Guyangan.</p>'+
+          '<p class="gsmart-hub-note">Bisa digunakan melalui browser di komputer maupun HP.</p></section>'+
       '</div>'+
     '</div>';
   $("settingsRefreshData")?.addEventListener("click",()=>$("refreshDataBtn")?.click());
@@ -550,20 +550,20 @@ function managementPage(){
   }
   $("content").innerHTML=
     '<div class="gsmart-admin-hub">'+
-      '<div class="panel gsmart-hub-intro"><h3>Manajemen G-Smart</h3><p>Pusat pemeriksaan operasional dan keamanan aplikasi khusus Admin.</p></div>'+
+      '<div class="panel gsmart-hub-intro"><h3>Manajemen G-Smart</h3><p>Tempat Admin memeriksa kondisi layanan dan riwayat penggunaan G-Smart.</p></div>'+
       '<div class="gsmart-hub-grid">'+
-        '<section class="panel gsmart-hub-panel"><h3>Monitoring Sistem</h3>'+
-          '<p>Periksa proses pembaruan data, hasil workflow, dan riwayat sinkronisasi yang sudah tersedia.</p>'+
-          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementHealth">Kesehatan Sistem →</button></div></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Audit Login</h3>'+
-          '<p>Lihat riwayat login akun G-Smart melalui layanan audit yang sudah digunakan.</p>'+
-          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementLoginHistory">Riwayat Login →</button></div></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Manajemen Pengguna</h3>'+
-          '<p>Pengelolaan pengguna, aktivasi akun, dan perubahan role belum diaktifkan.</p>'+
-          '<p class="gsmart-hub-note">Akun tetap dikelola melalui prosedur admin yang berlaku.</p></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Hak Akses</h3>'+
-          '<p>Hak akses Admin, Wasatpel, dan Petugas tetap mengikuti aturan aplikasi saat ini.</p>'+
-          '<p class="gsmart-hub-note">Halaman ini tidak menyediakan perubahan permission, Firebase, atau Supabase.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Kondisi Layanan</h3>'+
+          '<p>Lihat kondisi layanan G-Smart dan hasil pembaruan data terakhir.</p>'+
+          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementHealth">Periksa Layanan →</button></div></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Aktivitas Masuk</h3>'+
+          '<p>Lihat siapa yang masuk ke G-Smart dan kapan waktunya.</p>'+
+          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementLoginHistory">Lihat Riwayat Masuk →</button></div></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Akun Pengguna</h3>'+
+          '<p>Penambahan pengguna dan perubahan jenis akses belum tersedia di sini.</p>'+
+          '<p class="gsmart-hub-note">Untuk sementara, pengelolaan akun tetap dilakukan dengan cara yang sudah digunakan.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Pembagian Akses</h3>'+
+          '<p>Admin, Wasatpel, dan Petugas memiliki menu sesuai tugas masing-masing.</p>'+
+          '<p class="gsmart-hub-note">Pembagian akses pengguna belum dapat diubah dari halaman ini.</p></section>'+
       '</div>'+
     '</div>';
   $("managementHealth")?.addEventListener("click",()=>openPage("health"));
