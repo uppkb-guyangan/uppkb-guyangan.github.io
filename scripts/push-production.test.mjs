@@ -25,7 +25,9 @@ test("each real ETLE event displays its own TNKB and keeps the case identity",()
 test("events without a valid plate or case stay unchanged",()=>{
   const event={event_key:"ping",case_id:"",body:"Uji notifikasi"};
   assert.strictEqual(withPlate(event,"AE8768SK"),event);
-  assert.strictEqual(withPlate({...event,case_id:CASE_ID},""),withPlate({...event,case_id:CASE_ID},null));
+  const withCase={...event,case_id:CASE_ID};
+  assert.strictEqual(withPlate(withCase,""),withCase);
+  assert.strictEqual(withPlate(withCase,null),withCase);
 });
 test("adding TNKB twice does not duplicate it",()=>{
   const event={case_id:CASE_ID,body:"Surat diproses"};
