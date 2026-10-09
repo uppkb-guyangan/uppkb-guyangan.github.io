@@ -535,8 +535,9 @@ function settingsPage(){
           '<p>Untuk mengatur ulang kata sandi, gunakan fasilitas <b>Lupa password?</b> pada halaman login G-Smart.</p>'+
           '<p class="gsmart-hub-note">Halaman ini tidak mengubah password, role, atau status akun.</p></section>'+
         '<section class="panel gsmart-hub-panel"><h3>Tentang G-Smart</h3>'+
-          '<p>G-Smart UPPKB Guyangan · Monitoring ETLE terintegrasi.</p>'+
-          '<p class="gsmart-hub-note">Versi Web/PWA. Pengaturan koneksi dan data ETLE tetap menggunakan konfigurasi yang telah berjalan.</p></section>'+
+          '<p>G-Smart membantu petugas UPPKB Guyangan memantau dan mengelola data pelanggaran ETLE.</p>'+
+          '<p><b>Dirancang dan dikembangkan oleh Julastri Atmaja.</b></p>'+
+          '<p class="gsmart-hub-note">Dibuat sebagai inovasi digital untuk mendukung pekerjaan petugas.</p></section>'+
       '</div>'+
     '</div>';
   $("settingsRefreshData")?.addEventListener("click",()=>$("refreshDataBtn")?.click());
