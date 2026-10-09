@@ -3,7 +3,7 @@
  * Each event/device pair is claimed before sending (at most one FCM attempt).
  */
 import {createSign} from "node:crypto";
-import {snapshot,changes} from "./push-pilot.mjs";
+import {snapshot,changes,isProcessing} from "./push-pilot.mjs";
 const FIREBASE_PROJECT="g-smart-guyangan";
 const DB_PROJECT="pszyqzzqlzdgeefivydz";
 const HOME="https://uppkb-guyangan.github.io/";
@@ -155,6 +155,16 @@ export async function runProduction(){
    return {status:"baseline-created",sent:0,note:"No historical ETLE events sent."};
  }
  const detected=changes(before,current);
+ // New records that first appear with processing status also count as fresh events.
+ // Pre-existing shipping records are covered by the production baseline, so no historical blast.
+ for(const [caseId,status] of Object.entries(current.shipping||{})){
+   if(isProcessing(status)&&!Object.hasOwn(before.shipping||{},caseId)){
+     detected.push({
+       event_key:"shipping_processing:"+caseId,event_type:"shipping_processing",case_id:caseId,
+       title:"G-Smart · Surat Diproses",body:"Surat telah masuk proses pengiriman JNE."
+     });
+   }
+ }
  await store.enqueueEvents(detected);
  await store.saveCursor(current);
  const devices=await store.devices();
