@@ -46,7 +46,8 @@ test("Web Push uses app identity rather than a second large icon on the right",(
  const sender=readFileSync(new URL("./push-production.mjs",import.meta.url),"utf8");
  const area=sender.split("webpush:{fcm_options:")[1]?.split("}}")[0]||"";
  assert.ok(area.includes("tag:event.event_key"));
- assert.equal(/(?:^|[,{}\\n])\\s*icon\\s*:/.test(area.replace(/\\/\\/[^\\n]*/g,"")),false);
+ const codeOnly=area.replace(/\/\/[^\n]*/g,"");
+ assert.equal(codeOnly.includes("icon:"),false);
  assert.ok(sender.includes("const display=compactNotification(event);"));
  assert.ok(sender.includes("notification:{title:display.title,body:display.body}"));
 });
