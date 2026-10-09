@@ -3,7 +3,8 @@
  * Each event/device pair is claimed before sending (at most one FCM attempt).
  */
 import {createSign} from "node:crypto";
-import {snapshot,changes,isProcessing} from "./push-pilot.mjs";
+import {snapshot,changes} from "./push-pilot.mjs";
+import {SHIPPING_EVENT_TYPES,shippingLifecycleEvents} from "./shipping-lifecycle.mjs";
 const FIREBASE_PROJECT="g-smart-guyangan";
 const DB_PROJECT="pszyqzzqlzdgeefivydz";
 const HOME="https://uppkb-guyangan.github.io/";
@@ -107,7 +108,7 @@ function database(){
 }
 function allowed(device,type){
  if(!device?.active)return false;
- if(!["blanko","dispute","shipping_processing"].includes(type))return false;
+ if(!["blanko","dispute",...SHIPPING_EVENT_TYPES].includes(type))return false;
  if(type==="blanko")return device.receive_blanko;
  if(type==="dispute")return device.receive_disputes;
  return device.receive_shipping;
@@ -176,24 +177,20 @@ export async function runProduction(){
    return {mode:"ping",sent:1,recipients:1,source:"registered-main-pwa",etleDataRead:false,etleDataModified:false,deliveryLedgerModified:false};
  }
  const source=await store.data();
- const current=snapshot(source);
+ const currentSnapshot=snapshot(source);
  const platesByCase=new Map(source.cases.filter(x=>x.case_id).map(x=>[String(x.case_id),x.tnkb]));
  const before=await store.cursor();
  if(before===null){
-   await store.saveCursor(current);
+   // Baseline never broadcasts pre-existing shipping states.
+   await store.saveCursor({...currentSnapshot,shippingEventCounts:{}});
    return {status:"baseline-created",sent:0,note:"No historical ETLE events sent."};
  }
- const detected=changes(before,current);
- // New records that first appear with processing status also count as fresh events.
- // Pre-existing shipping records are covered by the production baseline, so no historical blast.
- for(const [caseId,status] of Object.entries(current.shipping||{})){
-   if(isProcessing(status)&&!Object.hasOwn(before.shipping||{},caseId)){
-     detected.push({
-       event_key:"shipping_processing:"+caseId,event_type:"shipping_processing",case_id:caseId,
-       title:"G-Smart · Surat Diproses",body:"Surat telah masuk proses pengiriman JNE."
-     });
-   }
- }
+ // The pilot detector still covers blanko and disputes. Production uses
+ // the full Android-equivalent shipping lifecycle instead of processing-only.
+ const detected=changes(before,currentSnapshot).filter(e=>e.event_type!=="shipping_processing");
+ const lifecycle=shippingLifecycleEvents(before,currentSnapshot);
+ detected.push(...lifecycle.events);
+ const current={...currentSnapshot,shippingEventCounts:lifecycle.eventCounts};
  await store.enqueueEvents(detected.map(e=>withPlate(e,platesByCase.get(String(e.case_id)))));
  await store.saveCursor(current);
  const devices=await store.devices();
