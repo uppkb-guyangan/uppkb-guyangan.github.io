@@ -189,8 +189,8 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase()}
-function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden")}
+function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase()}
+function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){
   const b=state.bundle||demo;
@@ -213,7 +213,7 @@ function renderNav(){
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&!perms().admin){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&!perms().admin){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function socializationCaseIds(b){return new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id).filter(Boolean))}
@@ -515,35 +515,138 @@ function dashboard(b){
 }
 
 /* Pengaturan & Manajemen V1: navigasi saja, tanpa perubahan Firebase Auth/Firestore/RLS. */
-function settingsPage(){
-  const p=state.profile||{};
-  const email=state.demo?"Data contoh":(auth.currentUser?.email||"Belum tersedia");
-  $("content").innerHTML=
-    '<div class="gsmart-admin-hub">'+
-      '<div class="panel gsmart-hub-intro"><h3>Pengaturan G-Smart</h3><p>Lihat informasi akun dan petunjuk penggunaan G-Smart.</p></div>'+
-      '<div class="gsmart-hub-grid">'+
-        '<section class="panel gsmart-hub-panel"><h3>Profil Saya</h3><dl class="gsmart-hub-fields">'+
-          '<div><dt>Nama petugas</dt><dd>'+esc(p.nama||"-")+'</dd></div>'+
-          '<div><dt>Jenis akses</dt><dd>'+esc(p.role||"-")+'</dd></div>'+
-          '<div><dt>NIP</dt><dd>'+esc(p.nip||"-")+'</dd></div>'+
-          '<div><dt>Nama pengguna</dt><dd>'+esc(p.username||"-")+'</dd></div>'+
-          '<div><dt>Email akun</dt><dd>'+esc(email)+'</dd></div>'+
-        '</dl><p class="gsmart-hub-note">Untuk mengubah data akun, silakan hubungi Admin G-Smart.</p></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Tampilan dan Penggunaan</h3>'+
-          '<p>G-Smart menggunakan tampilan berwarna. Untuk menyembunyikan menu di komputer, tekan tombol menu di kiri atas.</p>'+
-          '<div class="gsmart-hub-actions"><button type="button" class="action-btn" id="settingsRefreshData">↻ Perbarui data G-Smart</button></div>'+
-          '<p class="gsmart-hub-note">Memuat kembali data G-Smart yang tersedia. Tombol ini tidak mengambil data baru langsung dari ETLE Hub.</p></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Keamanan Akun</h3>'+
-          '<p>Perlu mengatur ulang kata sandi? Pilih <b>Lupa password?</b> pada halaman masuk G-Smart.</p>'+
-          '<p class="gsmart-hub-note">Kata sandi dan kewenangan akun tidak diubah dari halaman ini.</p></section>'+
-        '<section class="panel gsmart-hub-panel"><h3>Tentang G-Smart</h3>'+
-          '<p>G-Smart membantu petugas UPPKB Guyangan memantau dan mengelola data pelanggaran ETLE.</p>'+
-          '<p><b>Dirancang dan dikembangkan oleh Julastri Atmaja.</b></p>'+
-          '<p class="gsmart-hub-note">Dibuat sebagai inovasi digital untuk mendukung pekerjaan petugas.</p></section>'+
-      '</div>'+
-    '</div>';
-  $("settingsRefreshData")?.addEventListener("click",()=>$("refreshDataBtn")?.click());
+
+/* Pengaturan pribadi khusus preview, tidak mengubah Firebase/Firestore/Supabase. */
+const settingSections=[
+  ["profile","Profil Saya","Nama, NIP, dan informasi akun","♙"],
+  ["appearance","Tampilan Aplikasi","Tema dan ukuran tulisan","◉"],
+  ["notifications","Notifikasi","Aktivitas dan pemberitahuan","♧"],
+  ["data","Preferensi Data","Pilihan periode ketika masuk","▦"],
+  ["gita","Asisten GITA","Avatar dan sapaan GITA","✦"],
+  ["security","Keamanan Akun","Atur ulang kata sandi","♢"],
+  ["help","Bantuan & Panduan","Petunjuk menggunakan G-Smart","?"],
+  ["about","Tentang G-Smart","Informasi aplikasi dan pengembang","ⓘ"]
+];
+function prefKey(){return "gsmart_preview_prefs_"+String(state.profile?.uid||"guest")}
+function readPrefs(){
+  let v={};
+  try{v=JSON.parse(localStorage.getItem(prefKey())||"{}")||{}}catch(_){}
+  return {
+    theme:["vivid","light","dark"].includes(v.theme)?v.theme:"vivid",
+    font:["normal","large"].includes(v.font)?v.font:"normal",
+    period:["all","latest"].includes(v.period)?v.period:"all",
+    showGita:typeof v.showGita==="boolean"?v.showGita:true,
+    greetGita:typeof v.greetGita==="boolean"?v.greetGita:true,
+    showActivity:typeof v.showActivity==="boolean"?v.showActivity:true
+  };
 }
+function savePrefs(p){try{localStorage.setItem(prefKey(),JSON.stringify(p))}catch(_){toast("Pengaturan tidak dapat disimpan.")}}
+function resetPreviewAppearance(){
+  document.body.classList.remove("pref-theme-light","pref-theme-dark","pref-text-large","pref-hide-gita","pref-hide-greeting","pref-hide-activity");
+}
+function applyPrefs(){
+  const p=readPrefs();resetPreviewAppearance();
+  document.body.classList.toggle("pref-theme-light",p.theme==="light");
+  document.body.classList.toggle("pref-theme-dark",p.theme==="dark");
+  document.body.classList.toggle("pref-text-large",p.font==="large");
+  document.body.classList.toggle("pref-hide-gita",!p.showGita);
+  document.body.classList.toggle("pref-hide-greeting",!p.greetGita);
+  document.body.classList.toggle("pref-hide-activity",!p.showActivity);
+}
+function applyInitialPeriodPreference(){
+  state.month=null;
+  if(readPrefs().period==="latest"){
+    const months=(state.bundle?.cases||[]).map(c=>ym(c.tanggal_pelanggaran)).filter(Boolean).sort().reverse();
+    state.month=months[0]||null;
+  }
+}
+function prefChoice(key,value,options){
+  return '<div class="prefs-choice" role="group">'+options.map(o=>
+    '<button type="button" class="prefs-option '+(value===o[0]?"selected":"")+'" data-pref-choice="'+key+'" data-pref-value="'+o[0]+'" aria-pressed="'+(value===o[0])+'">'+esc(o[1])+'</button>'
+  ).join("")+'</div>';
+}
+function prefSwitch(key,label,description,on){
+  return '<label class="prefs-switch"><span><b>'+esc(label)+'</b><small>'+esc(description)+'</small></span>'+
+    '<input type="checkbox" data-pref-switch="'+key+'" '+(on?"checked":"")+' aria-label="'+esc(label)+'"></label>';
+}
+function settingContent(id,p){
+  const u=state.profile||{},email=state.demo?"Data contoh":(auth.currentUser?.email||"Belum tersedia");
+  if(id==="profile")return '<dl class="gsmart-hub-fields">'+[
+    ["Nama petugas",u.nama],["Jenis akses",u.role],["NIP",u.nip],["Nama pengguna",u.username],["Email akun",email]
+  ].map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1]||"-")+'</dd></div>').join("")+'</dl>'+
+    '<p class="prefs-note">Untuk mengubah informasi akun, hubungi Admin G-Smart.</p>';
+  if(id==="appearance")return '<div class="prefs-form"><div><b>Tema warna</b><p>Pilih tampilan yang nyaman bagi Anda.</p>'+
+    prefChoice("theme",p.theme,[["vivid","Vivid"],["light","Terang"],["dark","Gelap"]])+'</div>'+
+    '<div><b>Ukuran tulisan</b><p>Atur ukuran teks pada isi halaman.</p>'+
+    prefChoice("font",p.font,[["normal","Normal"],["large","Besar"]])+'</div>'+
+    '<p class="prefs-note">Pilihan tersimpan di browser perangkat ini.</p></div>';
+  if(id==="notifications")return '<div class="prefs-form">'+
+    prefSwitch("showActivity","Aktivitas di Dashboard","Tampilkan aktivitas terbaru yang tercatat.",p.showActivity)+
+    '<p class="prefs-note">Notifikasi otomatis ke HP dan suara pemberitahuan belum tersedia di sini. Mengubah pilihan ini tidak mengaktifkan notifikasi dari server.</p></div>';
+  if(id==="data")return '<div class="prefs-form"><div><b>Periode awal</b><p>Data yang pertama kali muncul saat masuk ke G-Smart.</p>'+
+    prefChoice("period",p.period,[["all","Semua Data"],["latest","Bulan Terbaru"]])+'</div>'+
+    '<p class="prefs-note">Pilihan ini berlaku saat masuk berikutnya. Anda tetap bisa mengganti periode di bagian atas halaman.</p></div>';
+  if(id==="gita")return '<div class="prefs-form">'+
+    prefSwitch("showGita","Tampilkan GITA","Tampilkan avatar GITA di pojok layar.",p.showGita)+
+    prefSwitch("greetGita","Sapaan otomatis","Tampilkan sapaan GITA ketika aplikasi dibuka.",p.greetGita)+
+    '<p class="prefs-note">Anda bisa menampilkan kembali GITA melalui menu ini kapan saja.</p></div>';
+  if(id==="security")return '<div class="prefs-form"><p>Untuk membuat kata sandi baru, kirim tautan ke email akun Anda.</p>'+
+    '<p class="prefs-account-email">'+esc(email)+'</p>'+
+    (state.demo?'<p class="prefs-note">Tidak tersedia dalam mode contoh.</p>':
+      '<button class="action-btn primary" id="settingsResetPassword" type="button">Kirim Tautan Ubah Kata Sandi</button>')+
+    '<p class="prefs-note">Kata sandi tidak ditampilkan di G-Smart. Pembagian akses akun tidak berubah.</p></div>';
+  if(id==="help")return '<div class="prefs-faq">'+[
+    ["Bagaimana mencari kendaraan?","Buka Pencarian Global, lalu masukkan nomor polisi, nomor referensi, atau nomor blanko."],
+    ["Bagaimana melihat pengiriman surat?","Buka Pengiriman Surat. Pilih data untuk melihat informasi pengiriman yang tersedia."],
+    ["Bagaimana mengganti bulan?","Pilih periode di bagian atas halaman, atau pilih Semua Data."],
+    ["Mengapa ada menu yang terkunci?","Menu mengikuti tugas petugas. Hubungi Admin jika memerlukan bantuan akses."],
+    ["Bagaimana menggunakan GITA?","Tekan avatar GITA pada layar untuk bertanya mengenai data G-Smart."]
+  ].map(x=>'<details><summary>'+esc(x[0])+'</summary><p>'+esc(x[1])+'</p></details>').join("")+'</div>';
+  if(id==="about")return '<div class="prefs-form"><h3>G-Smart UPPKB Guyangan</h3>'+
+    '<p>G-Smart membantu petugas UPPKB Guyangan memantau dan mengelola data pelanggaran ETLE.</p>'+
+    '<p><strong>Dirancang dan dikembangkan oleh Julastri Atmaja.</strong></p>'+
+    '<p>Dibuat sebagai inovasi digital untuk mendukung pekerjaan petugas.</p>'+
+    '<p class="prefs-note">Dapat digunakan melalui browser di komputer maupun HP.</p></div>';
+  return "";
+}
+function settingsPage(){
+  const id=state.settingsSection||"";
+  const item=settingSections.find(x=>x[0]===id);
+  const p=readPrefs();
+  $("content").innerHTML=item?
+    '<div class="prefs-shell"><button type="button" id="prefsBack" class="prefs-back">← Kembali ke Pengaturan</button>'+
+    '<div class="panel prefs-panel"><h3>'+esc(item[1])+'</h3><p class="prefs-subtitle">'+esc(item[2])+'</p>'+
+    settingContent(id,p)+'</div></div>':
+    '<div class="prefs-shell"><div class="prefs-intro"><h3>Pengaturan G-Smart</h3><p>Sesuaikan G-Smart dengan kebutuhan Anda.</p></div>'+
+    '<div class="prefs-menu">'+settingSections.map(x=>
+      '<button type="button" class="prefs-item" data-settings-open="'+x[0]+'"><span class="prefs-item-icon">'+esc(x[3])+'</span>'+
+      '<span class="prefs-item-label"><b>'+esc(x[1])+'</b><small>'+esc(x[2])+'</small></span><span class="prefs-arrow">›</span></button>'
+    ).join("")+'</div></div>';
+  document.querySelectorAll("[data-settings-open]").forEach(btn=>btn.onclick=()=>{
+    state.settingsSection=btn.dataset.settingsOpen;settingsPage()
+  });
+  if($("prefsBack"))$("prefsBack").onclick=()=>{state.settingsSection=null;settingsPage()};
+  document.querySelectorAll("[data-pref-choice]").forEach(btn=>btn.onclick=()=>{
+    const key=btn.dataset.prefChoice;
+    if(!["theme","font","period"].includes(key))return;
+    const v=readPrefs();v[key]=btn.dataset.prefValue;
+    savePrefs(v);applyPrefs();settingsPage();toast("Pengaturan tersimpan")
+  });
+  document.querySelectorAll("[data-pref-switch]").forEach(input=>input.onchange=()=>{
+    const key=input.dataset.prefSwitch;
+    if(!["showGita","greetGita","showActivity"].includes(key))return;
+    const v=readPrefs();v[key]=input.checked;savePrefs(v);applyPrefs();toast("Pengaturan tersimpan")
+  });
+  if($("settingsResetPassword"))$("settingsResetPassword").onclick=async()=>{
+    if(state.demo||!auth.currentUser?.email)return;
+    const btn=$("settingsResetPassword");
+    btn.disabled=true;btn.textContent="Mengirim tautan...";
+    try{await sendPasswordResetEmail(auth,auth.currentUser.email);toast("Tautan sudah dikirim ke email akun.")}
+    catch(e){toast(e?.code==="auth/too-many-requests"?"Terlalu banyak permintaan. Tunggu sebentar.":"Gagal mengirim tautan. Coba lagi nanti.")}
+    finally{btn.disabled=false;btn.textContent="Kirim Tautan Ubah Kata Sandi"}
+  };
+}
+
 function managementPage(){
   if(!perms().admin||state.demo){
     $("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';
