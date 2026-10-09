@@ -517,10 +517,10 @@ function dashboard(b){
 /* Pengaturan & Manajemen V1: navigasi saja, tanpa perubahan Firebase Auth/Firestore/RLS. */
 
 /* Pengaturan pribadi khusus preview, tidak mengubah Firebase/Firestore/Supabase. */
-const previewVisualStyles=[["glass","Glassmorphism","Kaca transparan dengan efek blur lembut."],["brutal","Neo-Brutalism","Warna berani, garis tebal, bayangan tegas."],["skeuo","Skeuomorphism","Tombol timbul dan panel seperti perangkat fisik."],["illustrative","Illustrative Design","Ilustrasi transportasi dan warna pastel."]];
+const previewVisualStyles=[["glass","Kaca Elegan","Panel seperti kaca dengan bayangan lembut."],["brutal","Warna Berani","Warna mencolok, garis tebal, dan bentuk tegas."],["skeuo","Tombol Timbul","Tombol terlihat menonjol seperti tombol sungguhan."],["illustrative","Ilustrasi Ceria","Gambar kendaraan dan warna-warna lembut."]];
 const settingSections=[
   ["profile","Profil Saya","Nama, NIP, dan informasi akun","♙"],
-  ["appearance","Tampilan Aplikasi","Tema dan ukuran tulisan","◉"],
+  ["appearance","Tampilan Aplikasi","Pilihan tampilan, warna, dan ukuran tulisan","◉"],
   ["notifications","Notifikasi","Aktivitas dan pemberitahuan","♧"],
   ["data","Preferensi Data","Pilihan periode ketika masuk","▦"],
   ["gita","Asisten GITA","Avatar dan sapaan GITA","✦"],
@@ -557,7 +557,7 @@ function applyPrefs(){
   const styleClasses={glass:"gsmart-glass",brutal:"gsmart-brutal",skeuo:"gsmart-skeuo",illustrative:"gsmart-illustrative"};
   document.body.classList.add(styleClasses[p.visualStyle]);
   const select=$("previewVisualStyle");
-  if(select){select.value=p.visualStyle;select.title="Gaya aktif: "+previewVisualStyles.find(x=>x[0]===p.visualStyle)?.[1]}
+  if(select){select.value=p.visualStyle;select.title="Tampilan aktif: "+previewVisualStyles.find(x=>x[0]===p.visualStyle)?.[1]}
 }
 function applyInitialPeriodPreference(){
   state.month=null;
@@ -589,7 +589,7 @@ function settingContent(id,p){
     ["Nama petugas",u.nama],["Jenis akses",u.role],["NIP",u.nip],["Nama pengguna",u.username],["Email akun",email]
   ].map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1]||"-")+'</dd></div>').join("")+'</dl>'+
     '<p class="prefs-note">Untuk mengubah informasi akun, hubungi Admin G-Smart.</p>';
-  if(id==="appearance")return '<div class="prefs-form"><div><b>Gaya desain</b><p>Pilih salah satu dari empat desain. Tampilan langsung berubah tanpa logout.</p>'+
+  if(id==="appearance")return '<div class="prefs-form"><div><b>Pilihan tampilan</b><p>Pilih salah satu dari empat tampilan berikut. Hasilnya langsung terlihat tanpa perlu keluar dari aplikasi.</p>'+
     prefStylePicker(p.visualStyle)+'</div><div><b>Mode warna</b><p>Pilih warna yang nyaman bagi Anda.</p>'+
     prefChoice("theme",p.theme,[["vivid","Vivid"],["light","Terang"],["dark","Gelap"]])+'</div>'+
     '<div><b>Ukuran tulisan</b><p>Atur ukuran teks pada isi halaman.</p>'+
@@ -646,7 +646,7 @@ function settingsPage(){
     if(!["theme","font","period","visualStyle"].includes(key))return;
     if(key==="visualStyle"&&!previewVisualStyles.some(x=>x[0]===btn.dataset.prefValue))return;
     const v=readPrefs();v[key]=btn.dataset.prefValue;
-    savePrefs(v);applyPrefs();settingsPage();toast(key==="visualStyle"?"Gaya desain berhasil diganti":"Pengaturan tersimpan")
+    savePrefs(v);applyPrefs();settingsPage();toast(key==="visualStyle"?"Tampilan berhasil diganti":"Pengaturan tersimpan")
   });
   document.querySelectorAll("[data-pref-switch]").forEach(input=>input.onchange=()=>{
     const key=input.dataset.prefSwitch;
@@ -1927,7 +1927,7 @@ if($("previewVisualStyle"))$("previewVisualStyle").onchange=()=>{
   const p=readPrefs();p.visualStyle=selected;
   savePrefs(p);applyPrefs();
   if(state.page==="settings"&&state.settingsSection==="appearance")settingsPage();
-  toast("Gaya desain berhasil diganti");
+  toast("Tampilan berhasil diganti");
 };
 $("demoBtn").onclick=()=>{state.lastDataLoadedAt=null;state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.lastDataLoadedAt=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
