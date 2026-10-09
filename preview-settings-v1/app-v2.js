@@ -517,6 +517,7 @@ function dashboard(b){
 /* Pengaturan & Manajemen V1: navigasi saja, tanpa perubahan Firebase Auth/Firestore/RLS. */
 
 /* Pengaturan pribadi khusus preview, tidak mengubah Firebase/Firestore/Supabase. */
+const previewVisualStyles=[["glass","Glassmorphism","Kaca transparan dengan efek blur lembut."],["brutal","Neo-Brutalism","Warna berani, garis tebal, bayangan tegas."],["skeuo","Skeuomorphism","Tombol timbul dan panel seperti perangkat fisik."],["illustrative","Illustrative Design","Ilustrasi transportasi dan warna pastel."]];
 const settingSections=[
   ["profile","Profil Saya","Nama, NIP, dan informasi akun","♙"],
   ["appearance","Tampilan Aplikasi","Tema dan ukuran tulisan","◉"],
@@ -533,6 +534,7 @@ function readPrefs(){
   try{v=JSON.parse(localStorage.getItem(prefKey())||"{}")||{}}catch(_){}
   return {
     theme:["vivid","light","dark"].includes(v.theme)?v.theme:"vivid",
+    visualStyle:previewVisualStyles.some(x=>x[0]===v.visualStyle)?v.visualStyle:"glass",
     font:["normal","large"].includes(v.font)?v.font:"normal",
     period:["all","latest"].includes(v.period)?v.period:"all",
     showGita:typeof v.showGita==="boolean"?v.showGita:true,
@@ -542,7 +544,7 @@ function readPrefs(){
 }
 function savePrefs(p){try{localStorage.setItem(prefKey(),JSON.stringify(p))}catch(_){toast("Pengaturan tidak dapat disimpan.")}}
 function resetPreviewAppearance(){
-  document.body.classList.remove("pref-theme-light","pref-theme-dark","pref-text-large","pref-hide-gita","pref-hide-greeting","pref-hide-activity");
+  document.body.classList.remove("pref-theme-light","pref-theme-dark","pref-text-large","pref-hide-gita","pref-hide-greeting","pref-hide-activity","gsmart-glass","gsmart-skeuo","gsmart-brutal","gsmart-illustrative","gsmart-flat","gsmart-bento");
 }
 function applyPrefs(){
   const p=readPrefs();resetPreviewAppearance();
@@ -552,6 +554,10 @@ function applyPrefs(){
   document.body.classList.toggle("pref-hide-gita",!p.showGita);
   document.body.classList.toggle("pref-hide-greeting",!p.greetGita);
   document.body.classList.toggle("pref-hide-activity",!p.showActivity);
+  const styleClasses={glass:"gsmart-glass",brutal:"gsmart-brutal",skeuo:"gsmart-skeuo",illustrative:"gsmart-illustrative"};
+  document.body.classList.add(styleClasses[p.visualStyle]);
+  const select=$("previewVisualStyle");
+  if(select){select.value=p.visualStyle;select.title="Gaya aktif: "+previewVisualStyles.find(x=>x[0]===p.visualStyle)?.[1]}
 }
 function applyInitialPeriodPreference(){
   state.month=null;
@@ -565,6 +571,14 @@ function prefChoice(key,value,options){
     '<button type="button" class="prefs-option '+(value===o[0]?"selected":"")+'" data-pref-choice="'+key+'" data-pref-value="'+o[0]+'" aria-pressed="'+(value===o[0])+'">'+esc(o[1])+'</button>'
   ).join("")+'</div>';
 }
+function prefStylePicker(current){
+  return '<div class="prefs-design-grid" role="group" aria-label="Empat pilihan gaya desain">'+
+    previewVisualStyles.map(x=>
+      '<button type="button" class="prefs-design-card" data-pref-choice="visualStyle" data-pref-value="'+x[0]+'" aria-pressed="'+(current===x[0])+'">'+
+      '<span class="prefs-design-mini '+x[0]+'" aria-hidden="true"><span class="prefs-design-demo"><span class="prefs-design-bar"></span><span class="prefs-design-tiles"><i></i><i></i><i></i><i></i></span></span></span>'+
+      '<span class="prefs-design-title">'+esc(x[1])+'</span><span class="prefs-design-desc">'+esc(x[2])+'</span></button>'
+    ).join('')+'</div>';
+}
 function prefSwitch(key,label,description,on){
   return '<label class="prefs-switch"><span><b>'+esc(label)+'</b><small>'+esc(description)+'</small></span>'+
     '<input type="checkbox" data-pref-switch="'+key+'" '+(on?"checked":"")+' aria-label="'+esc(label)+'"></label>';
@@ -575,7 +589,8 @@ function settingContent(id,p){
     ["Nama petugas",u.nama],["Jenis akses",u.role],["NIP",u.nip],["Nama pengguna",u.username],["Email akun",email]
   ].map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1]||"-")+'</dd></div>').join("")+'</dl>'+
     '<p class="prefs-note">Untuk mengubah informasi akun, hubungi Admin G-Smart.</p>';
-  if(id==="appearance")return '<div class="prefs-form"><div><b>Tema warna</b><p>Pilih tampilan yang nyaman bagi Anda.</p>'+
+  if(id==="appearance")return '<div class="prefs-form"><div><b>Gaya desain</b><p>Pilih salah satu dari empat desain. Tampilan langsung berubah tanpa logout.</p>'+
+    prefStylePicker(p.visualStyle)+'</div><div><b>Mode warna</b><p>Pilih warna yang nyaman bagi Anda.</p>'+
     prefChoice("theme",p.theme,[["vivid","Vivid"],["light","Terang"],["dark","Gelap"]])+'</div>'+
     '<div><b>Ukuran tulisan</b><p>Atur ukuran teks pada isi halaman.</p>'+
     prefChoice("font",p.font,[["normal","Normal"],["large","Besar"]])+'</div>'+
@@ -628,9 +643,10 @@ function settingsPage(){
   if($("prefsBack"))$("prefsBack").onclick=()=>{state.settingsSection=null;settingsPage()};
   document.querySelectorAll("[data-pref-choice]").forEach(btn=>btn.onclick=()=>{
     const key=btn.dataset.prefChoice;
-    if(!["theme","font","period"].includes(key))return;
+    if(!["theme","font","period","visualStyle"].includes(key))return;
+    if(key==="visualStyle"&&!previewVisualStyles.some(x=>x[0]===btn.dataset.prefValue))return;
     const v=readPrefs();v[key]=btn.dataset.prefValue;
-    savePrefs(v);applyPrefs();settingsPage();toast("Pengaturan tersimpan")
+    savePrefs(v);applyPrefs();settingsPage();toast(key==="visualStyle"?"Gaya desain berhasil diganti":"Pengaturan tersimpan")
   });
   document.querySelectorAll("[data-pref-switch]").forEach(input=>input.onchange=()=>{
     const key=input.dataset.prefSwitch;
@@ -1905,6 +1921,14 @@ async function loadDashboard(){
 }
 $("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;recordSuccessfulLogin();await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
+if($("previewVisualStyle"))$("previewVisualStyle").onchange=()=>{
+  const selected=$("previewVisualStyle").value;
+  if(!previewVisualStyles.some(x=>x[0]===selected))return;
+  const p=readPrefs();p.visualStyle=selected;
+  savePrefs(p);applyPrefs();
+  if(state.page==="settings"&&state.settingsSection==="appearance")settingsPage();
+  toast("Gaya desain berhasil diganti");
+};
 $("demoBtn").onclick=()=>{state.lastDataLoadedAt=null;state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.lastDataLoadedAt=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
 if($("refreshDataBtn"))$("refreshDataBtn").onclick=async()=>{
