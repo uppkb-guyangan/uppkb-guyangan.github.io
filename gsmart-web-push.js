@@ -65,8 +65,8 @@ function attachForeground(messaging,reg){
     const body=payload.notification?.body||payload.data?.body||"Informasi ETLE baru";
     reg.showNotification(title,{
       body,tag:payload.data?.event_key||"gsmart-foreground",
-      data:{case_id:payload.data?.case_id||""},
-      icon:location.origin+"/G-SMART%20Traffic%20Monitoring%20Emblem.png"
+      data:{case_id:payload.data?.case_id||""}
+      // No extra notification.icon: use the installed app identity.
     }).catch(()=>{});
   });
 }
