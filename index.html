@@ -289,6 +289,25 @@
 }
 
   </style>
+  <!-- Fallback: the four design choices stay readable if additional CSS is delayed. -->
+  <style id="gsmart-four-themes-fallback">
+  .prefs-design-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+  .prefs-design-card{display:flex;flex-direction:column;text-align:left;min-width:0;padding:12px;background:#f8fbff;border:2px solid #d8e4f0;border-radius:14px;cursor:pointer;color:#173753}
+  .prefs-design-card[aria-pressed="true"]{border-color:#0877e9;outline:2px solid rgba(8,119,233,.18)}
+  .prefs-design-title{font-size:13px;font-weight:800;margin:5px 0}
+  .prefs-design-desc{font-size:11px;line-height:1.5;color:#657c94}
+  .prefs-design-mini{display:flex;min-height:72px;background:#d6e6f7;border-radius:9px}
+  .prefs-design-mini:before{content:"";width:24%;background:#173f6a}
+  .prefs-design-demo{padding:10px;flex:1}.prefs-design-bar{display:block;width:70%;height:8px;background:#80a8d6}
+  .prefs-design-tiles{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px}
+  .prefs-design-tiles i{display:block;height:13px;background:#4690df}
+  .pref-theme-dark .prefs-design-card{background:#1d334e;border-color:#3c5777;color:#ebf4ff}
+  .pref-theme-dark .prefs-design-card[aria-pressed="true"]{border-color:#85beff}
+  .pref-theme-dark .prefs-design-desc{color:#bed0e5}
+  @media(max-width:350px){.prefs-design-grid{grid-template-columns:1fr}}
+  </style>
+  <link rel="stylesheet" href="./gsmart-visual-themes.css?v=20261009-four-v1">
+  <link rel="stylesheet" href="./gsmart-theme-picker.css?v=20261009-four-v1">
 </head>
 <body>
   <div id="gsmartSplash" class="gsmart-splash" role="status" aria-label="Memuat G-Smart">
@@ -325,7 +344,7 @@
   <script src="./history-tnkb.js?v=20261005-3"></script>
   <script src="./whatsapp-templates.js?v=20261006-3"></script>
   <script src="./whatsapp-status-bridge.js?v=20261006-2"></script>
-  <script type="module" src="./app-v2.js?v=20261009-settings-v1"></script>
+  <script type="module" src="./app-v2.js?v=20261009-four-v1"></script>
   <script src="./gita-avatar.js?v=20261004-gita-avatar2"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>

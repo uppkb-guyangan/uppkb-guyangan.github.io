@@ -513,10 +513,11 @@ function dashboard(b){
 }
 /* Pengaturan & Manajemen V1: navigasi saja, tanpa perubahan Firebase Auth/Firestore/RLS. */
 
-/* Pengaturan pribadi khusus preview, tidak mengubah Firebase/Firestore/Supabase. */
+/* Pengaturan pribadi: hanya preferensi tampilan lokal, tanpa mengubah layanan data. */
+const visualStyles=[["glass","Kaca Elegan","Panel seperti kaca dengan bayangan lembut."],["brutal","Warna Berani","Warna mencolok, garis tebal, dan bentuk tegas."],["skeuo","Tombol Timbul","Tombol terlihat menonjol seperti tombol sungguhan."],["illustrative","Ilustrasi Ceria","Gambar kendaraan dan warna-warna lembut."]];
 const settingSections=[
   ["profile","Profil Saya","Nama, NIP, dan informasi akun","♙"],
-  ["appearance","Tampilan Aplikasi","Tema dan ukuran tulisan","◉"],
+  ["appearance","Tampilan Aplikasi","Pilihan tampilan, warna, dan ukuran tulisan","◉"],
   ["notifications","Notifikasi","Aktivitas dan pemberitahuan","♧"],
   ["data","Preferensi Data","Pilihan periode ketika masuk","▦"],
   ["gita","Asisten GITA","Avatar dan sapaan GITA","✦"],
@@ -530,6 +531,7 @@ function readPrefs(){
   try{v=JSON.parse(localStorage.getItem(prefKey())||"{}")||{}}catch(_){}
   return {
     theme:["vivid","light","dark"].includes(v.theme)?v.theme:"vivid",
+    visualStyle:visualStyles.some(x=>x[0]===v.visualStyle)?v.visualStyle:"glass",
     font:["normal","large"].includes(v.font)?v.font:"normal",
     period:["all","latest"].includes(v.period)?v.period:"all",
     showGita:typeof v.showGita==="boolean"?v.showGita:true,
@@ -539,7 +541,7 @@ function readPrefs(){
 }
 function savePrefs(p){try{localStorage.setItem(prefKey(),JSON.stringify(p))}catch(_){toast("Pengaturan tidak dapat disimpan.")}}
 function resetPreviewAppearance(){
-  document.body.classList.remove("pref-theme-light","pref-theme-dark","pref-text-large","pref-hide-gita","pref-hide-greeting","pref-hide-activity");
+  document.body.classList.remove("pref-theme-light","pref-theme-dark","pref-text-large","pref-hide-gita","pref-hide-greeting","pref-hide-activity","gsmart-glass","gsmart-skeuo","gsmart-brutal","gsmart-illustrative");
 }
 function applyPrefs(){
   const p=readPrefs();resetPreviewAppearance();
@@ -549,6 +551,8 @@ function applyPrefs(){
   document.body.classList.toggle("pref-hide-gita",!p.showGita);
   document.body.classList.toggle("pref-hide-greeting",!p.greetGita);
   document.body.classList.toggle("pref-hide-activity",!p.showActivity);
+  const styleClasses={glass:"gsmart-glass",brutal:"gsmart-brutal",skeuo:"gsmart-skeuo",illustrative:"gsmart-illustrative"};
+  document.body.classList.add(styleClasses[p.visualStyle]);
 }
 function applyInitialPeriodPreference(){
   state.month=null;
@@ -562,6 +566,14 @@ function prefChoice(key,value,options){
     '<button type="button" class="prefs-option '+(value===o[0]?"selected":"")+'" data-pref-choice="'+key+'" data-pref-value="'+o[0]+'" aria-pressed="'+(value===o[0])+'">'+esc(o[1])+'</button>'
   ).join("")+'</div>';
 }
+function prefStylePicker(current){
+  return '<div class="prefs-design-grid" role="group" aria-label="Empat pilihan gaya desain">'+
+    visualStyles.map(x=>
+      '<button type="button" class="prefs-design-card" data-pref-choice="visualStyle" data-pref-value="'+x[0]+'" aria-pressed="'+(current===x[0])+'">'+
+      '<span class="prefs-design-mini '+x[0]+'" aria-hidden="true"><span class="prefs-design-demo"><span class="prefs-design-bar"></span><span class="prefs-design-tiles"><i></i><i></i><i></i><i></i></span></span></span>'+
+      '<span class="prefs-design-title">'+esc(x[1])+'</span><span class="prefs-design-desc">'+esc(x[2])+'</span></button>'
+    ).join('')+'</div>';
+}
 function prefSwitch(key,label,description,on){
   return '<label class="prefs-switch"><span><b>'+esc(label)+'</b><small>'+esc(description)+'</small></span>'+
     '<input type="checkbox" data-pref-switch="'+key+'" '+(on?"checked":"")+' aria-label="'+esc(label)+'"></label>';
@@ -572,7 +584,8 @@ function settingContent(id,p){
     ["Nama petugas",u.nama],["Jenis akses",u.role],["NIP",u.nip],["Nama pengguna",u.username],["Email akun",email]
   ].map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1]||"-")+'</dd></div>').join("")+'</dl>'+
     '<p class="prefs-note">Untuk mengubah informasi akun, hubungi Admin G-Smart.</p>';
-  if(id==="appearance")return '<div class="prefs-form"><div><b>Tema warna</b><p>Pilih tampilan yang nyaman bagi Anda.</p>'+
+  if(id==="appearance")return '<div class="prefs-form"><div><b>Pilihan tampilan</b><p>Pilih salah satu dari empat tampilan berikut. Hasilnya langsung terlihat tanpa perlu keluar dari aplikasi.</p>'+
+    prefStylePicker(p.visualStyle)+'</div><div><b>Mode warna</b><p>Pilih warna yang nyaman bagi Anda.</p>'+
     prefChoice("theme",p.theme,[["vivid","Vivid"],["light","Terang"],["dark","Gelap"]])+'</div>'+
     '<div><b>Ukuran tulisan</b><p>Atur ukuran teks pada isi halaman.</p>'+
     prefChoice("font",p.font,[["normal","Normal"],["large","Besar"]])+'</div>'+
@@ -625,9 +638,10 @@ function settingsPage(){
   if($("prefsBack"))$("prefsBack").onclick=()=>{state.settingsSection=null;settingsPage()};
   document.querySelectorAll("[data-pref-choice]").forEach(btn=>btn.onclick=()=>{
     const key=btn.dataset.prefChoice;
-    if(!["theme","font","period"].includes(key))return;
+    if(!["theme","font","period","visualStyle"].includes(key))return;
+    if(key==="visualStyle"&&!visualStyles.some(x=>x[0]===btn.dataset.prefValue))return;
     const v=readPrefs();v[key]=btn.dataset.prefValue;
-    savePrefs(v);applyPrefs();settingsPage();toast("Pengaturan tersimpan")
+    savePrefs(v);applyPrefs();settingsPage();toast(key==="visualStyle"?"Tampilan berhasil diganti":"Pengaturan tersimpan")
   });
   document.querySelectorAll("[data-pref-switch]").forEach(input=>input.onchange=()=>{
     const key=input.dataset.prefSwitch;

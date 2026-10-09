@@ -1,0 +1,709 @@
+/* G-Smart main application: four approved visual themes.
+   Kaca Elegan, Warna Berani, Tombol Timbul, Ilustrasi Ceria.
+   Visual styles only. No API, auth, RLS or business rules are modified. */
+
+/* G-SMART GLASS EDITION V1 — FOUR THEMES
+   Scope ALL effects to body.gsmart-glass.
+   Never change production CSS, Firebase, Supabase or ETLE workflows. */
+
+body.gsmart-glass{
+  --glass-stroke:rgba(255,255,255,.88);
+  --glass-panel:rgba(255,255,255,.75);
+  --glass-panel-strong:rgba(255,255,255,.86);
+  --glass-panel-input:rgba(255,255,255,.82);
+  --glass-shadow:0 14px 34px rgba(32,66,114,.10),inset 0 1px 0 rgba(255,255,255,.7);
+  --glass-subtle-line:rgba(123,153,199,.22);
+}
+body.gsmart-glass .app-shell main{
+  background:
+    radial-gradient(ellipse 630px 430px at 88% 5%,rgba(105,147,250,.28) 0%,transparent 75%),
+    radial-gradient(ellipse 540px 490px at 10% 75%,rgba(31,183,201,.16) 0%,transparent 78%),
+    radial-gradient(ellipse 410px 360px at 72% 96%,rgba(164,119,235,.15) 0%,transparent 80%),
+    linear-gradient(135deg,#eef5ff 0%,#eaf3f9 52%,#f6f1ff 100%)!important;
+}
+body.gsmart-glass #content{background:transparent!important}
+body.gsmart-glass .sidebar{
+  background:linear-gradient(155deg,rgba(10,34,74,.93),rgba(5,24,51,.88) 55%,rgba(10,29,64,.95))!important;
+  border-right:1px solid rgba(153,203,255,.22);
+  box-shadow:8px 0 36px rgba(7,31,70,.22),inset -1px 0 rgba(255,255,255,.06);
+  -webkit-backdrop-filter:blur(14px) saturate(155%);
+  backdrop-filter:blur(14px) saturate(155%);
+}
+body.gsmart-glass .sidebar .side-brand,
+body.gsmart-glass .sidebar .side-footer{
+  border-color:rgba(198,223,255,.14);
+}
+body.gsmart-glass .topbar{
+  background:rgba(248,252,255,.72)!important;
+  border-bottom:1px solid rgba(255,255,255,.94)!important;
+  box-shadow:0 7px 28px rgba(35,68,119,.09);
+  -webkit-backdrop-filter:blur(17px) saturate(160%);
+  backdrop-filter:blur(17px) saturate(160%);
+}
+body.gsmart-glass .topbar :is(.month-select,#refreshDataBtn,#menuBtn){
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(140,167,211,.34);
+  color:#163F68;
+  border-radius:11px;
+}
+body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-glass #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-glass .health-card{
+  background:var(--glass-panel)!important;
+  border:1px solid var(--glass-stroke)!important;
+  border-radius:17px;
+  box-shadow:var(--glass-shadow);
+  -webkit-backdrop-filter:blur(12px) saturate(135%);
+  backdrop-filter:blur(12px) saturate(135%);
+}
+body.gsmart-glass #content .prefs-menu{
+  background:var(--glass-panel-strong)!important;
+  overflow:hidden;
+}
+body.gsmart-glass .prefs-item{
+  background:transparent!important;
+  border-bottom-color:var(--glass-subtle-line);
+}
+body.gsmart-glass .prefs-item:is(:hover,:focus-visible){
+  background:rgba(217,235,255,.52)!important;
+}
+body.gsmart-glass #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-glass #content .prefs-option:not(.selected){
+  background:rgba(249,252,255,.67)!important;
+  border:1px solid rgba(156,182,216,.32);
+}
+body.gsmart-glass #content :is(.toolbar input,.toolbar select,.month-select,.login-audit-toolbar select){
+  background:var(--glass-panel-input);
+  border-color:rgba(134,162,200,.36);
+}
+body.gsmart-glass #content .table-wrap{
+  background:rgba(255,255,255,.42);
+  border-color:rgba(147,174,207,.28);
+}
+body.gsmart-glass #content .dashboard-metrics .card{
+  /* Keep original eight solid Vivid KPI colors. */
+  border:1px solid rgba(255,255,255,.24);
+  box-shadow:0 9px 23px rgba(20,55,97,.13);
+}
+body.gsmart-glass .gita-greeting,
+body.gsmart-glass .gita-assistant-welcome,
+body.gsmart-glass .command-palette{
+  background:rgba(248,252,255,.87);
+  border:1px solid rgba(255,255,255,.86);
+  -webkit-backdrop-filter:blur(13px);
+  backdrop-filter:blur(13px);
+}
+body.gsmart-glass .gsmart-preview-note{
+  border-color:rgba(167,217,255,.47);
+  background:rgba(7,33,65,.84);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+}
+.gsmart-preview-note #glassPreviewToggle{
+  flex:0 0 auto;
+  padding:5px 9px;
+  border-radius:8px;
+  border:1px solid rgba(131,226,255,.47);
+  background:rgba(21,99,160,.72);
+  color:#F1FBFF;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.2;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.gsmart-preview-note #glassPreviewToggle[aria-pressed="false"]{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(208,224,240,.34);
+  color:#D0E0F1;
+}
+.gsmart-preview-note #glassPreviewToggle:focus-visible{
+  outline:2px solid #A1EDFF;
+  outline-offset:2px;
+}
+
+/* Dark Glass: deep-navy translucent surface, high contrast text. */
+body.gsmart-glass.pref-theme-dark{
+  --glass-panel:rgba(24,45,72,.78);
+  --glass-panel-strong:rgba(22,44,73,.88);
+  --glass-panel-input:rgba(24,49,78,.9);
+  --glass-stroke:rgba(127,176,226,.25);
+  --glass-subtle-line:rgba(119,166,213,.22);
+  --glass-shadow:0 16px 36px rgba(2,9,24,.29),inset 0 1px 0 rgba(192,224,255,.075);
+}
+body.gsmart-glass.pref-theme-dark .app-shell main{
+  background:
+    radial-gradient(ellipse 640px 470px at 89% 6%,rgba(55,114,220,.28),transparent 76%),
+    radial-gradient(ellipse 500px 420px at 12% 68%,rgba(36,153,187,.15),transparent 75%),
+    radial-gradient(ellipse 420px 350px at 75% 95%,rgba(111,67,171,.19),transparent 80%),
+    linear-gradient(145deg,#0B1A31 0%,#10243F 58%,#171E3D 100%)!important;
+}
+body.gsmart-glass.pref-theme-dark .topbar{
+  background:rgba(15,32,56,.77)!important;
+  border-bottom-color:rgba(124,170,218,.24)!important;
+  box-shadow:0 8px 24px rgba(0,9,26,.26);
+}
+body.gsmart-glass.pref-theme-dark .topbar :is(.month-select,#refreshDataBtn,#menuBtn){
+  background:rgba(33,62,95,.75);
+  border-color:rgba(143,183,226,.24);
+  color:#F0F7FF;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-glass.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-glass.pref-theme-dark .health-card{
+  background:var(--glass-panel)!important;
+  border-color:var(--glass-stroke)!important;
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content .prefs-menu{
+  background:var(--glass-panel-strong)!important;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-glass.pref-theme-dark #content .prefs-option:not(.selected){
+  background:rgba(23,49,78,.74)!important;
+  border-color:rgba(126,170,217,.28);
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.toolbar input,.toolbar select,.month-select,.login-audit-toolbar select){
+  background:rgba(22,50,81,.84);
+  border-color:rgba(125,175,221,.29);
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content .table-wrap{
+  background:rgba(13,33,55,.52);
+  border-color:rgba(125,175,221,.22);
+}
+body.gsmart-glass.pref-theme-dark .prefs-item:is(:hover,:focus-visible){
+  background:rgba(50,87,128,.50)!important;
+}
+body.gsmart-glass.pref-theme-dark .gita-greeting,
+body.gsmart-glass.pref-theme-dark .gita-assistant-welcome,
+body.gsmart-glass.pref-theme-dark .command-palette{
+  background:rgba(20,42,68,.92);
+  border-color:rgba(138,188,230,.28);
+  color:#EDF7FF;
+}
+
+/* Mobile devices: reduce blur and shadows for smooth scrolling. */
+@media(max-width:800px){
+  body.gsmart-glass .sidebar{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  body.gsmart-glass .topbar{-webkit-backdrop-filter:blur(11px);backdrop-filter:blur(11px)}
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+  body.gsmart-glass #content .cards:not(.dashboard-metrics) .card{
+    -webkit-backdrop-filter:blur(7px);
+    backdrop-filter:blur(7px);
+    box-shadow:0 8px 21px rgba(15,50,93,.11);
+  }
+}
+@media(max-width:520px){
+  .gsmart-preview-note #glassPreviewToggle{padding:5px 7px;font-size:10px}
+}
+/* Graceful fallback: solid enough without backdrop-filter support. */
+@supports not (backdrop-filter:blur(2px)){
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    background:rgba(255,255,255,.94)!important;
+  }
+  body.gsmart-glass.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    background:rgba(21,42,67,.96)!important;
+  }
+}
+@media print{
+  body.gsmart-glass .app-shell main{background:white!important}
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.prefs-panel){
+    background:white!important;
+    box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
+
+
+/* G-SMART SKEUOMORPHIC EDITION V1
+   Tactile / instrument-panel surfaces, deliberately scoped to the Preview
+   body class. No behavioral or operational changes. */
+body.gsmart-skeuo{
+  --skeuo-plate:#e6edf5;
+  --skeuo-edge:#b9c7d8;
+  --skeuo-ink:#142c47;
+  --skeuo-metal-highlight:rgba(255,255,255,.96);
+  --skeuo-shadow:inset 0 2px 0 rgba(255,255,255,.98),
+    inset 0 -3px 1px rgba(90,117,147,.17),
+    0 6px 0 rgba(99,127,158,.13),
+    0 12px 24px rgba(23,50,85,.13);
+}
+body.gsmart-skeuo .app-shell main{
+  background:linear-gradient(145deg,#d8e2ed 0%,#edf2f7 51%,#d9e6f1 100%)!important;
+}
+body.gsmart-skeuo #content{
+  background:transparent!important;
+}
+body.gsmart-skeuo .sidebar{
+  background:repeating-linear-gradient(180deg,transparent 0,transparent 3px,rgba(255,255,255,.012) 4px),
+    linear-gradient(105deg,#233f5d 0%,#102942 14%,#0b223c 64%,#173754 100%)!important;
+  border-right:3px ridge #6483a3;
+  box-shadow:inset -3px 0 0 rgba(4,14,29,.5),inset 3px 0 0 rgba(205,233,255,.16),
+    9px 0 19px rgba(14,35,65,.22);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+body.gsmart-skeuo .sidebar .nav-btn{
+  border:1px solid transparent;
+  border-radius:10px;
+  text-shadow:0 1px 1px rgba(0,0,0,.15);
+}
+body.gsmart-skeuo .sidebar .nav-btn.active{
+  background:linear-gradient(180deg,#40739f,#1b456d 45%,#12385f)!important;
+  color:#f4faff;
+  border-color:#7194b4;
+  box-shadow:inset 0 1px 0 rgba(222,242,255,.4),
+    inset 0 -3px 4px rgba(0,17,39,.32),
+    0 3px 6px rgba(0,13,32,.24)!important;
+}
+body.gsmart-skeuo .topbar{
+  background:linear-gradient(180deg,#ffffff 0%,#f3f6fa 37%,#d7e2ed 100%)!important;
+  border-bottom:2px solid #bdcddd!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 13px rgba(31,69,107,.18);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+body.gsmart-skeuo .topbar h2{
+  color:#16334f;
+  text-shadow:0 1px 0 #fff;
+}
+body.gsmart-skeuo .topbar :is(#menuBtn,#refreshDataBtn,.month-select),
+body.gsmart-skeuo #content :is(.toolbar select,.toolbar input,.login-audit-toolbar select),
+body.gsmart-skeuo #content .prefs-option:not(.selected){
+  background:linear-gradient(180deg,#fff 0%,#f4f7fb 54%,#e3ebf3 100%)!important;
+  border:1px solid #acbfd4!important;
+  color:#244363;
+  box-shadow:inset 0 1px 0 #fff,inset 0 -2px 2px rgba(87,112,142,.12),0 3px 4px rgba(31,64,95,.10);
+  border-radius:10px;
+}
+body.gsmart-skeuo #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-skeuo #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-skeuo .health-card{
+  background:linear-gradient(157deg,#ffffff 0%,#f7fafe 41%,#e9f0f7 100%)!important;
+  border:1px solid var(--skeuo-edge)!important;
+  border-top-color:#fff!important;
+  border-radius:17px;
+  box-shadow:var(--skeuo-shadow)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+body.gsmart-skeuo #content .prefs-menu{
+  overflow:hidden;
+}
+body.gsmart-skeuo #content .prefs-item{
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(219,231,245,.30))!important;
+  border-bottom:1px solid #cad6e4;
+  color:var(--skeuo-ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+}
+body.gsmart-skeuo #content .prefs-item:is(:hover,:focus-visible){
+  background:linear-gradient(180deg,#f4faff,#d9e8f6)!important;
+}
+body.gsmart-skeuo #content .prefs-item-icon{
+  background:linear-gradient(150deg,#ffffff,#cddff4);
+  border:1px solid #b0c9e6;
+  box-shadow:inset 0 2px 0 white,0 3px 5px rgba(55,89,129,.15);
+  border-radius:12px;
+}
+body.gsmart-skeuo #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-skeuo #content .table-wrap{
+  background:linear-gradient(180deg,#e5edf6,#f5f8fc)!important;
+  border:1px solid #c0cede!important;
+  border-radius:12px;
+  box-shadow:inset 0 2px 6px rgba(43,78,112,.12),inset 0 1px 2px rgba(39,72,102,.08);
+}
+body.gsmart-skeuo #content .prefs-option.selected,
+body.gsmart-skeuo #content .action-btn{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 -3px 3px rgba(0,32,90,.18),0 3px 0 rgba(4,52,136,.24),
+    0 5px 9px rgba(22,68,132,.16);
+}
+body.gsmart-skeuo #content .prefs-option:active,
+body.gsmart-skeuo #content .action-btn:active,
+body.gsmart-skeuo .topbar .icon-btn:active{
+  transform:translateY(2px);
+  box-shadow:inset 0 2px 5px rgba(35,63,95,.23),0 1px 1px rgba(26,66,112,.13);
+}
+body.gsmart-skeuo #content .dashboard-metrics .card{
+  /* Preserve each original solid Vivid color; only give it tactile depth. */
+  border:1px solid rgba(255,255,255,.35)!important;
+  border-top-color:rgba(255,255,255,.68)!important;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.36),
+    inset 0 -5px 3px rgba(5,22,43,.15),
+    0 5px 0 rgba(52,80,112,.20),
+    0 10px 17px rgba(24,52,85,.19)!important;
+  border-radius:17px;
+}
+body.gsmart-skeuo #content .dashboard-metrics .card:active{
+  transform:translateY(2px);
+}
+body.gsmart-skeuo #content .dashboard-hero{
+  border:2px ridge rgba(186,218,255,.52);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.17),
+    inset 0 -5px 10px rgba(1,20,48,.16),0 7px 12px rgba(19,55,92,.17);
+}
+body.gsmart-skeuo #content .data-table thead th,
+body.gsmart-skeuo #content .health-table thead th{
+  background:linear-gradient(180deg,#f9fcff,#dde7f2)!important;
+  color:#37536e;
+  text-shadow:0 1px 0 white;
+  border-bottom:1px solid #b8c9da;
+}
+body.gsmart-skeuo #content .gsmart-hub-fields>div{
+  border-bottom-color:#cdd9e6;
+}
+body.gsmart-skeuo .gita-greeting,
+body.gsmart-skeuo .gita-assistant-welcome,
+body.gsmart-skeuo .command-palette{
+  background:linear-gradient(155deg,#fff,#e6edf6);
+  border:1px solid #bdccdc;
+  box-shadow:inset 0 2px 0 white,0 9px 20px rgba(22,52,82,.20);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+body.gsmart-skeuo .gsmart-preview-note{
+  background:linear-gradient(180deg,#173657,#0a2441);
+  border:1px solid #6c8aa8;
+  box-shadow:inset 0 1px 0 rgba(224,243,255,.32),0 4px 12px rgba(4,25,56,.24);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+
+/* Dark metallic edition, not light buttons with unreadable text. */
+body.gsmart-skeuo.pref-theme-dark{
+  --skeuo-edge:#45617c;
+  --skeuo-shadow:inset 0 2px 0 rgba(174,208,246,.14),
+    inset 0 -3px 2px rgba(0,8,25,.37),
+    0 5px 0 rgba(2,13,30,.35),0 12px 24px rgba(2,10,24,.34);
+}
+body.gsmart-skeuo.pref-theme-dark .app-shell main{
+  background:linear-gradient(145deg,#071729,#112945 46%,#0b1b30 100%)!important;
+}
+body.gsmart-skeuo.pref-theme-dark .topbar{
+  background:linear-gradient(180deg,#284565,#132c48 62%,#0c243e)!important;
+  border-bottom-color:#3e617d!important;
+  box-shadow:inset 0 1px 0 rgba(186,214,243,.23),0 4px 13px rgba(0,8,24,.37);
+}
+body.gsmart-skeuo.pref-theme-dark .topbar h2{
+  color:#EDF6FF;
+  text-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+body.gsmart-skeuo.pref-theme-dark .topbar :is(#menuBtn,#refreshDataBtn,.month-select),
+body.gsmart-skeuo.pref-theme-dark #content :is(.toolbar select,.toolbar input,.login-audit-toolbar select),
+body.gsmart-skeuo.pref-theme-dark #content .prefs-option:not(.selected){
+  background:linear-gradient(180deg,#345371,#203b58 60%,#192e48)!important;
+  border:1px solid #5f7e9c!important;
+  box-shadow:inset 0 1px 0 rgba(200,226,251,.18),
+    inset 0 -2px 2px rgba(0,8,22,.30),0 3px 4px rgba(0,10,28,.27);
+  color:#EDF7FF;
+}
+body.gsmart-skeuo.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-skeuo.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-skeuo.pref-theme-dark .health-card{
+  background:linear-gradient(155deg,#2a435e,#1c354e 55%,#172e48)!important;
+  border-color:#536d85!important;
+  border-top-color:#7693ad!important;
+  color:#EAF4FF;
+}
+body.gsmart-skeuo.pref-theme-dark #content .prefs-item{
+  background:linear-gradient(180deg,#2b4560,#223c55)!important;
+  border-bottom-color:#49647d;
+  color:#EEF7FF;
+  box-shadow:inset 0 1px 0 rgba(183,219,248,.11);
+}
+body.gsmart-skeuo.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){
+  background:linear-gradient(180deg,#375b79,#294964)!important;
+}
+body.gsmart-skeuo.pref-theme-dark #content .prefs-item-icon{
+  background:linear-gradient(160deg,#3c6488,#1a405e);
+  border-color:#688fb1;
+  box-shadow:inset 0 1px 0 rgba(189,221,252,.27),0 3px 7px rgba(0,6,15,.25);
+  color:#A5DAFF;
+}
+body.gsmart-skeuo.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-skeuo.pref-theme-dark #content .table-wrap{
+  background:linear-gradient(180deg,#142b43,#20384f)!important;
+  border-color:#435f79!important;
+  box-shadow:inset 0 3px 9px rgba(0,4,15,.28),inset 0 1px 1px rgba(0,0,0,.24);
+  color:#EAF4FF;
+}
+body.gsmart-skeuo.pref-theme-dark #content .data-table thead th,
+body.gsmart-skeuo.pref-theme-dark #content .health-table thead th{
+  background:linear-gradient(180deg,#314f6b,#203a56)!important;
+  color:#DCEEFF;
+  text-shadow:none;
+  border-bottom-color:#4e6986;
+}
+body.gsmart-skeuo.pref-theme-dark #content .gsmart-hub-fields>div{
+  border-bottom-color:#49637d;
+}
+body.gsmart-skeuo.pref-theme-dark .gita-greeting,
+body.gsmart-skeuo.pref-theme-dark .gita-assistant-welcome,
+body.gsmart-skeuo.pref-theme-dark .command-palette{
+  background:linear-gradient(155deg,#2b4866,#162d49);
+  border-color:#6481a0;
+  box-shadow:inset 0 2px 0 rgba(206,235,255,.14),0 8px 20px rgba(0,6,19,.39);
+  color:#EAF4FF;
+}
+/* Mobile readability: retain existing dark card override, preserve compact layout. */
+@media(max-width:760px){
+  body.gsmart-skeuo .responsive-table .data-table tbody tr{
+    border:1px solid #bfd0df;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.92),
+      inset 0 -2px 3px rgba(58,93,127,.08),
+      0 5px 0 rgba(73,105,138,.10),
+      0 7px 12px rgba(24,59,89,.10);
+  }
+  body.gsmart-skeuo.pref-theme-dark .responsive-table .data-table tbody tr{
+    background:#213b56!important;
+    border-color:#55718c;
+    box-shadow:inset 0 1px 0 rgba(174,207,241,.15),
+      inset 0 -2px 3px rgba(0,11,27,.24),
+      0 6px 13px rgba(0,6,22,.25);
+  }
+  body.gsmart-skeuo.pref-theme-dark .responsive-table .data-table td{
+    color:#F0F6FF!important;
+  }
+}
+@media(max-width:520px){
+  body.gsmart-skeuo #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.52),
+      inset 0 -2px 2px rgba(68,91,120,.12),0 4px 9px rgba(17,45,80,.10)!important;
+  }
+  body.gsmart-skeuo.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    box-shadow:inset 0 1px 0 rgba(173,208,245,.13),
+      inset 0 -2px 2px rgba(0,0,0,.24),0 5px 11px rgba(0,4,19,.23)!important;
+  }
+}
+@media print{
+  body.gsmart-skeuo .app-shell main{background:#fff!important}
+  body.gsmart-skeuo #content :is(.panel,.prefs-menu,.prefs-panel,.card){box-shadow:none!important}
+}
+
+
+
+/* 1. NEO-BRUTALISM — high contrast, hard offsets, expressive geometry. */
+body.gsmart-brutal{--brutal-ink:#17253B;--brutal-line:#17253B;--brutal-paper:#FFF9E9;--brutal-shadow:5px 5px 0 #17253B}
+body.gsmart-brutal .app-shell main{
+ background:radial-gradient(circle,#C8D5E3 1.3px,transparent 1.5px) 0 0/19px 19px,
+ linear-gradient(135deg,#FFFBE9,#F7FBFF 70%,#F4E9FF)!important
+}
+body.gsmart-brutal #content{background:transparent!important}
+body.gsmart-brutal .sidebar{
+ background:#19253E!important;border-right:4px solid #091326;
+ box-shadow:6px 0 0 #FBD447!important
+}
+body.gsmart-brutal .sidebar .nav-btn{border-radius:4px;font-weight:800}
+body.gsmart-brutal .sidebar .nav-btn.active{
+ background:#FCE55B!important;color:#17253B!important;
+ border:2px solid #0D1D35;box-shadow:3px 3px 0 #FF6C99!important
+}
+body.gsmart-brutal .topbar{
+ background:#FBF4D5!important;border-bottom:3px solid var(--brutal-line)!important;
+ box-shadow:0 5px 0 #F49AB6!important;-webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-brutal .topbar h2{font-weight:950;letter-spacing:-.04em;color:#17253B}
+body.gsmart-brutal #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-brutal #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-brutal .health-card{
+ background:#FFFDF6!important;
+ border:3px solid var(--brutal-line)!important;
+ border-radius:7px!important;
+ box-shadow:var(--brutal-shadow)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+body.gsmart-brutal #content .prefs-item{
+ border-bottom:2px solid #17253B!important;
+ background:#FFFDF6!important;
+ font-weight:800
+}
+body.gsmart-brutal #content .prefs-item:is(:hover,:focus-visible){background:#FFF1A9!important}
+body.gsmart-brutal #content .prefs-item-icon{
+ border:2px solid #17253B;border-radius:6px;background:#B4ECFB;
+ box-shadow:3px 3px 0 #17253B;color:#17253B
+}
+body.gsmart-brutal #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-brutal #content .table-wrap{
+ background:#E9F5FA!important;border:2px solid #17253B!important;
+ border-radius:5px;box-shadow:inset 0 2px 0 rgba(23,37,59,.10)
+}
+body.gsmart-brutal #content :is(.prefs-option,.action-btn,.quick-btn,.hero-search-btn),
+body.gsmart-brutal .topbar :is(#menuBtn,#refreshDataBtn,.month-select){
+ border:2px solid #17253B!important;border-radius:5px!important;
+ box-shadow:3px 3px 0 #17253B!important;font-weight:850
+}
+body.gsmart-brutal #content .prefs-option.selected{background:#FDE254!important;color:#17253B}
+body.gsmart-brutal #content :is(.prefs-option,.action-btn,.quick-btn):active{
+ transform:translate(3px,3px);box-shadow:0 0 0 #17253B!important
+}
+body.gsmart-brutal #content .dashboard-metrics .card{
+ border:2px solid #17253B!important;border-radius:7px!important;
+ box-shadow:5px 5px 0 #17253B!important
+}
+body.gsmart-brutal #content .dashboard-metrics .card:nth-child(1){transform:rotate(-.4deg)}
+body.gsmart-brutal #content .dashboard-metrics .card:nth-child(4){transform:rotate(.4deg)}
+body.gsmart-brutal #content .dashboard-hero{
+ border:3px solid #17253B;border-radius:7px;box-shadow:7px 7px 0 #F49AB6!important
+}
+body.gsmart-brutal #content .rail-icon{border:2px solid #17253B;border-radius:4px}
+body.gsmart-brutal #content .data-table th,
+body.gsmart-brutal #content .health-table th{
+ background:#FDEB9E!important;color:#17253B;border-bottom:2px solid #17253B
+}
+body.gsmart-brutal .gsmart-preview-note{border:2px solid #FDE254;background:#17253B;border-radius:5px}
+body.gsmart-brutal .gita-greeting{border:3px solid #17253B;box-shadow:5px 5px 0 #FF82AB}
+body.gsmart-brutal.pref-theme-dark{
+ --brutal-line:#0A1529;--brutal-shadow:5px 5px 0 #020C19
+}
+body.gsmart-brutal.pref-theme-dark .app-shell main{
+ background:radial-gradient(circle,rgba(163,196,238,.10) 1.3px,transparent 1.5px) 0 0/19px 19px,
+ linear-gradient(135deg,#142441,#0D1A31)!important
+}
+body.gsmart-brutal.pref-theme-dark .topbar{background:#223A5B!important;border-bottom-color:#FDE254!important}
+body.gsmart-brutal.pref-theme-dark .topbar h2{color:#FFF5BC}
+body.gsmart-brutal.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-brutal.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-brutal.pref-theme-dark .health-card{
+ background:#203753!important;border:2px solid #90B6DB!important;color:#F0F7FF;
+ box-shadow:5px 5px 0 #030B19!important
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-item{
+ background:#203753!important;border-bottom-color:#5A83AA!important;color:#F2F8FF
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#2C5076!important}
+body.gsmart-brutal.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-brutal.pref-theme-dark #content .table-wrap{
+ background:#152944!important;border-color:#6E94B6!important;color:#F0F7FF
+}
+body.gsmart-brutal.pref-theme-dark #content :is(.prefs-option,.quick-btn){
+ background:#2A4769!important;color:#EDF5FF;border-color:#A0C6E6!important;box-shadow:3px 3px 0 #041223!important
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-option.selected{background:#FDE254!important;color:#13263D!important}
+body.gsmart-brutal.pref-theme-dark #content :is(.data-table th,.health-table th){
+ background:#345273!important;color:#EDF7FF;border-bottom-color:#A5C2E2
+}
+
+
+
+/* 3. ILLUSTRATIVE — friendly hand-drawn transport scene and pastel accents. */
+body.gsmart-illustrative .app-shell main{
+ background:
+ radial-gradient(ellipse at 5% 21%,rgba(255,189,130,.33),transparent 37%),
+ radial-gradient(ellipse at 100% 55%,rgba(156,211,248,.30),transparent 37%),
+ #FBF8F2!important
+}
+body.gsmart-illustrative #content{background:transparent!important}
+body.gsmart-illustrative .sidebar{
+ background:linear-gradient(165deg,#28587A,#20445F 65%,#193852)!important;
+ box-shadow:5px 0 0 #C3E6D9!important
+}
+body.gsmart-illustrative .sidebar .nav-btn{border-radius:14px}
+body.gsmart-illustrative .sidebar .nav-btn.active{
+ background:#FFE3A6!important;color:#284565!important;
+ box-shadow:inset 0 0 0 2px #F7BC70!important
+}
+body.gsmart-illustrative .topbar{
+ background:#FFF8E8!important;border-bottom:2px dashed #E5BF8E!important;
+ box-shadow:0 5px 12px rgba(120,80,42,.07);
+ -webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-illustrative .topbar h2{color:#344B64;font-weight:850}
+body.gsmart-illustrative #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-illustrative #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-illustrative .health-card{
+ background:#FFFEF9!important;border:2px solid #E8D9C7!important;
+ border-radius:23px 19px 24px 17px;
+ box-shadow:0 8px 0 rgba(245,216,177,.42),0 13px 24px rgba(66,91,107,.08)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+body.gsmart-illustrative #content .dashboard-hero{
+ background:#AEE1E9!important;border:3px solid #EED7BC;
+ border-radius:26px!important;
+ box-shadow:0 8px 0 #F5DBBF!important;
+ isolation:isolate;
+}
+body.gsmart-illustrative #content .dashboard-hero .hero-building-bg{
+ inset:0!important;transform:none!important;animation:none!important;
+ background:url('./gsmart-illustrative-city.svg') center 50%/cover no-repeat!important;
+ filter:none!important;opacity:1
+}
+body.gsmart-illustrative #content .dashboard-hero:before{
+ background:linear-gradient(90deg,rgba(17,61,91,.89) 0%,rgba(28,90,117,.68) 49%,rgba(25,90,113,.08) 100%)!important
+}
+body.gsmart-illustrative #content .dashboard-hero:after{
+ background:radial-gradient(circle at 16% 100%,rgba(255,255,255,.12),transparent 42%)!important;
+ pointer-events:none
+}
+body.gsmart-illustrative #content .hero-search-btn{
+ background:#FFE8A4!important;border:2px solid #AB854B!important;color:#304B60!important;
+ border-radius:16px!important;box-shadow:0 3px 0 #BF925E
+}
+body.gsmart-illustrative #content .prefs-item{
+ background:#FFFEF9!important;border-bottom:1px dashed #E4D4BD
+}
+body.gsmart-illustrative #content .prefs-item:is(:hover,:focus-visible){background:#FFF4DC!important}
+body.gsmart-illustrative #content .prefs-item-icon{
+ border-radius:16px 13px 15px 12px!important;background:#DBF3E8;
+ border:2px solid #B3DFD0;box-shadow:0 3px 0 #BCD9D0
+}
+body.gsmart-illustrative #content .prefs-item:nth-child(3n+2) .prefs-item-icon{background:#FFE7D9;border-color:#FFC9A9}
+body.gsmart-illustrative #content .prefs-item:nth-child(3n) .prefs-item-icon{background:#E8E3FF;border-color:#CEC2FF}
+body.gsmart-illustrative #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-illustrative #content .table-wrap{
+ background:#F1F8F1!important;border:1px dashed #BAD7C3!important;border-radius:17px
+}
+body.gsmart-illustrative #content .dashboard-metrics .card{
+ border:2px solid rgba(255,255,255,.73)!important;border-radius:23px 17px 22px 18px;
+ box-shadow:0 6px 0 rgba(100,127,133,.12)!important
+}
+body.gsmart-illustrative #content .rail-icon{border-radius:16px 11px 15px 11px}
+body.gsmart-illustrative #content :is(.prefs-option,.action-btn,.quick-btn){
+ border-radius:15px;box-shadow:0 3px 0 rgba(135,149,139,.16)
+}
+body.gsmart-illustrative .gita-greeting{
+ background:#FFF6E9;border:2px solid #E3C59E;border-radius:19px;box-shadow:0 6px 0 #EDDCC6
+}
+body.gsmart-illustrative .gsmart-preview-note{background:#29526F;border:2px solid #C0E3D9}
+body.gsmart-illustrative.pref-theme-dark .app-shell main{
+ background:radial-gradient(ellipse at 0% 26%,rgba(90,129,168,.18),transparent 40%),#15283D!important
+}
+body.gsmart-illustrative.pref-theme-dark .topbar{background:#253F57!important;border-bottom-color:#708A95!important}
+body.gsmart-illustrative.pref-theme-dark .topbar h2{color:#FFF0CF}
+body.gsmart-illustrative.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-illustrative.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-illustrative.pref-theme-dark .health-card{
+ background:#233B53!important;border-color:#547084!important;color:#EEF6FF;
+ box-shadow:0 6px 0 rgba(8,22,37,.45)!important
+}
+body.gsmart-illustrative.pref-theme-dark #content .prefs-item{
+ background:#233B53!important;border-bottom-color:#4F6D7F;color:#EEF6FF
+}
+body.gsmart-illustrative.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#305472!important}
+body.gsmart-illustrative.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-illustrative.pref-theme-dark #content .table-wrap{
+ background:#182F47!important;border-color:#63858E!important;color:#EDF6FF
+}
+body.gsmart-illustrative.pref-theme-dark #content :is(.data-table th,.health-table th){
+ background:#305168!important;color:#E8F6FF
+}
+
+
+
+
+/* Responsive adjustments retained for the approved design options. */
+@media(max-width:760px){
+ body.gsmart-brutal #content .dashboard-metrics .card{box-shadow:3px 3px 0 #17253B!important}
+ body.gsmart-brutal.pref-theme-dark #content .dashboard-metrics .card{box-shadow:3px 3px 0 #030B19!important}
+ body.gsmart-illustrative #content .dashboard-hero{min-height:210px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.gsmart-brutal #content .dashboard-metrics .card,
+ body.gsmart-illustrative #content .dashboard-metrics .card{transition:none!important}
+}
+@media print{
+ body.gsmart-brutal #content :is(.panel,.prefs-menu,.prefs-panel),
+ body.gsmart-illustrative #content :is(.panel,.prefs-menu,.prefs-panel){box-shadow:none!important}
+}
