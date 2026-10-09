@@ -57,7 +57,16 @@
   <section class="card">
    <h2><span class="step">2</span> Uji pemberitahuan di HP</h2>
    <p>Tekan tombol untuk mengizinkan notifikasi dan menampilkan <b>pesan percobaan lokal</b>. Ini menguji izin perangkat, <b>belum</b> membuktikan pengiriman Firebase dari internet.</p>
-   <button id="localBtn" class="primary" type="button">🔔 Tampilkan Notifikasi Uji</button>
+   <div class="row">
+    <button id="localBtn" class="primary" type="button">🔔 Tampilkan Notifikasi Uji</button>
+    <button id="diagBtn" type="button">Periksa Notifikasi Tercatat</button>
+   </div>
+   <div class="chips"><span class="chip" id="seenStatus">Catatan browser: belum diperiksa</span></div>
+   <p class="small">Jika status browser menunjukkan notifikasi tercatat tetapi tidak terlihat di HP, periksa izin notifikasi aplikasi browser pada pengaturan Android.</p>
+   <div class="notice warn">
+    <strong>Microsoft Edge di Android</strong>
+    Buka <b>Pengaturan HP → Aplikasi → Microsoft Edge → Notifikasi</b>. Pastikan <b>Izinkan notifikasi</b> aktif, termasuk kategori notifikasi situs jika tersedia. Periksa pula mode Jangan Ganggu. Di Edge, buka <b>Pengaturan → Izin situs → Notifikasi</b> dan izinkan situs <b>uppkb-guyangan.github.io</b>. Nama menu dapat berbeda menurut perangkat.
+   </div>
   </section>
   <section class="card">
    <h2><span class="step">3</span> Hubungkan Firebase Cloud Messaging</h2>
@@ -78,6 +87,6 @@
   </section>
   <div class="notice warn"><strong>Catatan perangkat Apple</strong>Pada iPhone/iPad, notifikasi web umumnya memerlukan situs yang ditambahkan ke Layar Utama dan dibuka sebagai aplikasi (iOS/iPadOS 16.4+). Dukungan FCM Web tetap harus diperiksa pada browser perangkat.</div>
  </main>
- <script type="module" src="./push-test.js?v=1"></script>
+ <script type="module" src="./push-test.js?v=2"></script>
 </body>
 </html>

@@ -81,19 +81,53 @@ async function getLabRegistration() {
   registration=reg;
   return reg;
 }
+async function diagnoseNotifications() {
+  const el=$("seenStatus");
+  el.textContent="Catatan browser: memeriksa...";
+  try {
+    const reg=await navigator.serviceWorker.getRegistration(base.href);
+    if(!reg || reg.scope!==base.href || !reg.active){
+      el.textContent="Catatan browser: worker uji belum aktif";
+      el.className="chip bad";
+      log("DIAGNOSIS: Worker uji tidak aktif. Tekan 'Tampilkan Notifikasi Uji' untuk mengaktifkannya kembali.");
+      return;
+    }
+    if(typeof reg.getNotifications!=="function"){
+      el.textContent="Catatan browser: pemeriksaan tidak didukung";
+      log("DIAGNOSIS: Browser tidak menyediakan getNotifications().");
+      return;
+    }
+    const all=await reg.getNotifications();
+    const count=all.filter(n=>(n.tag||"").startsWith("gsmart-preview-local-test")).length;
+    el.textContent="Catatan browser: "+count+" notifikasi uji";
+    el.className=count?"chip good":"chip bad";
+    if(count){
+      log("DIAGNOSIS: "+count+" notifikasi uji tercatat oleh browser, tetapi ini BELUM membuktikan Android menampilkannya. Jika panel HP kosong, periksa izin notifikasi Microsoft Edge di Android.");
+    }else{
+      log("DIAGNOSIS: Tidak ada notifikasi uji yang masih tercatat. Bisa karena sudah ditutup, ditolak, atau dibersihkan oleh Android/browser.");
+    }
+  } catch(e){
+    el.textContent="Catatan browser: gagal diperiksa";
+    el.className="chip bad";
+    log("GAGAL diagnosis: "+errorText(e));
+  }
+}
 async function testLocal() {
   const button=$("localBtn");
   button.disabled=true;
   try {
     await askPermission();
     const reg = await getLabRegistration();
+    const testId="gsmart-preview-local-test-"+Date.now();
     await reg.showNotification("G-Smart · Notifikasi Uji",{
-      body:"Tes dari halaman uji berhasil. Belum dikirim melalui Firebase.",
+      body:"Percobaan lokal. Jika tidak terlihat, periksa notifikasi Edge di pengaturan HP.",
       icon:new URL("../G-SMART%20Traffic%20Monitoring%20Emblem.png", base).href,
-      tag:"gsmart-preview-local-test",
+      tag:testId,
+      requireInteraction:true,
       data:{url:base.href}
     });
-    log("Notifikasi lokal berhasil diminta tampil. Periksa panel notifikasi HP.");
+    log("Perintah tampil telah diterima browser. Belum berarti notifikasi terlihat pada HP.");
+    await diagnoseNotifications();
   } catch(e) {log("GAGAL tes lokal: "+errorText(e))}
   finally {button.disabled=false}
 }
@@ -164,6 +198,7 @@ async function cleanup() {
 }
 $("checkBtn").addEventListener("click",()=>{checkSupport().catch(e=>log(errorText(e)))});
 $("localBtn").addEventListener("click",testLocal);
+$("diagBtn").addEventListener("click",diagnoseNotifications);
 $("tokenBtn").addEventListener("click",registerFcm);
 $("copyBtn").addEventListener("click",copyToken);
 $("cleanupBtn").addEventListener("click",cleanup);
