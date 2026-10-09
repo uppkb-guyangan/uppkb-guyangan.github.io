@@ -3,6 +3,15 @@ on:
   schedule:
     - cron: '13,43 * * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'run (ETLE normal) atau ping (satu pesan ke PWA utama)'
+        type: choice
+        options:
+          - run
+          - ping
+        required: true
+        default: run
 permissions:
   contents: read
 concurrency:
@@ -22,5 +31,6 @@ jobs:
           SUPABASE_URL: https://pszyqzzqlzdgeefivydz.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PUSH_MODE: ${{ inputs.mode || 'run' }}
         run: node scripts/push-production.mjs
 # Strictly server-side job, no Firebase Auth/browser SW modifications.

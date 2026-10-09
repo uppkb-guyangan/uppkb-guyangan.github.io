@@ -148,7 +148,23 @@ async function notify(access,device,event){
  if(!res.ok)throw Error("FCM HTTP "+res.status);
 }
 export async function runProduction(){
+ const mode=(process.env.PUSH_MODE||"run").trim();
+ if(!["run","ping"].includes(mode))throw Error("Mode Push Production tidak diizinkan.");
  const store=database();
+ if(mode==="ping"){
+   // Ping main PWA device; no ETLE reads or ledger writes.
+   const devices=await store.devices();
+   if(devices.length!==1)throw Error("Ping memerlukan tepat 1 perangkat PWA aktif; terdaftar: "+devices.length);
+   const account=JSON.parse(required("FIREBASE_SERVICE_ACCOUNT_JSON"));
+   const access=await oauth(account);
+   await notify(access,devices[0],{
+     event_key:"gsmart-pwa-ping:"+Date.now(),
+     event_type:"pwa_ping",case_id:"",
+     title:"G-Smart · Uji Notifikasi PWA",
+     body:"Pesan uji langsung ke G-Smart PWA utama. Tidak ada data ETLE yang diubah."
+   });
+   return {mode:"ping",sent:1,recipients:1,source:"registered-main-pwa",etleDataRead:false,etleDataModified:false,deliveryLedgerModified:false};
+ }
  const current=snapshot(await store.data());
  const before=await store.cursor();
  if(before===null){
