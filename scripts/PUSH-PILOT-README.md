@@ -1,0 +1,33 @@
+# G-Smart Push Pilot — Pengujian Terisolasi
+
+Status: TERKUNCI, tanpa jadwal dan tanpa pengiriman otomatis.
+Gunakan GitHub Actions workflow G-Smart Push Pilot (Terkunci).
+
+### Sumber ETLE
+Blanko: etle_cases.no_blanko.
+Sanggahan: etle_disputes berstatus TERSANGGAH, tanpa perkara dihentikan.
+JNE: etle_shipping berubah dari status sebelumnya ke Dalam Proses Pengiriman.
+
+### GitHub Secrets — simpan di Settings > Secrets and variables > Actions
+SUPABASE_SERVICE_ROLE_KEY: kunci server Supabase, bukan publishable key.
+FIREBASE_SERVICE_ACCOUNT_JSON: JSON kredensial akun layanan untuk proyek g-smart-guyangan.
+GSMART_PILOT_FCM_TOKEN: token FCM khusus satu HP uji dari Laboratorium Notifikasi.
+JANGAN memasukkan secrets ke file GitHub, kode browser, atau percakapan.
+
+### Urutan aktivasi
+1. Test (tanpa rahasia): uji logika lokal saja.
+2. Inspect: baca data dan perubahan sejak baseline tanpa perubahan database.
+3. Baseline: simpan keadaan terkini sebagai titik awal, TANPA pengiriman notifikasi lama; hanya sekali.
+4. Pilot: baru setelah tiga secrets siap. Maksimal 3 pesan ke SATU HP uji per eksekusi manual.
+5. Otomatisasi jadwal dan integrasi PWA utama dilakukan setelah uji pengiriman baru berhasil.
+
+### Keamanan
+Script tidak menyentuh tabel ETLE (hanya SELECT), Firebase login, kode PWA, atau service worker utama.
+Function register-push-token lama yang merespons 410 tidak diubah.
+Dua tabel pilot baru dilindungi RLS tanpa kebijakan akses klien anon/authenticated.
+Ledger event_key unik; pending diklaim sebagai sending sebelum pengiriman, lalu sent atau failed.
+Status sending/failed tidak dicoba lagi otomatis agar tidak menimbulkan pengiriman ganda.
+Semua pesan pilot hanya ke satu token secret; tidak memakai topic/broadcast.
+Payload tidak memuat identitas pelanggar dan diarahkan ke halaman Lab Notifikasi.
+
+Berkas: supabase/gsmart_push_pilot.sql, scripts/push-pilot.mjs, scripts/push-pilot.test.mjs, .github/workflows/push-pilot.yml.

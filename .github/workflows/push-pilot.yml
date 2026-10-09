@@ -1,0 +1,40 @@
+name: G-Smart Push Pilot (Terkunci)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'test, inspect, baseline, atau pilot (1 HP uji)'
+        type: choice
+        options:
+          - test
+          - inspect
+          - baseline
+          - pilot
+        required: true
+        default: test
+permissions:
+  contents: read
+concurrency:
+  group: gsmart-push-pilot
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test ETLE event detection (offline)
+        run: node --test scripts/push-pilot.test.mjs
+      - name: Execute manual pilot stage
+        if: inputs.mode != 'test'
+        env:
+          PUSH_MODE: ${{ inputs.mode }}
+          SUPABASE_URL: https://pszyqzzqlzdgeefivydz.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          GSMART_PILOT_FCM_TOKEN: ${{ secrets.GSMART_PILOT_FCM_TOKEN }}
+        run: node scripts/push-pilot.mjs
+# NO schedule/cron. No modification of PWA login or root service-worker.
