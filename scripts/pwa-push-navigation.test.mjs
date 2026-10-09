@@ -95,7 +95,7 @@ test("unrelated or malformed notification data does not create unsafe navigation
 });
 test("the app consumes live push messages after it is already loaded",()=>{
  const code=readFileSync(new URL("../app-v2.js",import.meta.url),"utf8");
- assert.ok(code.includes('event.data?.type==="GSMART_PUSH_OPEN_CASE"'));
+ assert.ok(code.includes('event.data?.type!=="GSMART_PUSH_OPEN_CASE"'));
  assert.ok(code.includes('history.replaceState(history.state,"",url.href)'));
  assert.ok(code.includes('if(state.bundle&&!$("appView").classList.contains("hidden"))openRequestedCase()'));
  assert.ok(code.includes('event.data?.type==="GSMART_IDENTIFY_WINDOW"'));
