@@ -1,15 +1,15 @@
-const CACHE_NAME = 'gsmart-shell-v46';
+const CACHE_NAME = 'gsmart-shell-v47';
 
 // Precache hanya shell kecil/kritis agar instalasi dan update PWA tetap ringan.
 const APP_SHELL = [
-  './styles-v2.css?v=20261007-loginaudit1',
+  './styles-v2.css?v=20261009-management1',
   './dashboard-redesign.css?v=20261009-vivid1',
   './detail-redesign.css?v=20261003-ux33',
   './performance-overrides.css?v=20261008-mobile-nav-fit1',
   './health-check.css?v=20261008-health-check3',
   './splash.css?v=20261003-splash3',
   './branding-overrides.css?v=20261002-brand1',
-  './app-v2.js?v=20261009-status-bottom1',
+  './app-v2.js?v=20261009-management1',
   './analytics-drilldown.js?v=20261002-1',
   './court-enhancement.js?v=20261002-4',
   './config.js?v=20261002-3',
