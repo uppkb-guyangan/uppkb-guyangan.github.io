@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebas
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "../config.js?v=20261002-3";
+// Salinan preview hanya untuk pemeriksaan menu/role; larang penulisan data operasional.
+const PREVIEW_READ_ONLY = true;
 
 const $=id=>document.getElementById(id);
 const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
@@ -1307,6 +1309,7 @@ async function callLoginAudit(action,payload={}){
   return r.json()
 }
 async function recordSuccessfulLogin(){
+  if(PREVIEW_READ_ONLY)return;
   try{await callLoginAudit("record",{meta:loginAuditDeviceMeta()})}
   catch(err){console.warn("Login audit tidak tercatat:",err)}
 }
@@ -1506,8 +1509,8 @@ async function loginHistoryPage(days=30){
   }
 }
 async function q(table,{select="*",filters={},order=null,limit=null}={}){const token=state.demo?null:await auth.currentUser.getIdToken(true);const base=new URL(supabaseConfig.url+"/rest/v1/"+table);base.searchParams.set("select",select);if(order)base.searchParams.set("order",order);Object.entries(filters).forEach(([k,v])=>base.searchParams.set(k,v));const h={apikey:supabaseConfig.publishableKey};if(token)h.Authorization="Bearer "+token;const PAGE_SIZE=1000;const requestedLimit=limit==null?null:Math.max(0,Number(limit)||0);if(requestedLimit===0)return[];let offset=0;const rows=[];while(true){const pageLimit=requestedLimit==null?PAGE_SIZE:Math.min(PAGE_SIZE,requestedLimit-rows.length);if(pageLimit<=0)break;const u=new URL(base);u.searchParams.set("limit",String(pageLimit));u.searchParams.set("offset",String(offset));const r=await fetch(u,{headers:h});if(!r.ok)throw new Error(table+" HTTP "+r.status);const page=await r.json();rows.push(...page);if(page.length<pageLimit)break;if(requestedLimit!=null&&rows.length>=requestedLimit)break;offset+=page.length}return requestedLimit==null?rows:rows.slice(0,requestedLimit)}
-async function write(table,body,{onConflict=null}={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
-async function removeRows(table,filters={}){const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{method:"DELETE",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,Prefer:"return=minimal"}});if(!r.ok)throw new Error("Gagal menghapus "+table+" (HTTP "+r.status+")")}
+async function write(table,body,{onConflict=null}={}){if(PREVIEW_READ_ONLY)throw new Error("Mode uji coba: perubahan data dinonaktifkan.");const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);if(onConflict)u.searchParams.set("on_conflict",onConflict);const r=await fetch(u,{method:"POST",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,"Content-Type":"application/json",Prefer:onConflict?"resolution=merge-duplicates,missing=default,return=minimal":"missing=default,return=minimal"},body:JSON.stringify(body)});if(!r.ok)throw new Error("Gagal menyimpan "+table+" (HTTP "+r.status+")")}
+async function removeRows(table,filters={}){if(PREVIEW_READ_ONLY)throw new Error("Mode uji coba: penghapusan data dinonaktifkan.");const token=await auth.currentUser.getIdToken(true);const u=new URL(supabaseConfig.url+"/rest/v1/"+table);Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{method:"DELETE",headers:{apikey:supabaseConfig.publishableKey,Authorization:"Bearer "+token,Prefer:"return=minimal"}});if(!r.ok)throw new Error("Gagal menghapus "+table+" (HTTP "+r.status+")")}
 function etleConfirmationUrl(c){
   const reg=String(c?.no_registrasi||c?.ref_number||"").trim();
   const tnkb=String(c?.tnkb||"").replace(/\s+/g,"").toUpperCase();
