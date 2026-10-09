@@ -1,5 +1,5 @@
 /* Isolated G-Smart Supabase -> FCM pilot; no production browser changes.
- * Modes: test, inspect, baseline, pilot. No default broadcasts, no cron.
+ * Modes: test, inspect, baseline, ping, simulate, pilot. No broadcasts or cron.
  */
 import {createSign} from "node:crypto";
 const PROJECT="g-smart-guyangan";
@@ -34,8 +34,45 @@ export function changes(previous,current){
   }
   return events.sort((x,y)=>x.event_key.localeCompare(y.event_key));
 }
+export function simulationEvents(){
+  // Fixed IDs; repeated manual runs MUST NOT resend an existing event.
+  return [
+    {event_key:"gsmart-sim-v1:blanko",event_type:"blanko",case_id:"",
+      title:"G-Smart · SIMULASI Blanko Tilang Baru",
+      body:"SIMULASI: blanko tilang baru terdeteksi. Tidak ada perkara sungguhan dibuat."},
+    {event_key:"gsmart-sim-v1:dispute",event_type:"dispute",case_id:"",
+      title:"G-Smart · SIMULASI Pelanggaran Tersanggah",
+      body:"SIMULASI: sanggahan baru terdeteksi. Tidak ada perkara sungguhan diubah."},
+    {event_key:"gsmart-sim-v1:shipping_processing",event_type:"shipping_processing",case_id:"",
+      title:"G-Smart · SIMULASI Surat Diproses JNE",
+      body:"SIMULASI: status surat menjadi Dalam Proses Pengiriman. Ini bukan kiriman nyata."}
+  ];
+}
+export async function executeSimulation(store,deliver){
+  const templates=simulationEvents();
+  await store.simEnsure(templates);
+  const pending=await store.simPending();
+  if(!Array.isArray(pending))throw Error("Antrean simulasi tidak tersedia.");
+  const byKey=new Map(templates.map(x=>[x.event_key,x]));
+  let sent=0,failed=0;
+  for(const row of pending.slice(0,MAX_SEND)){
+    const event=byKey.get(row.event_key);
+    if(!event)throw Error("Kunci simulasi tidak dikenal. Pengiriman dibatalkan.");
+    if(!await store.simClaim(event.event_key))continue;
+    try{
+      await deliver(event);
+      await store.simComplete(event.event_key,"sent",null);
+      sent++;
+    }catch(e){
+      failed++;
+      await store.simComplete(event.event_key,"failed",String(e?.message||e).slice(0,100));
+    }
+  }
+  return {mode:"simulate",sent,failed,recipients:1,etleDataRead:false,etleDataModified:false,
+    note:"Fixed simulation-v1 event keys: rerun never resends sent or failed events."};
+}
 export function assertMode(mode){
-  if(!["test","inspect","baseline","ping","pilot"].includes(mode))throw Error("Mode tidak diizinkan");
+  if(!["test","inspect","baseline","ping","simulate","pilot"].includes(mode))throw Error("Mode tidak diizinkan");
   return mode;
 }
 function required(k){
@@ -106,6 +143,30 @@ function database(){
         method:"PATCH",params:params.toString(),prefer:"return=minimal",
         body:{status,updated_at:new Date().toISOString(),sent_at:status==="sent"?new Date().toISOString():null,last_error:error??null}
       });
+    },
+    // Write access restricted to the pilot's separate simulation table only.
+    simEnsure:async(events)=>req("gsmart_push_pilot_simulation",{
+      method:"POST",params:"on_conflict=event_key",prefer:"resolution=ignore-duplicates,return=minimal",
+      body:events.map(e=>({event_key:e.event_key,event_type:e.event_type,status:"pending"}))
+    }),
+    simPending:async()=>req("gsmart_push_pilot_simulation",{
+      params:"select=event_key,event_type&status=eq.pending&order=event_key.asc&limit="+MAX_SEND
+    }),
+    simClaim:async(key)=>{
+      const params=new URLSearchParams({event_key:"eq."+key,status:"eq.pending",select:"event_key"});
+      const rows=await req("gsmart_push_pilot_simulation",{
+        method:"PATCH",params:params.toString(),prefer:"return=representation",
+        body:{status:"sending",updated_at:new Date().toISOString()}
+      });
+      return rows?.length===1;
+    },
+    simComplete:async(key,status,error)=>{
+      const params=new URLSearchParams({event_key:"eq."+key,status:"eq.sending"});
+      await req("gsmart_push_pilot_simulation",{
+        method:"PATCH",params:params.toString(),prefer:"return=minimal",
+        body:{status,updated_at:new Date().toISOString(),
+          sent_at:status==="sent"?new Date().toISOString():null,last_error:error??null}
+      });
     }
   };
 }
@@ -136,7 +197,8 @@ async function send(access,recipient,event){
       notification:{title:event.title,body:event.body},
       data:{event_type:event.event_type,case_id:event.case_id},
       webpush:{fcm_options:{link:TEST_URL},notification:{
-        icon:"https://uppkb-guyangan.github.io/G-SMART%20Traffic%20Monitoring%20Emblem.png"
+        icon:"https://uppkb-guyangan.github.io/G-SMART%20Traffic%20Monitoring%20Emblem.png",
+        tag:event.event_key||undefined
       }}
     }}),
     signal:AbortSignal.timeout(30000)
@@ -146,7 +208,7 @@ async function send(access,recipient,event){
 export async function run(mode=process.env.PUSH_MODE||"test",mockStore){
   assertMode(mode);
   if(mode==="test")return {mode,description:"Offline; run node --test scripts/push-pilot.test.mjs"};
-  const sendMode=mode==="ping"||mode==="pilot";
+  const sendMode=mode==="ping"||mode==="simulate"||mode==="pilot";
   const account=sendMode?JSON.parse(required("FIREBASE_SERVICE_ACCOUNT_JSON")):null;
   const target=sendMode?required("GSMART_PILOT_FCM_TOKEN"):null;
   if(account&&account.project_id!==PROJECT)throw Error("Firebase project mismatch");
@@ -160,6 +222,13 @@ export async function run(mode=process.env.PUSH_MODE||"test",mockStore){
     return {mode:"ping",sent:1,recipients:1,source:"manual",etleDataRead:false};
   }
   const store=mockStore||database();
+  if(mode==="simulate"){
+    // Check sender authorization before mutating the separate simulation ledger.
+    const access=await oauth(account);
+    const result=await executeSimulation(store,event=>send(access,target,event));
+    if(result.failed)throw Error("Simulasi: "+result.failed+" dari tiga pesan gagal; lihat ledger uji. Tidak dikirim ulang otomatis.");
+    return result;
+  }
   const current=snapshot(await store.read());
   const before=await store.cursor();
   const totals={blanko:current.blanko.length,disputes:current.disputes.length,shipping:Object.keys(current.shipping).length};

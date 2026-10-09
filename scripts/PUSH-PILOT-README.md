@@ -32,3 +32,18 @@ Semua pesan pilot hanya ke satu token secret; tidak memakai topic/broadcast.
 Payload tidak memuat identitas pelanggar dan diarahkan ke halaman Lab Notifikasi.
 
 Berkas: supabase/gsmart_push_pilot.sql, scripts/push-pilot.mjs, scripts/push-pilot.test.mjs, .github/workflows/push-pilot.yml.
+
+
+### Simulasi 3 jenis pemberitahuan (manual)
+Pilih mode `simulate` dari GitHub Actions. Script menyiapkan tiga event contoh dalam tabel TERPISAH `gsmart_push_pilot_simulation`:
+- G-Smart SIMULASI Blanko Tilang Baru
+- G-Smart SIMULASI Pelanggaran Tersanggah
+- G-Smart SIMULASI Surat Diproses JNE
+
+Pesan simulasi hanya untuk token HP uji, tanpa membaca / menulis tabel ETLE.
+Tiga event_key tetap `gsmart-sim-v1:...` memastikan menjalankan mode simulate lagi menghasilkan nol pesan.
+Setiap pengiriman mengklaim event secara atomik dari pending ke sending, lalu sent atau failed.
+Jika terjadi kegagalan, event tidak akan dikirim ulang otomatis. Periksa tabel ledger dan log.
+
+Tabel baru khusus simulasi di `supabase/gsmart_push_pilot_simulation.sql` memiliki RLS dan tidak menyediakan akses klien.
+Tidak ada cron, penjadwalan otomatis, atau modifikasi G-Smart utama.

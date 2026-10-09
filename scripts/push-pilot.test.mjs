@@ -30,3 +30,41 @@ test("normalize status case and spacing",()=>{
  assert.equal(isProcessing("Dalam Proses Pengiriman"),true);
 });
 test("disallow other modes",()=>{assert.throws(()=>assertMode("broadcast"));assert.equal(assertMode("inspect"),"inspect");assert.equal(assertMode("ping"),"ping")});
+
+test("three simulation messages are clearly marked and have stable unique IDs",async()=>{
+ const {simulationEvents}=await import("./push-pilot.mjs");
+ const items=simulationEvents();
+ assert.equal(items.length,3);
+ assert.equal(new Set(items.map(x=>x.event_key)).size,3);
+ assert.deepEqual(items.map(x=>x.event_type),["blanko","dispute","shipping_processing"]);
+ for(const e of items){assert.match(e.title,/SIMULASI/);assert.match(e.body,/SIMULASI/);assert.equal(e.case_id,"");}
+});
+test("simulation sends three to mock receiver once and rerun sends zero",async()=>{
+ const {executeSimulation}=await import("./push-pilot.mjs");
+ const state=new Map();const notifications=[];
+ const store={
+  simEnsure:async a=>{for(const e of a)if(!state.has(e.event_key))state.set(e.event_key,"pending")},
+  simPending:async()=>[...state].filter(([,status])=>status==="pending").map(([event_key])=>({event_key})),
+  simClaim:async k=>{if(state.get(k)!=="pending")return false;state.set(k,"sending");return true},
+  simComplete:async(k,s)=>state.set(k,s)
+ };
+ const first=await executeSimulation(store,async event=>notifications.push(event.event_type));
+ const second=await executeSimulation(store,async event=>notifications.push(event.event_type));
+ assert.deepEqual(notifications,["blanko","dispute","shipping_processing"]);
+ assert.equal(first.sent,3);assert.equal(second.sent,0);
+ assert.equal(first.etleDataRead,false);assert.equal(first.etleDataModified,false);
+ assert.deepEqual([...state.values()],["sent","sent","sent"]);
+});
+test("failed simulation message is never retried automatically",async()=>{
+ const {executeSimulation}=await import("./push-pilot.mjs");
+ const rows=new Map();let attempts=0;
+ const store={
+  simEnsure:async a=>{for(const e of a)if(!rows.has(e.event_key))rows.set(e.event_key,"pending")},
+  simPending:async()=>[...rows].filter(([,s])=>s==="pending").map(([event_key])=>({event_key})),
+  simClaim:async k=>{if(rows.get(k)!=="pending")return false;rows.set(k,"sending");return true},
+  simComplete:async(k,s)=>rows.set(k,s)
+ };
+ const one=await executeSimulation(store,async()=>{attempts++;throw Error("simulate network error")});
+ const two=await executeSimulation(store,async()=>{attempts++});
+ assert.equal(one.failed,3);assert.equal(two.sent,0);assert.equal(attempts,3);
+});
