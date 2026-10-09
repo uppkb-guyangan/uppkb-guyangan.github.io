@@ -234,3 +234,31 @@
   }
   .pref-theme-dark .responsive-table .status-badge{font-weight:850}
 }
+
+
+/* Dark-mode health history readability fix */
+/* Kesehatan Sistem: the original health table uses dark text suitable for white mode.
+   Keep the green/red status pills and brighten only dark-theme table content. */
+.pref-theme-dark .health-page .health-table th{
+  background:#25425F;
+  color:#E6F1FD;
+  border-bottom-color:#42607C;
+}
+.pref-theme-dark .health-page .health-table td{
+  color:#E6F0FD;
+  border-bottom-color:#45617C;
+}
+.pref-theme-dark .health-page .health-time,
+.pref-theme-dark .health-page .health-status-footnote{
+  color:#C6D8EB;
+}
+.pref-theme-dark .health-page .health-small-title{
+  color:#F2F8FF;
+}
+.pref-theme-dark .health-page .health-table-wrap{
+  background:#1A304A;
+  border-radius:10px;
+}
+.pref-theme-dark .health-page .health-link{
+  color:#8BCDFF;
+}
