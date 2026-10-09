@@ -24,7 +24,7 @@ async function waitForActive(reg){
   return reg;
 }
 async function registerWorker(){
-  const reg=await navigator.serviceWorker.register("./gsmart-push-sw/firebase-messaging-sw.js?v=1",{
+  const reg=await navigator.serviceWorker.register("./gsmart-push-sw/firebase-messaging-sw.js?v=2",{
     scope:"./gsmart-push-sw/",updateViaCache:"none"
   });
   if(reg.scope!==PUSH_SCOPE)throw Error("Alamat layanan notifikasi tidak sesuai.");
@@ -55,6 +55,7 @@ function attachForeground(messaging,reg){
     const body=payload.notification?.body||payload.data?.body||"Informasi ETLE baru";
     reg.showNotification(title,{
       body,tag:payload.data?.event_key||"gsmart-foreground",
+      data:{case_id:payload.data?.case_id||""},
       icon:location.origin+"/G-SMART%20Traffic%20Monitoring%20Emblem.png"
     }).catch(()=>{});
   });
