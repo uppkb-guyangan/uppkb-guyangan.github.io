@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="robots" content="noindex,nofollow">
+ <meta name="theme-color" content="#102d50">
+ <title>G-Smart · Uji Notifikasi Terpisah</title>
+ <link rel="icon" href="../G-SMART%20Traffic%20Monitoring%20Emblem.png">
+ <style>
+ :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#17314e;background:#f1f6fc;color-scheme:light}
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 75% 2%,#d4e8ff,transparent 44%),#f2f6fc}
+ header{display:flex;align-items:center;gap:12px;max-width:820px;margin:auto;padding:24px 20px 10px}
+ header img{width:50px;height:50px;object-fit:contain}
+ h1{font-size:23px;margin:0;color:#123154;letter-spacing:-.035em}
+ header p{margin:4px 0;color:#617790;font-size:12px}
+ main{max-width:820px;margin:auto;padding:12px 20px 64px;display:grid;gap:16px}
+ .card{border:1px solid #dfebf6;border-radius:19px;background:#fff;box-shadow:0 8px 22px #1c477014;padding:20px}
+ .card h2{font-size:17px;color:#153452;margin:0 0 8px}
+ .card p{font-size:13px;color:#516c86;line-height:1.65;margin:6px 0 13px}
+ .notice{border-radius:12px;padding:13px;background:#e9f4ff;border:1px solid #c7dffd;font-size:13px;color:#214e79;line-height:1.6}
+ .notice strong{display:block;margin-bottom:2px;color:#17446d}
+ .warn{background:#fff8e9;border-color:#f6e0b7;color:#805b20}
+ .warn strong{color:#765117}
+ .step{display:inline-grid;place-items:center;background:#e7f1ff;border-radius:8px;color:#1267c5;font-weight:900;width:26px;height:26px;margin-right:8px}
+ label{font-size:12px;font-weight:750;color:#264969;display:block;margin-bottom:7px}
+ input,textarea{display:block;width:100%;border:1px solid #c9dbed;border-radius:10px;background:#fcfdff;padding:12px;color:#133454;font:13px system-ui}
+ input:focus,textarea:focus{outline:3px solid #b6dbff;border-color:#448cdb}
+ textarea{min-height:102px;resize:vertical;word-break:break-all}
+ .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+ button,.link{min-height:42px;border-radius:10px;border:1px solid #cbdceb;padding:11px 15px;background:#f4f8fd;color:#1f4e7a;font-size:13px;font-weight:750;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+ button.primary{border-color:#136ce0;background:#1477ed;color:white}
+ button:disabled{opacity:.45;cursor:not-allowed}
+ button:focus-visible,.link:focus-visible{outline:3px solid #91c9ff;outline-offset:2px}
+ #log{padding:12px 14px;background:#0d2543;color:#dceafa;border-radius:12px;font:12px/1.7 ui-monospace,Consolas,monospace;min-height:64px;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+ .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+ .chip{border-radius:100px;padding:6px 10px;font-size:11px;font-weight:750;background:#e9eff6;color:#4b6480}
+ .chip.good{background:#dcf6ea;color:#086b4c}.chip.bad{background:#ffeaea;color:#9b263d}
+ .small{font-size:11px!important;color:#71849c!important}
+ @media(max-width:520px){header{padding:20px 14px 8px} main{padding:10px 14px 40px}.card{padding:16px}h1{font-size:20px}.row>*{flex:1 1 160px}}
+ </style>
+</head>
+<body>
+ <header>
+  <img src="../G-SMART%20Traffic%20Monitoring%20Emblem.png" alt="Logo G-Smart">
+  <div><h1>Laboratorium Notifikasi</h1><p>G-Smart UPPKB Guyangan · Pengujian terisolasi</p></div>
+ </header>
+ <main>
+  <div class="notice"><strong>🔒 Website utama tetap aman.</strong>Halaman ini tidak meminta login G-Smart, tidak membaca data ETLE, tidak menggunakan kode aplikasi utama, dan memakai service worker khusus di dalam folder uji.</div>
+  <section class="card">
+   <h2><span class="step">1</span> Periksa kesiapan perangkat</h2>
+   <p>Memeriksa dukungan notifikasi dan layanan browser tanpa meminta izin atau mengubah pengaturan akun Anda.</p>
+   <div class="chips"><span class="chip" id="httpsStatus">HTTPS: memeriksa</span><span class="chip" id="pushStatus">Push: memeriksa</span><span class="chip" id="permissionStatus">Izin: memeriksa</span></div>
+   <div class="row"><button id="checkBtn" type="button">Periksa Lagi</button><a class="link" href="../">Buka G-Smart Utama ↗</a></div>
+  </section>
+  <section class="card">
+   <h2><span class="step">2</span> Uji pemberitahuan di HP</h2>
+   <p>Tekan tombol untuk mengizinkan notifikasi dan menampilkan <b>pesan percobaan lokal</b>. Ini menguji izin perangkat, <b>belum</b> membuktikan pengiriman Firebase dari internet.</p>
+   <button id="localBtn" class="primary" type="button">🔔 Tampilkan Notifikasi Uji</button>
+  </section>
+  <section class="card">
+   <h2><span class="step">3</span> Hubungkan Firebase Cloud Messaging</h2>
+   <p>Tempel <b>kunci publik Web Push (VAPID)</b> dari proyek Firebase <code>g-smart-guyangan</code>, lalu buat token untuk perangkat ini. Jangan masukkan private key atau service account. Kunci publik tidak disimpan di server.</p>
+   <label for="vapidInput">Kunci publik VAPID dari Firebase</label>
+   <input id="vapidInput" type="text" autocomplete="off" spellcheck="false" inputmode="text" placeholder="Tempel kunci publik Web Push di sini...">
+   <div class="row"><button id="tokenBtn" class="primary" type="button">Daftarkan FCM dan Buat Token</button></div>
+   <label for="tokenOutput" style="margin-top:16px">Token perangkat (jangan dibagikan secara publik)</label>
+   <textarea id="tokenOutput" readonly placeholder="Token muncul setelah pendaftaran berhasil"></textarea>
+   <div class="row"><button id="copyBtn" type="button" disabled>Salin Token</button></div>
+   <p class="small">Untuk tes pesan sungguhan: Firebase Console → Messaging → Send test message → tempel token di atas. Latarbelakangkan halaman/PWA, lalu periksa notifikasi HP.</p>
+  </section>
+  <section class="card">
+   <h2>Status percobaan</h2>
+   <div id="log" role="log" aria-live="polite">Halaman siap. Tidak ada notifikasi yang diaktifkan otomatis.</div>
+   <div class="row"><button type="button" id="cleanupBtn">Bersihkan Pengujian di Perangkat Ini</button></div>
+   <p class="small">Tombol bersihkan hanya melepas token dan service worker di folder uji, bukan layanan PWA atau login website utama.</p>
+  </section>
+  <div class="notice warn"><strong>Catatan perangkat Apple</strong>Pada iPhone/iPad, notifikasi web umumnya memerlukan situs yang ditambahkan ke Layar Utama dan dibuka sebagai aplikasi (iOS/iPadOS 16.4+). Dukungan FCM Web tetap harus diperiksa pada browser perangkat.</div>
+ </main>
+ <script type="module" src="./push-test.js?v=1"></script>
+</body>
+</html>
