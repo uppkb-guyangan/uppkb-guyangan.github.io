@@ -345,13 +345,13 @@
   <script src="./whatsapp-templates.js?v=20261006-3"></script>
   <script src="./whatsapp-status-bridge.js?v=20261006-2"></script>
   <link rel="stylesheet" href="./gsmart-web-push.css?v=20261009-live1">
-  <script type="module" src="./app-v2.js?v=20261009-case2"></script>
+  <script type="module" src="./app-v2.js?v=20261009-root1"></script>
   <script src="./gita-avatar.js?v=20261004-gita-avatar2"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
   <script src="./pwa.js?v=20261005-clean1"></script>
   <script>
-    // Refresh an already-registered optional push worker without touching the root PWA worker.
+    // Root SW handles installed PWA and background Web Push. Legacy registration may remain until migration.
     if ("serviceWorker" in navigator) {
       const scope = new URL("./gsmart-push-sw/", window.location.href).href;
       navigator.serviceWorker.getRegistration(scope).then(reg => reg?.update()).catch(() => {});
