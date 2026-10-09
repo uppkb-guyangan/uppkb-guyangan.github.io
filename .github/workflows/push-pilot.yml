@@ -35,7 +35,7 @@ jobs:
           PUSH_MODE: ${{ inputs.mode }}
           SUPABASE_URL: https://pszyqzzqlzdgeefivydz.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GSMART_PILOT_FCM_TOKEN: ${{ secrets.GSMART_PILOT_FCM_TOKEN }}
         run: node scripts/push-pilot.mjs
 # NO schedule/cron. No modification of PWA login or root service-worker.
