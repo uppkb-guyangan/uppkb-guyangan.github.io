@@ -5,7 +5,9 @@ on:
       - 'scripts/push-production.mjs'
       - 'scripts/push-production.test.mjs'
       - 'scripts/push-pilot.mjs'
+      - 'scripts/pwa-push-navigation.test.mjs'
       - 'gsmart-push-sw/**'
+      - 'sw.js'
       - 'gsmart-web-push.js'
       - 'app-v2.js'
       - 'index.html'
@@ -22,5 +24,9 @@ jobs:
         with:
           node-version: '22'
       - name: Offline push detection and case navigation tests
-        run: node --test scripts/push-pilot.test.mjs scripts/push-production.test.mjs
+        run: |
+          node --check sw.js
+          node --check gsmart-web-push.js
+          node --check app-v2.js
+          node --test scripts/*.test.mjs
 # Never sends FCM notifications or accesses production secrets.

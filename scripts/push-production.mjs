@@ -149,7 +149,7 @@ async function notify(access,device,event){
      notification:{title:event.title,body:event.body},
      data:{event_key:event.event_key,event_type:event.event_type,case_id:event.case_id},
      // Let the custom SW notificationclick open the installed PWA.
-     webpush:{notification:{
+     webpush:{fcm_options:{link:destination.href},notification:{
        tag:event.event_key,icon:HOME+"G-SMART%20Traffic%20Monitoring%20Emblem.png",
        data:{case_id:String(event.case_id||""),url:destination.href}
      }}
