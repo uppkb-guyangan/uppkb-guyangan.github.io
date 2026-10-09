@@ -23,9 +23,10 @@
   <link rel="stylesheet" href="./performance-overrides.css?v=20261008-mobile-nav-fit1">
   <link rel="stylesheet" href="./health-check.css?v=20261008-health-check3">
   <link rel="stylesheet" href="./preview-settings-v1/preview.css?v=4">
+  <link rel="stylesheet" href="./preview-settings-v1/glass-edition.css?v=1">
 </head>
 <body>
-  <div class="gsmart-preview-note" role="note"><b>MODE UJI COBA</b><span>Pengaturan &amp; Manajemen · Baca saja</span><a href="./" title="Kembali ke G-Smart utama">Website utama ↗</a></div>
+  <div class="gsmart-preview-note" role="note"><b>MODE UJI COBA</b><span>Glass Edition · Baca saja</span><button id="glassPreviewToggle" type="button" aria-pressed="true" title="Bandingkan Glass Edition dengan desain biasa">✦ Kaca ON</button><a href="./" title="Kembali ke G-Smart utama">Website utama ↗</a></div>
   <div id="gsmartSplash" class="gsmart-splash" role="status" aria-label="Memuat G-Smart">
     <div class="gsmart-splash-stage">
       <video id="gsmartSplashVideo" class="gsmart-splash-video" muted playsinline preload="auto" aria-hidden="true"></video>
@@ -64,5 +65,27 @@
   <script src="./gita-avatar.js?v=20261004-gita-avatar2"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
+  <!-- GLASS EDITION V1: display-only comparison switch; no ETLE data or role changes. -->
+  <script>
+    (function(){
+      const key="gsmart_preview_glass_edition_v1";
+      const toggle=document.getElementById("glassPreviewToggle");
+      if(!toggle)return;
+      let enabled=true;
+      try{enabled=localStorage.getItem(key)!=="off"}catch(_){}
+      function showState(){
+        document.body.classList.toggle("gsmart-glass",enabled);
+        toggle.textContent=enabled?"✦ Kaca ON":"Kaca OFF";
+        toggle.setAttribute("aria-pressed",String(enabled));
+        toggle.title=enabled?"Matikan efek kaca untuk membandingkan":"Aktifkan kembali tampilan kaca";
+      }
+      toggle.addEventListener("click",function(){
+        enabled=!enabled;
+        try{localStorage.setItem(key,enabled?"on":"off")}catch(_){}
+        showState();
+      });
+      showState();
+    })();
+  </script>
 </body>
 </html>
