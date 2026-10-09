@@ -40,7 +40,7 @@ function database(){
  return {
    data:async()=>{
      const [cases,disputes,shipping,terminated]=await Promise.all([
-       page("etle_cases","case_id,no_blanko"),page("etle_disputes","case_id,status"),
+       page("etle_cases","case_id,no_blanko,tnkb"),page("etle_disputes","case_id,status"),
        page("etle_shipping","case_id,status"),page("etle_terminated_cases","case_id")
      ]);
      return {cases,disputes,shipping,terminated};
@@ -112,6 +112,13 @@ function allowed(device,type){
  if(type==="dispute")return device.receive_disputes;
  return device.receive_shipping;
 }
+// Adds the plate to an individual event without changing its delivery identity.
+export function withPlate(event,tnkb){
+ const plate=String(tnkb||"").trim().replace(/\s+/g," ").toUpperCase();
+ if(!event?.case_id||!plate)return event;
+ if(String(event.body||"").startsWith("TNKB: "))return event;
+ return {...event,body:"TNKB: "+plate+" · "+String(event.body||"")};
+}
 async function oauth(sa){
  if(sa.project_id!==FIREBASE_PROJECT||!sa.private_key||!sa.client_email)throw Error("Firebase server credentials tidak sesuai.");
  const timestamp=Math.floor(Date.now()/1000);
@@ -132,6 +139,8 @@ async function oauth(sa){
  return token.access_token;
 }
 async function notify(access,device,event){
+ const destination=new URL(HOME);
+ if(event.case_id)destination.searchParams.set("case",String(event.case_id));
  const res=await fetch("https://fcm.googleapis.com/v1/projects/"+FIREBASE_PROJECT+"/messages:send",{
    method:"POST",headers:{Authorization:"Bearer "+access,"Content-Type":"application/json"},
    body:JSON.stringify({message:{
@@ -140,7 +149,8 @@ async function notify(access,device,event){
      data:{event_key:event.event_key,event_type:event.event_type,case_id:event.case_id},
      // Let the custom SW notificationclick open the installed PWA.
      webpush:{notification:{
-       tag:event.event_key,icon:HOME+"G-SMART%20Traffic%20Monitoring%20Emblem.png"
+       tag:event.event_key,icon:HOME+"G-SMART%20Traffic%20Monitoring%20Emblem.png",
+       data:{case_id:String(event.case_id||""),url:destination.href}
      }}
    }}),
    signal:AbortSignal.timeout(25000)
@@ -165,7 +175,9 @@ export async function runProduction(){
    });
    return {mode:"ping",sent:1,recipients:1,source:"registered-main-pwa",etleDataRead:false,etleDataModified:false,deliveryLedgerModified:false};
  }
- const current=snapshot(await store.data());
+ const source=await store.data();
+ const current=snapshot(source);
+ const platesByCase=new Map(source.cases.filter(x=>x.case_id).map(x=>[String(x.case_id),x.tnkb]));
  const before=await store.cursor();
  if(before===null){
    await store.saveCursor(current);
@@ -182,7 +194,7 @@ export async function runProduction(){
      });
    }
  }
- await store.enqueueEvents(detected);
+ await store.enqueueEvents(detected.map(e=>withPlate(e,platesByCase.get(String(e.case_id)))));
  await store.saveCursor(current);
  const devices=await store.devices();
  const unexpanded=await store.unexpanded();
@@ -207,7 +219,7 @@ export async function runProduction(){
      if(!e||!d||!allowed(d,e.event_type)||new Date(d.last_seen_at).getTime()<cutoff){
        await store.finish(row,"failed","DEVICE_DISABLED_OR_STALE");skipped++;continue;
      }
-     try{await notify(access,d,e);await store.finish(row,"sent",null);sent++}
+     try{await notify(access,d,withPlate(e,platesByCase.get(String(e.case_id))));await store.finish(row,"sent",null);sent++}
      catch(error){failed++;await store.finish(row,"failed",String(error?.message||error).slice(0,100))}
    }
  }

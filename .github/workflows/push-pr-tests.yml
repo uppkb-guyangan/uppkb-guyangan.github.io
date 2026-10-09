@@ -1,0 +1,26 @@
+name: G-Smart Web Push - Pull Request Tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/push-production.mjs'
+      - 'scripts/push-production.test.mjs'
+      - 'scripts/push-pilot.mjs'
+      - 'gsmart-push-sw/**'
+      - 'gsmart-web-push.js'
+      - 'app-v2.js'
+      - 'index.html'
+      - '.github/workflows/push-pr-tests.yml'
+permissions:
+  contents: read
+jobs:
+  push-notification-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline push detection and case navigation tests
+        run: node --test scripts/push-pilot.test.mjs scripts/push-production.test.mjs
+# Never sends FCM notifications or accesses production secrets.

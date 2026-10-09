@@ -662,7 +662,7 @@ function settingsPage(){
   });
   if(id==="notifications"){
     // Optional module loaded on demand, never during Firebase authentication.
-    import("./gsmart-web-push.js?v=20261009-live1").then(mod=>{
+    import("./gsmart-web-push.js?v=20261009-case2").then(mod=>{
       if(state.page==="settings"&&state.settingsSection==="notifications")mod.mountPushSettings({
         root:document.getElementById("gsmartPushSection"),
         user:state.demo?null:auth.currentUser,
