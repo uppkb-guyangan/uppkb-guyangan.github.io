@@ -9,8 +9,8 @@ let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"]];
-const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",health:"♡",loginHistory:"◷"};
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"],["settings","Pengaturan"],["management","Manajemen"]];
+const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",health:"♡",loginHistory:"◷",settings:"⚙",management:"▤"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
@@ -196,7 +196,7 @@ function renderNav(){
   const canWatch=perms().watchCases;
   const isAdmin=perms().admin;
   const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,archive:c.archive,favorites:canWatch?getFavoriteIds().length:null};
-  $("nav").innerHTML=menu.filter(([id])=>(id!=="loginHistory"&&id!=="health")||isAdmin).map(([id,t])=>{
+  $("nav").innerHTML=menu.filter(([id])=>id!=="loginHistory"&&id!=="health"&&(id!=="management"||(isAdmin&&!state.demo))).map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':(id==="favorites"&&!canWatch?'<span class="nav-lock" aria-label="Akses dibatasi">🔒</span>':"");
     const restricted=id==="favorites"&&!canWatch;
@@ -211,7 +211,7 @@ function renderNav(){
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&!perms().admin){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&!perms().admin){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
 function socializationCaseIds(b){return new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id).filter(Boolean))}
@@ -254,7 +254,7 @@ function filteredRows(page,b){
     default:return[]
   }
 }
-function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="archive")return archivePage(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);if(state.page==="loginHistory")return loginHistoryPage();if(state.page==="health")return healthPage();return processPage(state.page,filteredRows(state.page,b))}
+function renderPage(){const b=state.bundle||demo;if(state.page==="dashboard")return dashboard(b);if(state.page==="analytics")return analytics(b);if(state.page==="vehicles")return vehicleProfiles(b);if(state.page==="archive")return archivePage(b);if(state.page==="favorites")return favoritesPage(b);if(state.page==="search")return globalSearch(b);if(state.page==="report")return reportPage(b);if(state.page==="loginHistory")return loginHistoryPage();if(state.page==="health")return healthPage();if(state.page==="settings")return settingsPage();if(state.page==="management")return managementPage();return processPage(state.page,filteredRows(state.page,b))}
 function animateDashboardStats(nextStats){
   const previous=state.dashboardStats||{};
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -511,6 +511,63 @@ function dashboard(b){
   document.querySelectorAll(".quick-btn[data-go], .hero-search-btn[data-go], .dashboard-metric-link[data-go]").forEach(btn=>btn.onclick=()=>openPage(btn.dataset.go));
   bindDetailRows();
 }
+
+/* Pengaturan & Manajemen V1: navigasi saja, tanpa perubahan Firebase Auth/Firestore/RLS. */
+function settingsPage(){
+  const p=state.profile||{};
+  const email=state.demo?"Data contoh":(auth.currentUser?.email||"Belum tersedia");
+  $("content").innerHTML=
+    '<div class="gsmart-admin-hub">'+
+      '<div class="panel gsmart-hub-intro"><h3>Pengaturan G-Smart</h3><p>Informasi akun dan preferensi penggunaan aplikasi.</p></div>'+
+      '<div class="gsmart-hub-grid">'+
+        '<section class="panel gsmart-hub-panel"><h3>Profil Saya</h3><dl class="gsmart-hub-fields">'+
+          '<div><dt>Nama petugas</dt><dd>'+esc(p.nama||"-")+'</dd></div>'+
+          '<div><dt>Role</dt><dd>'+esc(p.role||"-")+'</dd></div>'+
+          '<div><dt>NIP</dt><dd>'+esc(p.nip||"-")+'</dd></div>'+
+          '<div><dt>Username</dt><dd>'+esc(p.username||"-")+'</dd></div>'+
+          '<div><dt>Email akun</dt><dd>'+esc(email)+'</dd></div>'+
+        '</dl><p class="gsmart-hub-note">Data profil dan hak akses dikelola administrator, bukan diubah dari halaman ini.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Preferensi Aplikasi</h3>'+
+          '<p>Tampilan G-Smart Vivid Color. Menu dapat disembunyikan pada desktop dengan tombol menu di kiri atas.</p>'+
+          '<div class="gsmart-hub-actions"><button type="button" class="action-btn" id="settingsRefreshData">↻ Perbarui data G-Smart</button></div>'+
+          '<p class="gsmart-hub-note">Tombol ini memuat ulang data G-Smart yang tersedia, bukan menjalankan sinkronisasi ETLE Hub.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Keamanan Akun</h3>'+
+          '<p>Untuk mengatur ulang kata sandi, gunakan fasilitas <b>Lupa password?</b> pada halaman login G-Smart.</p>'+
+          '<p class="gsmart-hub-note">Halaman ini tidak mengubah password, role, atau status akun.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Tentang G-Smart</h3>'+
+          '<p>G-Smart UPPKB Guyangan · Monitoring ETLE terintegrasi.</p>'+
+          '<p class="gsmart-hub-note">Versi Web/PWA. Pengaturan koneksi dan data ETLE tetap menggunakan konfigurasi yang telah berjalan.</p></section>'+
+      '</div>'+
+    '</div>';
+  $("settingsRefreshData")?.addEventListener("click",()=>$("refreshDataBtn")?.click());
+}
+function managementPage(){
+  if(!perms().admin||state.demo){
+    $("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';
+    return;
+  }
+  $("content").innerHTML=
+    '<div class="gsmart-admin-hub">'+
+      '<div class="panel gsmart-hub-intro"><h3>Manajemen G-Smart</h3><p>Pusat pemeriksaan operasional dan keamanan aplikasi khusus Admin.</p></div>'+
+      '<div class="gsmart-hub-grid">'+
+        '<section class="panel gsmart-hub-panel"><h3>Monitoring Sistem</h3>'+
+          '<p>Periksa proses pembaruan data, hasil workflow, dan riwayat sinkronisasi yang sudah tersedia.</p>'+
+          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementHealth">Kesehatan Sistem →</button></div></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Audit Login</h3>'+
+          '<p>Lihat riwayat login akun G-Smart melalui layanan audit yang sudah digunakan.</p>'+
+          '<div class="gsmart-hub-actions"><button type="button" class="action-btn primary" id="managementLoginHistory">Riwayat Login →</button></div></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Manajemen Pengguna</h3>'+
+          '<p>Pengelolaan pengguna, aktivasi akun, dan perubahan role belum diaktifkan.</p>'+
+          '<p class="gsmart-hub-note">Akun tetap dikelola melalui prosedur admin yang berlaku.</p></section>'+
+        '<section class="panel gsmart-hub-panel"><h3>Hak Akses</h3>'+
+          '<p>Hak akses Admin, Wasatpel, dan Petugas tetap mengikuti aturan aplikasi saat ini.</p>'+
+          '<p class="gsmart-hub-note">Halaman ini tidak menyediakan perubahan permission, Firebase, atau Supabase.</p></section>'+
+      '</div>'+
+    '</div>';
+  $("managementHealth")?.addEventListener("click",()=>openPage("health"));
+  $("managementLoginHistory")?.addEventListener("click",()=>openPage("loginHistory"));
+}
+
 function statusBadgeClass(v){
   const s=norm(v).replace(/[_-]+/g," ");
   if(!s)return"status-neutral";
