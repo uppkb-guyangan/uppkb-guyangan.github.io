@@ -1,0 +1,26 @@
+name: G-Smart ETLE Web Push (Otomatis)
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gsmart-web-push-production
+  cancel-in-progress: false
+jobs:
+  send-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Detect ETLE changes and deliver FCM to subscribed G-Smart accounts
+        env:
+          SUPABASE_URL: https://pszyqzzqlzdgeefivydz.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/push-production.mjs
+# Strictly server-side job, no Firebase Auth/browser SW modifications.
