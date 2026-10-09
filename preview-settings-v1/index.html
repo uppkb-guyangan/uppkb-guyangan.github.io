@@ -25,9 +25,10 @@
   <link rel="stylesheet" href="./preview-settings-v1/preview.css?v=4">
   <link rel="stylesheet" href="./preview-settings-v1/glass-edition.css?v=1">
   <link rel="stylesheet" href="./preview-settings-v1/skeuomorphic-edition.css?v=2">
+  <link rel="stylesheet" href="./preview-settings-v1/style-lab-editions.css?v=1">
 </head>
 <body>
-  <div class="gsmart-preview-note" role="note"><b>MODE UJI COBA</b><span>Bandingkan tampilan · Baca saja</span><select id="previewVisualStyle" aria-label="Pilih gaya tampilan Preview"><option value="original">Asli</option><option value="glass">Glassmorphism</option><option value="skeuo">Skeuomorphism</option></select><a href="./" title="Kembali ke G-Smart utama">Website utama ↗</a></div>
+  <div class="gsmart-preview-note" role="note"><b>MODE UJI COBA</b><span>Bandingkan tampilan · Baca saja</span><select id="previewVisualStyle" aria-label="Pilih gaya tampilan Preview"><option value="original">Asli</option><option value="glass">Glassmorphism</option><option value="skeuo">Skeuomorphism</option><option value="brutal">Neo-Brutalism</option><option value="flat">Flat Design</option><option value="illustrative">Illustrative</option><option value="bento">Bento Grid</option></select><a href="./" title="Kembali ke G-Smart utama">Website utama ↗</a></div>
   <div id="gsmartSplash" class="gsmart-splash" role="status" aria-label="Memuat G-Smart">
     <div class="gsmart-splash-stage">
       <video id="gsmartSplashVideo" class="gsmart-splash-video" muted playsinline preload="auto" aria-hidden="true"></video>
@@ -66,14 +67,14 @@
   <script src="./gita-avatar.js?v=20261004-gita-avatar2"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
-  <!-- VISUAL PREVIEW ONLY: switch between three themes, no app/backend changes. -->
+  <!-- VISUAL PREVIEW ONLY: compare seven design systems, no app/backend changes. -->
   <script>
     (function(){
       const key="gsmart_preview_visual_style_v1";
       const selector=document.getElementById("previewVisualStyle");
       if(!selector)return;
-      const styles=["original","glass","skeuo"];
-      let visualStyle="skeuo";
+      const styles=["original","glass","skeuo","brutal","flat","illustrative","bento"];
+      let visualStyle="brutal";
       try{
         const stored=localStorage.getItem(key);
         if(styles.includes(stored))visualStyle=stored;
@@ -81,6 +82,10 @@
       function apply(){
         document.body.classList.toggle("gsmart-glass",visualStyle==="glass");
         document.body.classList.toggle("gsmart-skeuo",visualStyle==="skeuo");
+        document.body.classList.toggle("gsmart-brutal",visualStyle==="brutal");
+        document.body.classList.toggle("gsmart-flat",visualStyle==="flat");
+        document.body.classList.toggle("gsmart-illustrative",visualStyle==="illustrative");
+        document.body.classList.toggle("gsmart-bento",visualStyle==="bento");
         selector.value=visualStyle;
         selector.title="Gaya Preview: "+selector.options[selector.selectedIndex].text;
       }

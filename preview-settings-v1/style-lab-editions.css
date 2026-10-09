@@ -1,0 +1,418 @@
+/* G-SMART STYLE LAB — 4 NEW PREVIEW-ONLY DESIGN SYSTEMS
+   All visual changes are scoped to a unique body class.  Existing CSS, data,
+   access roles, login, ETLE writes and production/PWA assets are untouched. */
+
+/* 1. NEO-BRUTALISM — high contrast, hard offsets, expressive geometry. */
+body.gsmart-brutal{--brutal-ink:#17253B;--brutal-line:#17253B;--brutal-paper:#FFF9E9;--brutal-shadow:5px 5px 0 #17253B}
+body.gsmart-brutal .app-shell main{
+ background:radial-gradient(circle,#C8D5E3 1.3px,transparent 1.5px) 0 0/19px 19px,
+ linear-gradient(135deg,#FFFBE9,#F7FBFF 70%,#F4E9FF)!important
+}
+body.gsmart-brutal #content{background:transparent!important}
+body.gsmart-brutal .sidebar{
+ background:#19253E!important;border-right:4px solid #091326;
+ box-shadow:6px 0 0 #FBD447!important
+}
+body.gsmart-brutal .sidebar .nav-btn{border-radius:4px;font-weight:800}
+body.gsmart-brutal .sidebar .nav-btn.active{
+ background:#FCE55B!important;color:#17253B!important;
+ border:2px solid #0D1D35;box-shadow:3px 3px 0 #FF6C99!important
+}
+body.gsmart-brutal .topbar{
+ background:#FBF4D5!important;border-bottom:3px solid var(--brutal-line)!important;
+ box-shadow:0 5px 0 #F49AB6!important;-webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-brutal .topbar h2{font-weight:950;letter-spacing:-.04em;color:#17253B}
+body.gsmart-brutal #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-brutal #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-brutal .health-card{
+ background:#FFFDF6!important;
+ border:3px solid var(--brutal-line)!important;
+ border-radius:7px!important;
+ box-shadow:var(--brutal-shadow)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+body.gsmart-brutal #content .prefs-item{
+ border-bottom:2px solid #17253B!important;
+ background:#FFFDF6!important;
+ font-weight:800
+}
+body.gsmart-brutal #content .prefs-item:is(:hover,:focus-visible){background:#FFF1A9!important}
+body.gsmart-brutal #content .prefs-item-icon{
+ border:2px solid #17253B;border-radius:6px;background:#B4ECFB;
+ box-shadow:3px 3px 0 #17253B;color:#17253B
+}
+body.gsmart-brutal #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-brutal #content .table-wrap{
+ background:#E9F5FA!important;border:2px solid #17253B!important;
+ border-radius:5px;box-shadow:inset 0 2px 0 rgba(23,37,59,.10)
+}
+body.gsmart-brutal #content :is(.prefs-option,.action-btn,.quick-btn,.hero-search-btn),
+body.gsmart-brutal .topbar :is(#menuBtn,#refreshDataBtn,.month-select){
+ border:2px solid #17253B!important;border-radius:5px!important;
+ box-shadow:3px 3px 0 #17253B!important;font-weight:850
+}
+body.gsmart-brutal #content .prefs-option.selected{background:#FDE254!important;color:#17253B}
+body.gsmart-brutal #content :is(.prefs-option,.action-btn,.quick-btn):active{
+ transform:translate(3px,3px);box-shadow:0 0 0 #17253B!important
+}
+body.gsmart-brutal #content .dashboard-metrics .card{
+ border:2px solid #17253B!important;border-radius:7px!important;
+ box-shadow:5px 5px 0 #17253B!important
+}
+body.gsmart-brutal #content .dashboard-metrics .card:nth-child(1){transform:rotate(-.4deg)}
+body.gsmart-brutal #content .dashboard-metrics .card:nth-child(4){transform:rotate(.4deg)}
+body.gsmart-brutal #content .dashboard-hero{
+ border:3px solid #17253B;border-radius:7px;box-shadow:7px 7px 0 #F49AB6!important
+}
+body.gsmart-brutal #content .rail-icon{border:2px solid #17253B;border-radius:4px}
+body.gsmart-brutal #content .data-table th,
+body.gsmart-brutal #content .health-table th{
+ background:#FDEB9E!important;color:#17253B;border-bottom:2px solid #17253B
+}
+body.gsmart-brutal .gsmart-preview-note{border:2px solid #FDE254;background:#17253B;border-radius:5px}
+body.gsmart-brutal .gita-greeting{border:3px solid #17253B;box-shadow:5px 5px 0 #FF82AB}
+body.gsmart-brutal.pref-theme-dark{
+ --brutal-line:#0A1529;--brutal-shadow:5px 5px 0 #020C19
+}
+body.gsmart-brutal.pref-theme-dark .app-shell main{
+ background:radial-gradient(circle,rgba(163,196,238,.10) 1.3px,transparent 1.5px) 0 0/19px 19px,
+ linear-gradient(135deg,#142441,#0D1A31)!important
+}
+body.gsmart-brutal.pref-theme-dark .topbar{background:#223A5B!important;border-bottom-color:#FDE254!important}
+body.gsmart-brutal.pref-theme-dark .topbar h2{color:#FFF5BC}
+body.gsmart-brutal.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-brutal.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-brutal.pref-theme-dark .health-card{
+ background:#203753!important;border:2px solid #90B6DB!important;color:#F0F7FF;
+ box-shadow:5px 5px 0 #030B19!important
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-item{
+ background:#203753!important;border-bottom-color:#5A83AA!important;color:#F2F8FF
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#2C5076!important}
+body.gsmart-brutal.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-brutal.pref-theme-dark #content .table-wrap{
+ background:#152944!important;border-color:#6E94B6!important;color:#F0F7FF
+}
+body.gsmart-brutal.pref-theme-dark #content :is(.prefs-option,.quick-btn){
+ background:#2A4769!important;color:#EDF5FF;border-color:#A0C6E6!important;box-shadow:3px 3px 0 #041223!important
+}
+body.gsmart-brutal.pref-theme-dark #content .prefs-option.selected{background:#FDE254!important;color:#13263D!important}
+body.gsmart-brutal.pref-theme-dark #content :is(.data-table th,.health-table th){
+ background:#345273!important;color:#EDF7FF;border-bottom-color:#A5C2E2
+}
+
+/* 2. FLAT DESIGN — strict 2D surfaces, zero shadows and gradients. */
+body.gsmart-flat .app-shell main{background:#F3F6FA!important}
+body.gsmart-flat #content{background:transparent!important}
+body.gsmart-flat .sidebar{
+ background:#15385E!important;box-shadow:none!important;border-right:0;
+ -webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-flat .sidebar .nav-btn.active{
+ background:#257CE6!important;border-radius:7px;box-shadow:none!important
+}
+body.gsmart-flat .topbar{
+ background:#FFFFFF!important;border-bottom:1px solid #DCE5EF!important;
+ box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-flat #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-flat #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-flat .health-card{
+ background:#FFFFFF!important;border:1px solid #E1E7F0!important;
+ box-shadow:none!important;border-radius:10px;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+body.gsmart-flat #content .dashboard-metrics .card{
+ box-shadow:none!important;border:0!important;border-radius:9px;
+ transform:none!important;transition:none!important
+}
+body.gsmart-flat #content .dashboard-hero{
+ border-radius:10px;box-shadow:none!important
+}
+body.gsmart-flat #content .prefs-item{background:#FFFFFF!important;border-bottom-color:#E2EAF2}
+body.gsmart-flat #content .prefs-item:is(:hover,:focus-visible){background:#EBF3FF!important}
+body.gsmart-flat #content .prefs-item-icon{border-radius:7px;box-shadow:none!important}
+body.gsmart-flat #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email){
+ background:#F5F8FC!important;border:1px solid #DFE7F1!important;border-radius:8px;box-shadow:none!important
+}
+body.gsmart-flat #content :is(.prefs-option,.action-btn,.quick-btn),
+body.gsmart-flat .topbar :is(#menuBtn,#refreshDataBtn,.month-select){
+ box-shadow:none!important;border-radius:7px!important;transform:none!important
+}
+body.gsmart-flat #content .table-wrap{border-radius:8px;box-shadow:none!important;background:#fff}
+body.gsmart-flat #content .rail-icon{border-radius:6px}
+body.gsmart-flat #content .data-table th,
+body.gsmart-flat #content .health-table th{background:#F1F5FA!important}
+body.gsmart-flat .gsmart-preview-note{background:#173A61;box-shadow:none;border-radius:7px}
+body.gsmart-flat.pref-theme-dark .app-shell main{background:#101D30!important}
+body.gsmart-flat.pref-theme-dark .topbar{background:#1B2C42!important;border-color:#2E4663!important}
+body.gsmart-flat.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-flat.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-flat.pref-theme-dark .health-card{
+ background:#1D3049!important;border:1px solid #344C69!important;color:#EAF4FF
+}
+body.gsmart-flat.pref-theme-dark #content .prefs-item{
+ background:#1D3049!important;border-bottom-color:#344C69;color:#EEF5FF
+}
+body.gsmart-flat.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#294461!important}
+body.gsmart-flat.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email){
+ background:#17273D!important;border-color:#405875!important;color:#EAF4FF
+}
+body.gsmart-flat.pref-theme-dark #content :is(.data-table th,.health-table th){
+ background:#273E58!important;color:#D6E9FC
+}
+
+/* 3. ILLUSTRATIVE — friendly hand-drawn transport scene and pastel accents. */
+body.gsmart-illustrative .app-shell main{
+ background:
+ radial-gradient(ellipse at 5% 21%,rgba(255,189,130,.33),transparent 37%),
+ radial-gradient(ellipse at 100% 55%,rgba(156,211,248,.30),transparent 37%),
+ #FBF8F2!important
+}
+body.gsmart-illustrative #content{background:transparent!important}
+body.gsmart-illustrative .sidebar{
+ background:linear-gradient(165deg,#28587A,#20445F 65%,#193852)!important;
+ box-shadow:5px 0 0 #C3E6D9!important
+}
+body.gsmart-illustrative .sidebar .nav-btn{border-radius:14px}
+body.gsmart-illustrative .sidebar .nav-btn.active{
+ background:#FFE3A6!important;color:#284565!important;
+ box-shadow:inset 0 0 0 2px #F7BC70!important
+}
+body.gsmart-illustrative .topbar{
+ background:#FFF8E8!important;border-bottom:2px dashed #E5BF8E!important;
+ box-shadow:0 5px 12px rgba(120,80,42,.07);
+ -webkit-backdrop-filter:none;backdrop-filter:none
+}
+body.gsmart-illustrative .topbar h2{color:#344B64;font-weight:850}
+body.gsmart-illustrative #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-illustrative #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-illustrative .health-card{
+ background:#FFFEF9!important;border:2px solid #E8D9C7!important;
+ border-radius:23px 19px 24px 17px;
+ box-shadow:0 8px 0 rgba(245,216,177,.42),0 13px 24px rgba(66,91,107,.08)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+body.gsmart-illustrative #content .dashboard-hero{
+ background:#AEE1E9!important;border:3px solid #EED7BC;
+ border-radius:26px!important;
+ box-shadow:0 8px 0 #F5DBBF!important;
+ isolation:isolate;
+}
+body.gsmart-illustrative #content .dashboard-hero .hero-building-bg{
+ inset:0!important;transform:none!important;animation:none!important;
+ background:url('./illustrative-city.svg') center 50%/cover no-repeat!important;
+ filter:none!important;opacity:1
+}
+body.gsmart-illustrative #content .dashboard-hero:before{
+ background:linear-gradient(90deg,rgba(17,61,91,.89) 0%,rgba(28,90,117,.68) 49%,rgba(25,90,113,.08) 100%)!important
+}
+body.gsmart-illustrative #content .dashboard-hero:after{
+ background:radial-gradient(circle at 16% 100%,rgba(255,255,255,.12),transparent 42%)!important;
+ pointer-events:none
+}
+body.gsmart-illustrative #content .hero-search-btn{
+ background:#FFE8A4!important;border:2px solid #AB854B!important;color:#304B60!important;
+ border-radius:16px!important;box-shadow:0 3px 0 #BF925E
+}
+body.gsmart-illustrative #content .prefs-item{
+ background:#FFFEF9!important;border-bottom:1px dashed #E4D4BD
+}
+body.gsmart-illustrative #content .prefs-item:is(:hover,:focus-visible){background:#FFF4DC!important}
+body.gsmart-illustrative #content .prefs-item-icon{
+ border-radius:16px 13px 15px 12px!important;background:#DBF3E8;
+ border:2px solid #B3DFD0;box-shadow:0 3px 0 #BCD9D0
+}
+body.gsmart-illustrative #content .prefs-item:nth-child(3n+2) .prefs-item-icon{background:#FFE7D9;border-color:#FFC9A9}
+body.gsmart-illustrative #content .prefs-item:nth-child(3n) .prefs-item-icon{background:#E8E3FF;border-color:#CEC2FF}
+body.gsmart-illustrative #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-illustrative #content .table-wrap{
+ background:#F1F8F1!important;border:1px dashed #BAD7C3!important;border-radius:17px
+}
+body.gsmart-illustrative #content .dashboard-metrics .card{
+ border:2px solid rgba(255,255,255,.73)!important;border-radius:23px 17px 22px 18px;
+ box-shadow:0 6px 0 rgba(100,127,133,.12)!important
+}
+body.gsmart-illustrative #content .rail-icon{border-radius:16px 11px 15px 11px}
+body.gsmart-illustrative #content :is(.prefs-option,.action-btn,.quick-btn){
+ border-radius:15px;box-shadow:0 3px 0 rgba(135,149,139,.16)
+}
+body.gsmart-illustrative .gita-greeting{
+ background:#FFF6E9;border:2px solid #E3C59E;border-radius:19px;box-shadow:0 6px 0 #EDDCC6
+}
+body.gsmart-illustrative .gsmart-preview-note{background:#29526F;border:2px solid #C0E3D9}
+body.gsmart-illustrative.pref-theme-dark .app-shell main{
+ background:radial-gradient(ellipse at 0% 26%,rgba(90,129,168,.18),transparent 40%),#15283D!important
+}
+body.gsmart-illustrative.pref-theme-dark .topbar{background:#253F57!important;border-bottom-color:#708A95!important}
+body.gsmart-illustrative.pref-theme-dark .topbar h2{color:#FFF0CF}
+body.gsmart-illustrative.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-illustrative.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-illustrative.pref-theme-dark .health-card{
+ background:#233B53!important;border-color:#547084!important;color:#EEF6FF;
+ box-shadow:0 6px 0 rgba(8,22,37,.45)!important
+}
+body.gsmart-illustrative.pref-theme-dark #content .prefs-item{
+ background:#233B53!important;border-bottom-color:#4F6D7F;color:#EEF6FF
+}
+body.gsmart-illustrative.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#305472!important}
+body.gsmart-illustrative.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-illustrative.pref-theme-dark #content .table-wrap{
+ background:#182F47!important;border-color:#63858E!important;color:#EDF6FF
+}
+body.gsmart-illustrative.pref-theme-dark #content :is(.data-table th,.health-table th){
+ background:#305168!important;color:#E8F6FF
+}
+
+/* 4. BENTO GRID — distinct asymmetric 12-column composition on Dashboard. */
+body.gsmart-bento .app-shell main{
+ background:linear-gradient(140deg,#F1F6FC,#F4F6FA 62%,#ECF4F6)!important
+}
+body.gsmart-bento #content{background:transparent!important}
+body.gsmart-bento .sidebar{background:#122B4B!important;box-shadow:none!important}
+body.gsmart-bento .sidebar .nav-btn.active{
+ background:#2E64C4!important;border-radius:13px;box-shadow:none!important
+}
+body.gsmart-bento .topbar{
+ background:rgba(255,255,255,.96)!important;border-color:#DCE5EE!important;box-shadow:none!important
+}
+body.gsmart-bento #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-bento #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-bento .health-card{
+ background:#FFF!important;border:1px solid #E0E9F1!important;
+ border-radius:22px;box-shadow:0 5px 18px rgba(37,72,105,.045)!important
+}
+body.gsmart-bento #content .dashboard-hero{
+ border-radius:26px;min-height:180px;box-shadow:0 6px 20px rgba(26,55,85,.10)!important
+}
+body.gsmart-bento #content .dashboard-layout{
+ display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ align-items:start;gap:14px;margin-top:14px
+}
+body.gsmart-bento #content .dashboard-layout>.dashboard-main,
+body.gsmart-bento #content .dashboard-layout>.dashboard-rail{
+ display:contents
+}
+body.gsmart-bento #content .cards.dashboard-metrics{
+ grid-column:1/-1;
+ display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ grid-auto-flow:row;gap:13px
+}
+body.gsmart-bento #content .dashboard-metrics .card{
+ grid-column:span 3;
+ min-height:109px;padding:18px 14px 15px 70px;
+ border-radius:22px;border:1px solid rgba(255,255,255,.3)!important;
+ box-shadow:0 6px 13px rgba(30,66,109,.10)!important;
+ transform:none!important
+}
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(1),
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(2){grid-column:span 4;min-height:128px}
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(3),
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(4){grid-column:span 2}
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(1) .metric-value,
+body.gsmart-bento #content .dashboard-metrics .card:nth-child(2) .metric-value{font-size:31px}
+body.gsmart-bento #content .dashboard-layout .dashboard-main>.grid-2{
+ grid-column:1/span 8;grid-row:span 2;
+ display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+ gap:14px;min-width:0;margin:0
+}
+body.gsmart-bento #content .dashboard-main>.grid-2>.panel{margin:0!important;min-width:0}
+body.gsmart-bento #content .dashboard-layout .dashboard-rail>.panel{
+ grid-column:span 4;margin:0!important;min-width:0
+}
+body.gsmart-bento #content .dashboard-main>.grid-2>.panel:first-child{min-height:280px}
+body.gsmart-bento #content .dashboard-rail>.panel:nth-child(1){min-height:248px}
+body.gsmart-bento #content .dashboard-rail>.panel:nth-child(2){min-height:174px}
+body.gsmart-bento #content .prefs-menu{overflow:hidden}
+body.gsmart-bento #content .prefs-item{border-bottom-color:#E5EBF3;border-radius:0}
+body.gsmart-bento #content .prefs-item-icon{border-radius:14px}
+body.gsmart-bento #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email){
+ border-radius:16px;background:#F5F8FC;border-color:#E3EAF3
+}
+body.gsmart-bento #content .quick-btn{border-radius:13px}
+body.gsmart-bento #content .dashboard-layout .panel .rail-icon{border-radius:13px}
+body.gsmart-bento.pref-theme-dark .app-shell main{
+ background:linear-gradient(140deg,#0E1D32,#12263E)!important
+}
+body.gsmart-bento.pref-theme-dark .topbar{background:#1C314B!important;border-color:#375371!important}
+body.gsmart-bento.pref-theme-dark #content :is(.panel,.prefs-menu,.prefs-panel,.gsmart-hub-panel),
+body.gsmart-bento.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-bento.pref-theme-dark .health-card{
+ background:#1C324B!important;border-color:#35516D!important;color:#ECF5FF;
+ box-shadow:0 5px 18px rgba(0,10,25,.16)!important
+}
+body.gsmart-bento.pref-theme-dark #content .prefs-item{background:#1C324B;color:#ECF5FF}
+body.gsmart-bento.pref-theme-dark #content .prefs-item:is(:hover,:focus-visible){background:#274561}
+body.gsmart-bento.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email){
+ background:#152940!important;border-color:#3E5A76;color:#ECF5FF
+}
+
+/* Bento tablet and mobile — real grid reflow with no horizontal overflow. */
+@media(max-width:1150px){
+ body.gsmart-bento #content .dashboard-layout{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important
+ }
+ body.gsmart-bento #content .dashboard-metrics .card:nth-child(n){
+  grid-column:span 3;min-height:99px
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-main>.grid-2{
+  grid-column:1/-1;grid-row:auto
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-rail>.panel{
+  grid-column:span 3
+ }
+}
+@media(max-width:760px){
+ body.gsmart-bento #content .dashboard-layout{
+  grid-template-columns:minmax(0,1fr)!important;gap:12px
+ }
+ body.gsmart-bento #content .dashboard-layout .cards.dashboard-metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-metrics .card:nth-child(n){
+  grid-column:span 1;min-height:91px;padding:14px 10px 13px 55px;
+  border-radius:17px
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-metrics .card:nth-child(1){
+  grid-column:span 2;min-height:116px
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-metrics .card:nth-child(n) .metric-value{
+  font-size:23px
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-main>.grid-2,
+ body.gsmart-bento #content .dashboard-layout .dashboard-rail>.panel{
+  grid-column:1/-1;grid-row:auto
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-rail>.panel{
+  min-height:0!important
+ }
+ body.gsmart-bento #content .dashboard-layout .dashboard-main>.grid-2{
+  gap:12px
+ }
+}
+@media(max-width:380px){
+ body.gsmart-bento #content .dashboard-layout .dashboard-metrics .card:nth-child(n){
+  padding-left:52px
+ }
+}
+/* Very small phones and reduced-motion users retain normal interaction. */
+@media(max-width:760px){
+ body.gsmart-brutal #content .dashboard-metrics .card{box-shadow:3px 3px 0 #17253B!important}
+ body.gsmart-brutal.pref-theme-dark #content .dashboard-metrics .card{box-shadow:3px 3px 0 #030B19!important}
+ body.gsmart-illustrative #content .dashboard-hero{min-height:210px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.gsmart-brutal #content .dashboard-metrics .card,
+ body.gsmart-flat #content .dashboard-metrics .card,
+ body.gsmart-illustrative #content .dashboard-metrics .card,
+ body.gsmart-bento #content .dashboard-metrics .card{transition:none!important}
+}
+@media print{
+ body.gsmart-brutal #content :is(.panel,.prefs-menu,.prefs-panel),
+ body.gsmart-illustrative #content :is(.panel,.prefs-menu,.prefs-panel),
+ body.gsmart-bento #content :is(.panel,.prefs-menu,.prefs-panel){
+  box-shadow:none!important
+ }
+}

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 370" role="img" aria-label="Ilustrasi kawasan transportasi dengan gedung, jalan dan truk">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#ACDFF2"/><stop offset="1" stop-color="#FBE6CE"/></linearGradient>
+    <linearGradient id="road" x2="0" y2="1"><stop stop-color="#65849D"/><stop offset="1" stop-color="#42637E"/></linearGradient>
+  </defs>
+  <rect width="1000" height="370" fill="url(#sky)"/>
+  <circle cx="837" cy="75" r="46" fill="#FFD27F" opacity=".91"/>
+  <g fill="#FFFDF9" stroke="#D5E6EE" stroke-width="3">
+    <path d="M430 70c8-21 33-24 45-7 9-18 34-17 42 1 19-4 35 10 32 25h-127c-8-8-5-17 8-19Z"/>
+    <path d="M644 45c9-20 34-19 42-4 10-13 34-9 39 6 17-2 29 10 28 23H635c-5-11-1-21 9-25Z"/>
+  </g>
+  <path d="M0 226 Q150 190 320 227 T650 215 T1000 222v148H0" fill="#C1DBAC"/>
+  <path d="M0 270 Q260 240 460 265 T1000 256v114H0" fill="#9DBF96"/>
+  <g stroke="#7594A3" stroke-width="4" stroke-linejoin="round">
+    <path d="M520 119h100v153H520Z" fill="#FAE7BE"/>
+    <path d="M630 92h129v180H630Z" fill="#FFF4E3"/>
+    <path d="M780 145h100v127H780Z" fill="#F4DCC8"/>
+    <path d="M550 94h41v25h-41Z" fill="#E6AE80"/>
+    <path d="M662 72h66v20h-66Z" fill="#EFAF87"/>
+  </g>
+  <g fill="#AFDBE7" stroke="#88B1C1" stroke-width="3">
+    <rect x="539" y="142" width="24" height="31" rx="4"/><rect x="578" y="142" width="24" height="31" rx="4"/>
+    <rect x="539" y="189" width="24" height="31" rx="4"/><rect x="578" y="189" width="24" height="31" rx="4"/>
+    <rect x="654" y="116" width="27" height="35" rx="4"/><rect x="700" y="116" width="27" height="35" rx="4"/>
+    <rect x="654" y="171" width="27" height="35" rx="4"/><rect x="700" y="171" width="27" height="35" rx="4"/>
+    <rect x="799" y="165" width="28" height="35" rx="4"/><rect x="844" y="165" width="19" height="35" rx="4"/>
+  </g>
+  <rect x="0" y="280" width="1000" height="90" fill="url(#road)"/>
+  <path d="M0 287H1000" stroke="#E6F0E9" stroke-width="6"/>
+  <path d="M20 332H1000" stroke="#F8E6A4" stroke-width="5" stroke-dasharray="41 28" opacity=".85"/>
+  <g stroke="#466E6A" stroke-width="4" stroke-linejoin="round">
+    <path d="M895 245v45" fill="none"/><circle cx="895" cy="224" r="27" fill="#A2CDA0"/>
+    <path d="M474 238v51" fill="none"/><circle cx="474" cy="221" r="26" fill="#A3CEA0"/>
+    <path d="M933 263v25" fill="none"/><circle cx="933" cy="251" r="17" fill="#92BEA0"/>
+  </g>
+  <g stroke="#355A74" stroke-width="5" stroke-linejoin="round">
+    <path d="M544 274h116v57H544Z" fill="#FFF2CC"/>
+    <path d="M660 285h67l32 23v23h-99Z" fill="#F7AF6E"/>
+    <path d="M675 292h37l21 17h-58Z" fill="#B4E3F0"/>
+    <rect x="553" y="286" width="94" height="27" rx="5" fill="#FFF9E5" stroke-width="2"/>
+    <circle cx="580" cy="333" r="16" fill="#FDFEFA"/><circle cx="580" cy="333" r="7" fill="#52748B" stroke-width="2"/>
+    <circle cx="718" cy="333" r="16" fill="#FDFEFA"/><circle cx="718" cy="333" r="7" fill="#52748B" stroke-width="2"/>
+  </g>
+  <g fill="#26506C" font-size="18" font-family="system-ui,sans-serif" font-weight="700"><text x="568" y="307">ETLE</text><text x="644" y="108" font-size="17">HUB</text></g>
+  <g stroke="#55778F" stroke-width="4">
+    <path d="M918 178v110"/><rect x="904" y="164" width="28" height="48" rx="8" fill="#213D57"/>
+  </g>
+  <circle cx="918" cy="178" r="5" fill="#F36F74"/><circle cx="918" cy="192" r="5" fill="#EACB74"/><circle cx="918" cy="205" r="5" fill="#71C998"/>
+  <path d="M0 355h1000" stroke="#D7E8E3" stroke-width="6"/>
+</svg>
