@@ -1,0 +1,214 @@
+/* G-SMART GLASS EDITION V1 — VISUAL PREVIEW ONLY
+   Scope ALL effects to body.gsmart-glass inside /preview-settings-v1/.
+   Never change production CSS, Firebase, Supabase or ETLE workflows. */
+
+body.gsmart-glass{
+  --glass-stroke:rgba(255,255,255,.88);
+  --glass-panel:rgba(255,255,255,.75);
+  --glass-panel-strong:rgba(255,255,255,.86);
+  --glass-panel-input:rgba(255,255,255,.82);
+  --glass-shadow:0 14px 34px rgba(32,66,114,.10),inset 0 1px 0 rgba(255,255,255,.7);
+  --glass-subtle-line:rgba(123,153,199,.22);
+}
+body.gsmart-glass .app-shell main{
+  background:
+    radial-gradient(ellipse 630px 430px at 88% 5%,rgba(105,147,250,.28) 0%,transparent 75%),
+    radial-gradient(ellipse 540px 490px at 10% 75%,rgba(31,183,201,.16) 0%,transparent 78%),
+    radial-gradient(ellipse 410px 360px at 72% 96%,rgba(164,119,235,.15) 0%,transparent 80%),
+    linear-gradient(135deg,#eef5ff 0%,#eaf3f9 52%,#f6f1ff 100%)!important;
+}
+body.gsmart-glass #content{background:transparent!important}
+body.gsmart-glass .sidebar{
+  background:linear-gradient(155deg,rgba(10,34,74,.93),rgba(5,24,51,.88) 55%,rgba(10,29,64,.95))!important;
+  border-right:1px solid rgba(153,203,255,.22);
+  box-shadow:8px 0 36px rgba(7,31,70,.22),inset -1px 0 rgba(255,255,255,.06);
+  -webkit-backdrop-filter:blur(14px) saturate(155%);
+  backdrop-filter:blur(14px) saturate(155%);
+}
+body.gsmart-glass .sidebar .side-brand,
+body.gsmart-glass .sidebar .side-footer{
+  border-color:rgba(198,223,255,.14);
+}
+body.gsmart-glass .topbar{
+  background:rgba(248,252,255,.72)!important;
+  border-bottom:1px solid rgba(255,255,255,.94)!important;
+  box-shadow:0 7px 28px rgba(35,68,119,.09);
+  -webkit-backdrop-filter:blur(17px) saturate(160%);
+  backdrop-filter:blur(17px) saturate(160%);
+}
+body.gsmart-glass .topbar :is(.month-select,#refreshDataBtn,#menuBtn){
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(140,167,211,.34);
+  color:#163F68;
+  border-radius:11px;
+}
+body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-glass #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-glass .health-card{
+  background:var(--glass-panel)!important;
+  border:1px solid var(--glass-stroke)!important;
+  border-radius:17px;
+  box-shadow:var(--glass-shadow);
+  -webkit-backdrop-filter:blur(12px) saturate(135%);
+  backdrop-filter:blur(12px) saturate(135%);
+}
+body.gsmart-glass #content .prefs-menu{
+  background:var(--glass-panel-strong)!important;
+  overflow:hidden;
+}
+body.gsmart-glass .prefs-item{
+  background:transparent!important;
+  border-bottom-color:var(--glass-subtle-line);
+}
+body.gsmart-glass .prefs-item:is(:hover,:focus-visible){
+  background:rgba(217,235,255,.52)!important;
+}
+body.gsmart-glass #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-glass #content .prefs-option:not(.selected){
+  background:rgba(249,252,255,.67)!important;
+  border:1px solid rgba(156,182,216,.32);
+}
+body.gsmart-glass #content :is(.toolbar input,.toolbar select,.month-select,.login-audit-toolbar select){
+  background:var(--glass-panel-input);
+  border-color:rgba(134,162,200,.36);
+}
+body.gsmart-glass #content .table-wrap{
+  background:rgba(255,255,255,.42);
+  border-color:rgba(147,174,207,.28);
+}
+body.gsmart-glass #content .dashboard-metrics .card{
+  /* Keep original eight solid Vivid KPI colors. */
+  border:1px solid rgba(255,255,255,.24);
+  box-shadow:0 9px 23px rgba(20,55,97,.13);
+}
+body.gsmart-glass .gita-greeting,
+body.gsmart-glass .gita-assistant-welcome,
+body.gsmart-glass .command-palette{
+  background:rgba(248,252,255,.87);
+  border:1px solid rgba(255,255,255,.86);
+  -webkit-backdrop-filter:blur(13px);
+  backdrop-filter:blur(13px);
+}
+body.gsmart-glass .gsmart-preview-note{
+  border-color:rgba(167,217,255,.47);
+  background:rgba(7,33,65,.84);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+}
+.gsmart-preview-note #glassPreviewToggle{
+  flex:0 0 auto;
+  padding:5px 9px;
+  border-radius:8px;
+  border:1px solid rgba(131,226,255,.47);
+  background:rgba(21,99,160,.72);
+  color:#F1FBFF;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.2;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.gsmart-preview-note #glassPreviewToggle[aria-pressed="false"]{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(208,224,240,.34);
+  color:#D0E0F1;
+}
+.gsmart-preview-note #glassPreviewToggle:focus-visible{
+  outline:2px solid #A1EDFF;
+  outline-offset:2px;
+}
+
+/* Dark Glass: deep-navy translucent surface, high contrast text. */
+body.gsmart-glass.pref-theme-dark{
+  --glass-panel:rgba(24,45,72,.78);
+  --glass-panel-strong:rgba(22,44,73,.88);
+  --glass-panel-input:rgba(24,49,78,.9);
+  --glass-stroke:rgba(127,176,226,.25);
+  --glass-subtle-line:rgba(119,166,213,.22);
+  --glass-shadow:0 16px 36px rgba(2,9,24,.29),inset 0 1px 0 rgba(192,224,255,.075);
+}
+body.gsmart-glass.pref-theme-dark .app-shell main{
+  background:
+    radial-gradient(ellipse 640px 470px at 89% 6%,rgba(55,114,220,.28),transparent 76%),
+    radial-gradient(ellipse 500px 420px at 12% 68%,rgba(36,153,187,.15),transparent 75%),
+    radial-gradient(ellipse 420px 350px at 75% 95%,rgba(111,67,171,.19),transparent 80%),
+    linear-gradient(145deg,#0B1A31 0%,#10243F 58%,#171E3D 100%)!important;
+}
+body.gsmart-glass.pref-theme-dark .topbar{
+  background:rgba(15,32,56,.77)!important;
+  border-bottom-color:rgba(124,170,218,.24)!important;
+  box-shadow:0 8px 24px rgba(0,9,26,.26);
+}
+body.gsmart-glass.pref-theme-dark .topbar :is(.month-select,#refreshDataBtn,#menuBtn){
+  background:rgba(33,62,95,.75);
+  border-color:rgba(143,183,226,.24);
+  color:#F0F7FF;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+body.gsmart-glass.pref-theme-dark #content .cards:not(.dashboard-metrics) .card,
+body.gsmart-glass.pref-theme-dark .health-card{
+  background:var(--glass-panel)!important;
+  border-color:var(--glass-stroke)!important;
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content .prefs-menu{
+  background:var(--glass-panel-strong)!important;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.prefs-switch,.prefs-faq details,.prefs-account-email),
+body.gsmart-glass.pref-theme-dark #content .prefs-option:not(.selected){
+  background:rgba(23,49,78,.74)!important;
+  border-color:rgba(126,170,217,.28);
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content :is(.toolbar input,.toolbar select,.month-select,.login-audit-toolbar select){
+  background:rgba(22,50,81,.84);
+  border-color:rgba(125,175,221,.29);
+  color:#EAF4FF;
+}
+body.gsmart-glass.pref-theme-dark #content .table-wrap{
+  background:rgba(13,33,55,.52);
+  border-color:rgba(125,175,221,.22);
+}
+body.gsmart-glass.pref-theme-dark .prefs-item:is(:hover,:focus-visible){
+  background:rgba(50,87,128,.50)!important;
+}
+body.gsmart-glass.pref-theme-dark .gita-greeting,
+body.gsmart-glass.pref-theme-dark .gita-assistant-welcome,
+body.gsmart-glass.pref-theme-dark .command-palette{
+  background:rgba(20,42,68,.92);
+  border-color:rgba(138,188,230,.28);
+  color:#EDF7FF;
+}
+
+/* Mobile devices: reduce blur and shadows for smooth scrolling. */
+@media(max-width:800px){
+  body.gsmart-glass .sidebar{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  body.gsmart-glass .topbar{-webkit-backdrop-filter:blur(11px);backdrop-filter:blur(11px)}
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel),
+  body.gsmart-glass #content .cards:not(.dashboard-metrics) .card{
+    -webkit-backdrop-filter:blur(7px);
+    backdrop-filter:blur(7px);
+    box-shadow:0 8px 21px rgba(15,50,93,.11);
+  }
+}
+@media(max-width:520px){
+  .gsmart-preview-note #glassPreviewToggle{padding:5px 7px;font-size:10px}
+}
+/* Graceful fallback: solid enough without backdrop-filter support. */
+@supports not (backdrop-filter:blur(2px)){
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    background:rgba(255,255,255,.94)!important;
+  }
+  body.gsmart-glass.pref-theme-dark #content :is(.panel,.prefs-menu,.gsmart-hub-panel,.prefs-panel){
+    background:rgba(21,42,67,.96)!important;
+  }
+}
+@media print{
+  body.gsmart-glass .app-shell main{background:white!important}
+  body.gsmart-glass #content :is(.panel,.prefs-menu,.prefs-panel){
+    background:white!important;
+    box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
