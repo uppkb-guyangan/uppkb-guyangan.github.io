@@ -1,7 +1,5 @@
 name: G-Smart ETLE Web Push (Otomatis)
 on:
-  schedule:
-    - cron: '13,43 * * * *'
   workflow_dispatch:
     inputs:
       mode:
