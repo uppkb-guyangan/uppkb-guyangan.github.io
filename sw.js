@@ -193,7 +193,6 @@ try {
     const caseId = GSMART_CASE_PATTERN.test(String(data.case_id || '')) ? String(data.case_id) : '';
     return self.registration.showNotification(data.title || 'G-Smart · ETLE', {
       body:data.body || 'Ada informasi ETLE terbaru.',
-      icon:GSMART_HOME+'G-SMART%20Traffic%20Monitoring%20Emblem.png',
       tag:data.event_key || 'gsmart-etle',
       data:{case_id:caseId, url:gsmartCaseUrl(caseId)}
     });
