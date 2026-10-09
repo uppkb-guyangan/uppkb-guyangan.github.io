@@ -591,8 +591,20 @@ function settingContent(id,p){
     prefChoice("font",p.font,[["normal","Normal"],["large","Besar"]])+'</div>'+
     '<p class="prefs-note">Pilihan tersimpan di browser perangkat ini.</p></div>';
   if(id==="notifications")return '<div class="prefs-form">'+
+    '<section class="gsmart-push-section" id="gsmartPushSection"><h4>🔔 Pemberitahuan ke HP</h4>'+
+    '<p>Dapatkan kabar ETLE meskipun aplikasi tidak dibuka. Aktifkan sekali pada setiap perangkat.</p>'+
+    '<p class="gsmart-push-status" id="gsmartPushStatus" role="status">Memeriksa kesiapan notifikasi...</p>'+
+    '<label class="gsmart-push-label" for="gsmartVapidKey">Kunci publik Web Push (VAPID)</label>'+
+    '<input class="gsmart-push-key" id="gsmartVapidKey" type="text" autocomplete="off" spellcheck="false" placeholder="Tempel kunci publik Firebase Cloud Messaging">'+
+    '<p class="prefs-note">Masukkan kunci publik dari Firebase → Cloud Messaging → Web Push certificates. Hanya diperlukan sekali di perangkat ini.</p>'+
+    '<div class="gsmart-push-options"><b>Jenis pemberitahuan</b>'+
+    '<label><input type="checkbox" data-push-choice="blanko" checked> Blanko Tilang Baru</label>'+
+    '<label><input type="checkbox" data-push-choice="disputes" checked> Pelanggaran Tersanggah</label>'+
+    '<label><input type="checkbox" data-push-choice="shipping" checked> Surat Diproses JNE</label></div>'+
+    '<div class="gsmart-push-actions"><button type="button" class="action-btn primary" id="gsmartEnablePush">Aktifkan Pemberitahuan</button>'+
+    '<button type="button" class="action-btn" id="gsmartDisablePush">Nonaktifkan</button></div></section>'+
     prefSwitch("showActivity","Aktivitas di Dashboard","Tampilkan aktivitas terbaru yang tercatat.",p.showActivity)+
-    '<p class="prefs-note">Notifikasi otomatis ke HP dan suara pemberitahuan belum tersedia di sini. Mengubah pilihan ini tidak mengaktifkan notifikasi dari server.</p></div>';
+    '<p class="prefs-note">Pemberitahuan akan dikirim setelah data baru terdeteksi pada sinkronisasi ETLE. Pengaturan berlaku untuk akun dan perangkat ini.</p></div>';
   if(id==="data")return '<div class="prefs-form"><div><b>Periode awal</b><p>Data yang pertama kali muncul saat masuk ke G-Smart.</p>'+
     prefChoice("period",p.period,[["all","Semua Data"],["latest","Bulan Terbaru"]])+'</div>'+
     '<p class="prefs-note">Pilihan ini berlaku saat masuk berikutnya. Anda tetap bisa mengganti periode di bagian atas halaman.</p></div>';
@@ -648,6 +660,20 @@ function settingsPage(){
     if(!["showGita","greetGita","showActivity"].includes(key))return;
     const v=readPrefs();v[key]=input.checked;savePrefs(v);applyPrefs();toast("Pengaturan tersimpan")
   });
+  if(id==="notifications"){
+    // Optional module loaded on demand, never during Firebase authentication.
+    import("./gsmart-web-push.js?v=20261009-live1").then(mod=>{
+      if(state.page==="settings"&&state.settingsSection==="notifications")mod.mountPushSettings({
+        root:document.getElementById("gsmartPushSection"),
+        user:state.demo?null:auth.currentUser,
+        profile:state.profile
+      });
+    }).catch(e=>{
+      console.warn("Optional push settings unavailable:",e);
+      const status=document.getElementById("gsmartPushStatus");
+      if(status)status.textContent="Pemberitahuan belum dapat dimuat. Login G-Smart tetap berjalan.";
+    });
+  }
   if($("settingsResetPassword"))$("settingsResetPassword").onclick=async()=>{
     if(state.demo||!auth.currentUser?.email)return;
     const btn=$("settingsResetPassword");
