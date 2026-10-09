@@ -35,7 +35,7 @@ export function changes(previous,current){
   return events.sort((x,y)=>x.event_key.localeCompare(y.event_key));
 }
 export function assertMode(mode){
-  if(!["test","inspect","baseline","pilot"].includes(mode))throw Error("Mode tidak diizinkan");
+  if(!["test","inspect","baseline","ping","pilot"].includes(mode))throw Error("Mode tidak diizinkan");
   return mode;
 }
 function required(k){
@@ -146,9 +146,19 @@ async function send(access,recipient,event){
 export async function run(mode=process.env.PUSH_MODE||"test",mockStore){
   assertMode(mode);
   if(mode==="test")return {mode,description:"Offline; run node --test scripts/push-pilot.test.mjs"};
-  const account=mode==="pilot"?JSON.parse(required("FIREBASE_SERVICE_ACCOUNT_JSON")):null;
-  const target=mode==="pilot"?required("GSMART_PILOT_FCM_TOKEN"):null;
+  const sendMode=mode==="ping"||mode==="pilot";
+  const account=sendMode?JSON.parse(required("FIREBASE_SERVICE_ACCOUNT_JSON")):null;
+  const target=sendMode?required("GSMART_PILOT_FCM_TOKEN"):null;
   if(account&&account.project_id!==PROJECT)throw Error("Firebase project mismatch");
+  if(mode==="ping"){
+    const access=await oauth(account);
+    await send(access,target,{
+      event_type:"pilot_ping",case_id:"",
+      title:"G-Smart · Uji Pengiriman Otomatis",
+      body:"Pesan uji aman dari GitHub Actions melalui Firebase berhasil dikirim."
+    });
+    return {mode:"ping",sent:1,recipients:1,source:"manual",etleDataRead:false};
+  }
   const store=mockStore||database();
   const current=snapshot(await store.read());
   const before=await store.cursor();

@@ -18,8 +18,9 @@ JANGAN memasukkan secrets ke file GitHub, kode browser, atau percakapan.
 1. Test (tanpa rahasia): uji logika lokal saja.
 2. Inspect: baca data dan perubahan sejak baseline tanpa perubahan database.
 3. Baseline: simpan keadaan terkini sebagai titik awal, TANPA pengiriman notifikasi lama; hanya sekali.
-4. Pilot: baru setelah tiga secrets siap. Maksimal 3 pesan ke SATU HP uji per eksekusi manual.
-5. Otomatisasi jadwal dan integrasi PWA utama dilakukan setelah uji pengiriman baru berhasil.
+4. Ping: kirim tepat SATU pesan tes ke SATU HP yang tokennya disimpan sebagai secret. Tidak membaca atau mengubah data ETLE. Gunakan setelah secret Firebase dan token uji siap.
+5. Pilot: sesudah ping berhasil. Maksimal 3 pemberitahuan peristiwa baru ke satu HP per eksekusi manual.
+6. Otomatisasi jadwal dan integrasi PWA utama dilakukan hanya setelah uji pengiriman baru berhasil.
 
 ### Keamanan
 Script tidak menyentuh tabel ETLE (hanya SELECT), Firebase login, kode PWA, atau service worker utama.

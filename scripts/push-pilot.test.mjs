@@ -29,4 +29,4 @@ test("normalize status case and spacing",()=>{
  assert.equal(norm(" dalam  proses pengiriman "),"DALAM PROSES PENGIRIMAN");
  assert.equal(isProcessing("Dalam Proses Pengiriman"),true);
 });
-test("disallow other modes",()=>{assert.throws(()=>assertMode("broadcast"));assert.equal(assertMode("inspect"),"inspect")});
+test("disallow other modes",()=>{assert.throws(()=>assertMode("broadcast"));assert.equal(assertMode("inspect"),"inspect");assert.equal(assertMode("ping"),"ping")});

@@ -3,12 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'test, inspect, baseline, atau pilot (1 HP uji)'
+        description: 'test, inspect, baseline, ping (1 pesan uji), atau pilot'
         type: choice
         options:
           - test
           - inspect
           - baseline
+          - ping
           - pilot
         required: true
         default: test
