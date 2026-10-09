@@ -187,7 +187,31 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase()}
+function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase();launchPushMigration()}
+function launchPushMigration(){
+  if(state.demo||!auth.currentUser||!state.profile)return;
+  // Independent best-effort upgrade; never blocks login, dashboard, or ETLE data.
+  import("./gsmart-web-push.js?v=20261009-root1").then(mod=>
+    mod.migratePushForInstalledPwa({user:auth.currentUser,profile:state.profile})
+  ).catch(error=>console.warn("Migrasi notifikasi PWA akan dicoba pada pembukaan berikutnya:",error));
+}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("message",event=>{
+    if(event.data?.type==="GSMART_IDENTIFY_WINDOW"){
+      const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+      event.ports?.[0]?.postMessage({standalone});
+      return;
+    }
+    if(event.data?.type!=="GSMART_PUSH_OPEN_CASE")return;
+    const caseId=String(event.data.case_id||"").trim();
+    if(!/^[A-Za-z0-9_-]{1,100}$/.test(caseId))return;
+    const url=new URL(window.location.href);
+    url.searchParams.set("case",caseId);
+    if(url.href!==window.location.href)history.replaceState(history.state,"",url.href);
+    if(state.bundle&&!$("appView").classList.contains("hidden"))openRequestedCase();
+  });
+}
+
 function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){
@@ -662,7 +686,7 @@ function settingsPage(){
   });
   if(id==="notifications"){
     // Optional module loaded on demand, never during Firebase authentication.
-    import("./gsmart-web-push.js?v=20261009-case2").then(mod=>{
+    import("./gsmart-web-push.js?v=20261009-root1").then(mod=>{
       if(state.page==="settings"&&state.settingsSection==="notifications")mod.mountPushSettings({
         root:document.getElementById("gsmartPushSection"),
         user:state.demo?null:auth.currentUser,
@@ -1671,7 +1695,7 @@ function openRequestedCase(){
   const caseId=requestedCaseId();
   if(!caseId||!state.bundle)return;
   const exists=state.bundle.cases.some(x=>String(x.case_id)===String(caseId));
-  if(!exists){toast("Perkara dari QR tidak ditemukan pada data G-Smart.");return}
+  if(!exists){toast("Perkara dari notifikasi belum ditemukan pada data G-Smart. Coba perbarui data.");return}
   state.detailSource="OTHER";
   setTimeout(()=>openDetail(caseId),80)
 }
