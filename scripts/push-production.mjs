@@ -5,6 +5,7 @@
 import {createSign} from "node:crypto";
 import {snapshot,changes} from "./push-pilot.mjs";
 import {SHIPPING_EVENT_TYPES,shippingLifecycleEvents} from "./shipping-lifecycle.mjs";
+import {compactNotification} from "./push-presentation.mjs";
 const FIREBASE_PROJECT="g-smart-guyangan";
 const DB_PROJECT="pszyqzzqlzdgeefivydz";
 const HOME="https://uppkb-guyangan.github.io/";
@@ -140,17 +141,21 @@ async function oauth(sa){
  return token.access_token;
 }
 async function notify(access,device,event){
+ const display=compactNotification(event);
  const destination=new URL(HOME);
  if(event.case_id)destination.searchParams.set("case",String(event.case_id));
  const res=await fetch("https://fcm.googleapis.com/v1/projects/"+FIREBASE_PROJECT+"/messages:send",{
    method:"POST",headers:{Authorization:"Bearer "+access,"Content-Type":"application/json"},
    body:JSON.stringify({message:{
      token:device.token,
-     notification:{title:event.title,body:event.body},
+     notification:{title:display.title,body:display.body},
      data:{event_key:event.event_key,event_type:event.event_type,case_id:event.case_id},
      // Let the custom SW notificationclick open the installed PWA.
      webpush:{fcm_options:{link:destination.href},notification:{
-       tag:event.event_key,icon:HOME+"G-SMART%20Traffic%20Monitoring%20Emblem.png",
+       // No explicit notification.icon: MIUI renders it as a second, oversized
+       // emblem on the right beside the installed app identity on the left.
+       // Let Android/Chrome use the PWA application icon instead.
+       tag:event.event_key,
        data:{case_id:String(event.case_id||""),url:destination.href}
      }}
    }}),

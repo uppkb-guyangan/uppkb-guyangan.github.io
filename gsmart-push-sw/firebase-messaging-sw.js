@@ -47,7 +47,6 @@ try{
       destination.searchParams.set("case",caseId);
     return self.registration.showNotification(data.title||"G-Smart · ETLE",{
       body:data.body||"Ada informasi ETLE terbaru.",
-      icon:HOME+"G-SMART%20Traffic%20Monitoring%20Emblem.png",
       tag:data.event_key||"gsmart-etle",
       data:{url:destination.href,case_id:caseId}
     });
