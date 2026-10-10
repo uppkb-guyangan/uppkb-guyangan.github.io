@@ -1,4 +1,4 @@
-// Admin-only G-Smart dispute evidence panel. Server enforces actual access.
+// G-Smart dispute evidence panel for active Admin and Wasatpel. Server enforces access.
 // Private contents and tokens are never persisted in browser storage.
 let liveObjectUrl=null;
 function clearPreview(){
@@ -74,9 +74,9 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
       return
     }
     if(response.status===401||response.status===403){
-      note(panel,"Akses bukti sanggahan dibatasi untuk Admin aktif. Silakan masuk ulang bila akun Anda adalah Admin.");
+      note(panel,"Akses bukti sanggahan hanya untuk Admin atau Wasatpel aktif. Periksa sesi akun Anda.");
       if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId)
-        note(offenderPanel,"Informasi pelanggar privat tidak dapat diakses. Periksa sesi dan role Admin.");
+        note(offenderPanel,"Informasi pelanggar privat tidak dapat diakses. Periksa sesi dan role Anda.");
       return
     }
     if(!response.ok)throw Error("PRIVATE_EVIDENCE_UNAVAILABLE");
@@ -154,7 +154,7 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
         }else{
           const img=element("img",null,"gsmart-private-photo");
           img.src=liveObjectUrl;
-          img.alt=kind==="sim"?"Foto SIM - akses Admin":"Dokumen sanggahan - akses Admin";
+          img.alt=kind==="sim"?"Foto SIM - akses Admin atau Wasatpel":"Dokumen sanggahan - akses Admin atau Wasatpel";
           img.loading="lazy";
           preview.append(img);
         }
