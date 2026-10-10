@@ -4,7 +4,7 @@ let liveObjectUrl=null;
 function clearPreview(){
   if(liveObjectUrl){URL.revokeObjectURL(liveObjectUrl);liveObjectUrl=null}
 }
-export function disposePrivateEvidencePreview(){clearPreview()}
+export function disposePrivateEvidencePreview(){clearPreview();const panel=document.getElementById("gsmartPrivateEvidence");if(panel)panel.dataset.privateCase=""}
 async function requestEvidence(endpoint,apiKey,getToken,caseId,action,kind=null){
   const token=await getToken();
   const response=await fetch(endpoint,{
