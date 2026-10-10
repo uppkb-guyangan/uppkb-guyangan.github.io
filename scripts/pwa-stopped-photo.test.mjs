@@ -26,6 +26,6 @@ test("private stopped photos never leak credentials or signed sources",()=>{
  assert.match(app,/disposeStoppedVehiclePhoto\(\)/);
 });
 test("PWA asset cache busting updated",()=>{
- assert.match(index,/app-v2\.js\?v=20261010-stopped-photo1/);
+ assert.match(index,/app-v2\.js\?v=20261010-(?:stopped-photo1|dispute-fields1)/);
  assert.match(app,/stopped-vehicle-photo\.js\?v=20261010-stopped1/);
 });

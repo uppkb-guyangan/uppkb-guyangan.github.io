@@ -18,3 +18,9 @@
 .gsmart-private-evidence-subsection{margin-top:16px;border-top:1px solid rgba(85,121,164,.16);padding-top:14px}
 .gsmart-private-evidence-subsection h4{font-size:13px;font-weight:770;margin:0 0 10px;color:#163553}
 .gsmart-private-evidence-subsection h4 small{font-size:11px;color:#75869a;font-weight:500}
+
+.gsmart-private-dispute-section{display:grid;gap:10px;margin:10px 0 4px;padding:12px;border:1px solid rgba(49,99,163,.18);border-radius:12px;background:rgba(234,242,252,.45)}
+.gsmart-private-dispute-heading{font-size:13px;font-weight:800;color:#244364;margin:0}
+.gsmart-private-dispute-field{min-width:0}
+.gsmart-private-dispute-label{display:block;font-size:11.5px;font-weight:650;color:#617b97;margin-bottom:4px}
+.gsmart-private-dispute-value{font-size:13px;color:#19364f;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}

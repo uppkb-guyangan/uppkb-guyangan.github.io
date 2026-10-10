@@ -109,10 +109,23 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
       ?"Data pelanggar sudah ditampilkan pada informasi utama."
       :"Informasi pelanggar belum tersedia pada arsip privat.");
   }
-  if(result.reason){
-    const reason=element("p",null,"gsmart-private-reason");
-    reason.append(element("strong","Alasan sanggahan: "),document.createTextNode(String(result.reason)));
-    wrap.append(reason);
+  if(result.reason || result.explanation){
+    const section=element("section",null,"gsmart-private-dispute-section");
+    const heading=element("h4","Data Sanggahan","gsmart-private-dispute-heading");
+    section.append(heading);
+    for(const [label,value] of [
+      ["Alasan Disanggah",result.reason],
+      ["Keterangan Sanggahan",result.explanation]
+    ]){
+      if(!value)continue;
+      const field=element("div",null,"gsmart-private-dispute-field");
+      field.append(
+        element("span",label,"gsmart-private-dispute-label"),
+        element("p",value,"gsmart-private-dispute-value")
+      );
+      section.append(field);
+    }
+    wrap.append(section);
   }
   const controls=element("div",null,"gsmart-private-actions");
   const preview=element("div",null,"gsmart-private-preview");
@@ -155,7 +168,7 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
     controls.append(btn);
   }
   if(controls.childNodes.length)wrap.append(controls,preview);
-  if(!result.reason&&!controls.childNodes.length)
+  if(!result.reason&&!result.explanation&&!controls.childNodes.length)
     wrap.append(element("p","Belum ada foto SIM atau dokumen pendukung untuk perkara ini."));
   panel.replaceChildren(wrap);
 }
