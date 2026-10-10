@@ -69,7 +69,7 @@ test("history search accepts TNKB with or without whitespace",()=>{
 test("no per-row API requests or legacy global fetch interception",()=>{
   assert.doesNotMatch(helper,/\bfetch\s*\(|\bawait\b|supabase|\.table\(/i);
   assert.doesNotMatch(html,/script src="\.\/history-tnkb\.js/);
-  assert.match(html,/app-v2\.js\?v=20261011-authboot1/);
+  assert.match(html,/app-v2\.js\?v=20261011-authpersist1/);
   assert.match(app,/const\[cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs\]=await Promise\.all\(/);
 });
 
