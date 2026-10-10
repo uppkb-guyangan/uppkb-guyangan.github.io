@@ -40,6 +40,6 @@ test("user-visible tabs and cache versions remain separate from existing case de
   assert.match(app,/Dihentikan \('/);
   assert.match(app,/state\.disputeTab==="stopped"\?\[\["terminated_at","Tgl Dihentikan"\]\]/);
   assert.match(html,/dispute-tabs\.css\?v=20261010-tab1/);
-  assert.match(html,/app-v2\.js\?v=20261010-(?:dispute-tabs1|private-offender1)/);
+  assert.match(html,/app-v2\.js\?v=20261010-(?:dispute-tabs1|private-offender1|stopped-photo1)/);
   assert.match(app,/mountPrivateEvidence\(\$\("gsmartPrivateEvidence"\)/);
 });
