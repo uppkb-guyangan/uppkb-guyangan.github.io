@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebas
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
-import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-dispute-fields1";
+import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-wasatpel1";
 import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-vehicle-photo.js?v=20261010-stopped1";
 
 const $=id=>document.getElementById(id);
