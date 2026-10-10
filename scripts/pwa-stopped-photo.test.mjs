@@ -13,7 +13,7 @@ test("fallback only for STOPPED cases with missing existing ETLE photos",()=>{
 });
 test("existing shipping photo rendering and gallery remain unchanged",()=>{
  assert.match(app,/const mainPhoto=photos\[0\]\?\.photo_url/);
- assert.match(app,/id="detailMainPhoto" src="\+esc\(mainPhoto\)/);
+ assert.match(app,/mainPhoto\?\'<img id="detailMainPhoto"/);
  assert.match(app,/class="detail-photo-thumb/);
 });
 test("private stopped photos never leak credentials or signed sources",()=>{
