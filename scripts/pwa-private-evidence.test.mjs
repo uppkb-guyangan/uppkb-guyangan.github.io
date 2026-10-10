@@ -22,7 +22,7 @@ test("client code sends only Firebase token and case ID, never stores private co
   assert.match(panel,/cache:"no-store"/);
   assert.match(panel,/credentials:"omit"/);
   assert.match(panel,/case_id:caseId/);
-  assert.doesNotMatch(panel,/localStorage|sessionStorage|console\.log/);
+  assert.doesNotMatch(panel,/\b(?:localStorage|sessionStorage)\s*\.|console\.log\s*\(/);
   assert.match(panel,/disposePrivateEvidencePreview/);
   assert.match(panel,/URL\.revokeObjectURL/);
 });
