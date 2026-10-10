@@ -97,8 +97,8 @@ async function setFavoriteCase(caseId,active){
     return{active,remote:false}
   }
 }
-function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin}}
-const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges});
+function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin,privateDisputeEvidence:isAdmin||isWasatpel}}
+const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges,privateDispute:rolePermissions().privateDisputeEvidence});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
 function syncTimeLabel(when=new Date()){
   return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(when)+" WIB"
@@ -1910,7 +1910,7 @@ function renderDetail(d){
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">◉</span>Data Pelanggar</h3>'+
           infoGrid(d.offender,[["nama","Nama"],["alamat","Alamat"],...(p.copyPhone?[["no_telp","No. Telepon"]]:[]),["email","Email"],["no_ktp","No. KTP"],["golongan_sim","Golongan SIM"],["tempat_lahir","Tempat Lahir"],["tanggal_lahir","Tanggal Lahir","date"],["pekerjaan","Pekerjaan"]])+
-          (p.admin&&!state.demo&&d.dispute?'<div class="gsmart-private-offender-card" id="gsmartPrivateOffender"><p class="prefs-note">Memuat konfirmasi data pelanggar...</p></div><div class="gsmart-private-evidence-subsection"><h4>Bukti Sanggahan Privat <small>· Khusus Admin</small></h4><div id="gsmartPrivateEvidence" class="gsmart-private-body"><p class="prefs-note">Memeriksa arsip...</p></div></div>':"")+
+          (p.privateDispute&&!state.demo&&d.dispute?'<div class="gsmart-private-offender-card" id="gsmartPrivateOffender"><p class="prefs-note">Memuat konfirmasi data pelanggar...</p></div><div class="gsmart-private-evidence-subsection"><h4>Bukti Sanggahan Privat <small>· Admin &amp; Wasatpel</small></h4><div id="gsmartPrivateEvidence" class="gsmart-private-body"><p class="prefs-note">Memeriksa arsip...</p></div></div>':"")+
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▤</span>Kendaraan & KIR</h3>'+
           infoGrid(vehicleDetail,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"],["persentase_lebih","Persentase Lebih"]])+
@@ -1973,7 +1973,7 @@ function renderDetail(d){
       getToken:()=>auth.currentUser.getIdToken(true)
     }).catch(()=>{});
   }
-  if(p.admin&&!state.demo&&d.dispute&&$("gsmartPrivateEvidence")){
+  if(p.privateDispute&&!state.demo&&d.dispute&&$("gsmartPrivateEvidence")){
     mountPrivateEvidence($("gsmartPrivateEvidence"),{
       caseId:c.case_id,
       endpoint:supabaseConfig.url+"/functions/v1/gsmart-dispute-private",
