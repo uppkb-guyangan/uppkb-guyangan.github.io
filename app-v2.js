@@ -760,7 +760,13 @@ function statusBadge(v){
 }
 function shipClass(v){switch(norm(v)){case"tercetak":return["Tercetak",""];case"dalam proses pengiriman":return["Dalam Proses","warn"];case"terkirim":return["Terkirim","success"];case"gagal kirim":return["Gagal Kirim","danger"];case"dikembalikan":return["Dikembalikan","orange"];default:return["Lainnya","gray"]}}
 function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim","Gagal Kirim","Dikembalikan","Lainnya"];const map=Object.fromEntries(cats.map(x=>[x,0]));rows.forEach(r=>map[shipClass(r.status)[0]]++);return'<div class="status-grid">'+cats.map(k=>'<div class="status-card"><b>'+map[k]+'</b><span>'+k+'</span></div>').join("")+'</div>'}
+// Resolve TNKB from case data already fetched for the dashboard; no extra API calls.
+function enrichHistoryWithTnkb(rows,cases){
+  const byCaseId=new Map((cases||[]).filter(c=>c?.case_id).map(c=>[String(c.case_id),String(c.tnkb||"").trim()]));
+  return rows.map(h=>({...h,tnkb:byCaseId.get(String(h?.case_id||""))||"-"}))
+}
 function processPage(page,rows){
+  if(page==="history")rows=enrichHistoryWithTnkb(rows,(state.bundle||demo).cases);
   const titles=Object.fromEntries(menu);
   let extra="";
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
@@ -795,7 +801,8 @@ function processPage(page,rows){
     '</div>';
   const apply=()=>{
     const q=norm($("filter").value);
-    let r=rows.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q));
+    const compactQuery=page==="history"?q.replace(/\s+/g,""):q;
+    let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q));
     if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
     $("slot").innerHTML=genericTable(page,r);
     $("resultCount").textContent=r.length===rows.length?r.length+" data":r.length+" dari "+rows.length+" data";
@@ -827,15 +834,15 @@ function genericTable(page,rows){
     terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
     court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
     new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],
-    history:[["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]
+    history:[["tnkb","TNKB"],["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]
   };
   const cols=defs[page]||[];
   return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr>'+
     cols.map(c=>'<th>'+c[1]+'</th>').join("")+
     '</tr></thead><tbody>'+
-    rows.map(r=>'<tr class="'+(rowCaseId(page,r)?"clickable":"")+'" data-case="'+esc(rowCaseId(page,r)||"")+'">'+
+    rows.map(r=>{const caseId=rowCaseId(page,r);return '<tr class="'+(caseId?"clickable":"")+'" data-case="'+esc(caseId||"")+'">'+
       cols.map(([k,label])=>'<td data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
-    '</tr>').join("")+
+    '</tr>'}).join("")+
     '</tbody></table></div>'
 }
 function historyDisplayTitle(h){
