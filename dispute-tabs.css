@@ -1,0 +1,8 @@
+/* Active / Stopped tab group for dispute history. */
+.gsmart-dispute-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
+.gsmart-dispute-tab{border:1px solid #cddced;background:#f3f7fc;color:#2a5076;cursor:pointer;border-radius:11px;padding:10px 16px;font-size:13px;font-weight:750;min-height:40px;transition:background .15s,border-color .15s}
+.gsmart-dispute-tab:hover{background:#e8f1fe}
+.gsmart-dispute-tab.active{background:#0d5fc4;color:#fff;border-color:#0d5fc4;box-shadow:0 4px 10px rgba(13,95,196,.13)}
+.gsmart-dispute-tab:focus-visible{outline:3px solid #90bdff;outline-offset:2px}
+.gsmart-dispute-explainer{font-size:12px;line-height:1.55;color:#667d93;margin:0 0 10px}
+@media(max-width:480px){.gsmart-dispute-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.gsmart-dispute-tab{min-width:0;padding:10px 6px}}
