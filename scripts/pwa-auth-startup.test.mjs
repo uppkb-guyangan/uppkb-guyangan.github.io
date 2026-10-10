@@ -24,8 +24,9 @@ test("initial paint hides the login form pending Firebase state",()=>{
 });
 test("login page is revealed only after boot concludes",()=>{
   const sections=between("function hideAuthBoot(){","function renderProfile(");
-  const classes=new Map();
-  const nodes=new Map(["gsmartAuthBoot","loginView","appView","gsmartAuthRetry","gsmartAuthLogout","gsmartAuthBootText"].map(id=>{
+  const ids=["gsmartAuthBoot","loginView","appView","gsmartAuthRetry","gsmartAuthLogout","gsmartAuthBootText"];
+  const classes=new Map(ids.map(id=>[id,new Set()]));
+  const nodes=new Map(ids.map(id=>{
     const obj={classList:{
       add(k){if(!classes.has(id))classes.set(id,new Set());classes.get(id).add(k)},
       remove(k){classes.get(id)?.delete(k)},
