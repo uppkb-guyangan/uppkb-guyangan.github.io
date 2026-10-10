@@ -55,6 +55,6 @@ test("private offender metadata is inserted as text, not raw HTML",()=>{
   assert.doesNotMatch(panel,/innerHTML/);
 });
 test("build uses fresh PWA versioned script and stylesheet",()=>{
-  assert.match(index,/app-v2\.js\?v=20261011-authboot1/);
+  assert.match(index,/app-v2\.js\?v=20261011-authpersist1/);
   assert.match(index,/private-evidence-panel\.css\?v=20261010-(?:admin1|offender1|dispute-fields1)/);
 });
