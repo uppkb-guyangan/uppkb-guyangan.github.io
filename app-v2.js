@@ -5,7 +5,7 @@ import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-admin1";
 
 const $=id=>document.getElementById(id);
-const state={profile:null,bundle:null,page:"dashboard",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
+const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
 let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
@@ -236,9 +236,15 @@ function renderNav(){
 }
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
-function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
+function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;if(p==="disputes"&&activityFocus?.mode==="today")state.disputeTab="active";state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
 function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
+function stoppedDisputes(b){
+  const term=new Map(b.terminated.filter(x=>x.case_id).map(x=>[x.case_id,x]));
+  return b.disputes
+    .filter(x=>period(x.confirmation_date)&&x.case_id&&term.has(x.case_id))
+    .map(x=>({...x,status:"DIHENTIKAN",terminated_at:term.get(x.case_id)?.terminated_at||null}));
+}
 function socializationCaseIds(b){return new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id).filter(Boolean))}
 function activeShippingRows(b){
   const confirmed=socializationCaseIds(b);
@@ -266,7 +272,7 @@ function filteredRows(page,b){
   switch(page){
     case"shipping":return activeShippingRows(b).filter(x=>period(x.printed_date));
     case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
-    case"disputes":return activeDisputes(b);
+    case"disputes":return state.disputeTab==="stopped"?stoppedDisputes(b):activeDisputes(b);
     case"terminated":return b.terminated.filter(x=>period(x.terminated_at));
     case"court":return b.courts.filter(x=>period(x.tanggal_sidang));
     case"new":return b.cases.filter(x=>period(x.first_seen_at));
@@ -766,9 +772,19 @@ function processPage(page,rows){
       ?"Menampilkan hanya data yang membentuk angka aktivitas hari ini pada dashboard."
       :"";
   const focusAction=(historyFocused||activityFocused)?'<button type="button" id="showAllFocusedData" class="action-btn history-reset-btn">Lihat Semua Data</button>':"";
+  const disputeTabs=page==="disputes"
+    ?'<div class="gsmart-dispute-tabs" role="group" aria-label="Filter status sanggahan">'+
+      '<button type="button" class="gsmart-dispute-tab'+(state.disputeTab==="active"?" active":"")+'" data-dispute-tab="active" aria-pressed="'+(state.disputeTab==="active")+'">Aktif ('+activeDisputes(state.bundle||demo).length+')</button>'+
+      '<button type="button" class="gsmart-dispute-tab'+(state.disputeTab==="stopped"?" active":"")+'" data-dispute-tab="stopped" aria-pressed="'+(state.disputeTab==="stopped")+'">Dihentikan ('+stoppedDisputes(state.bundle||demo).length+')</button>'+
+      '</div>'+
+      '<p class="gsmart-dispute-explainer">'+(state.disputeTab==="stopped"
+        ?"Perkara yang pernah tersanggah dan kini sudah dihentikan. Riwayat serta bukti tetap terhubung ke perkara yang sama."
+        :"Hanya sanggahan yang masih aktif; angka Dashboard tetap memakai kategori ini.")+'</p>'
+    :"";
   $("content").innerHTML=
     '<div class="panel">'+
       '<div class="title-row"><div><h3>'+pageTitle+'</h3>'+(focusNote?'<p class="history-focus-note">'+focusNote+'</p>':'')+'</div><div class="history-title-actions"><span class="badge" id="resultCount">'+rows.length+' data</span>'+focusAction+'</div></div>'+
+      disputeTabs+
       '<div class="toolbar table-toolbar sticky-table-toolbar">'+
         '<div class="search-field-wrap"><span class="search-field-icon">⌕</span><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik..."><button id="clearFilter" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div>'+
         extra+
@@ -785,6 +801,13 @@ function processPage(page,rows){
     $("clearFilter").classList.toggle("hidden",!q);
     bindDetailRows();
   };
+  document.querySelectorAll("[data-dispute-tab]").forEach(btn=>btn.onclick=()=>{
+    const value=btn.dataset.disputeTab;
+    if(value!=="active"&&value!=="stopped")return;
+    state.disputeTab=value;
+    state.activityFocus=null;
+    renderPage();
+  });
   $("filter").oninput=apply;
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
@@ -799,7 +822,7 @@ function genericTable(page,rows){
   const defs={
     shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],
     blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
-    disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],["reason","Alasan"]],
+    disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],...(state.disputeTab==="stopped"?[["terminated_at","Tgl Dihentikan"]]:[]),["reason","Alasan"]],
     terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
     court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
     new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],
