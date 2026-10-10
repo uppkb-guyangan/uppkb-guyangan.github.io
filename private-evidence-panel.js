@@ -1,5 +1,5 @@
 // Admin-only G-Smart dispute evidence panel. Server enforces actual access.
-// Never writes Firebase tokens, personal records, or image URLs to localStorage.
+// Private contents and tokens are never persisted in browser storage.
 let liveObjectUrl=null;
 function clearPreview(){
   if(liveObjectUrl){URL.revokeObjectURL(liveObjectUrl);liveObjectUrl=null}
