@@ -310,6 +310,19 @@
   </style>
   <link rel="stylesheet" href="./gsmart-visual-themes.css?v=20261009-four-v1">
   <link rel="stylesheet" href="./gsmart-theme-picker.css?v=20261009-four-v1">
+  <style id="gsmart-auth-boot-style">
+    .gsmart-auth-boot{position:fixed;inset:0;z-index:1;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#071b31,#0d355b);color:#fff;font-family:Inter,ui-sans-serif,system-ui,sans-serif;text-align:center}
+    .gsmart-auth-boot-inner{display:grid;justify-items:center;gap:13px;max-width:340px}
+    .gsmart-auth-boot img{width:78px;height:78px;object-fit:contain}
+    .gsmart-auth-boot strong{font-size:23px}
+    .gsmart-auth-boot p{font-size:13px;line-height:1.6;color:#d9e6f3;margin:0}
+    .gsmart-auth-boot-spinner{width:26px;height:26px;border:3px solid #ffffff4a;border-top-color:#edb847;border-radius:50%;animation:gsmart-auth-spin .9s linear infinite}
+    .gsmart-auth-boot-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+    .gsmart-auth-boot button{padding:10px 15px;border-radius:10px;border:1px solid #ffffff50;background:#fff;color:#102d4e;font-weight:700;cursor:pointer}
+    .gsmart-auth-boot button.secondary{background:transparent;color:#fff}
+    @keyframes gsmart-auth-spin{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){.gsmart-auth-boot-spinner{animation:none}}
+  </style>
 </head>
 <body>
   <div id="gsmartSplash" class="gsmart-splash" role="status" aria-label="Memuat G-Smart">
@@ -323,7 +336,19 @@
     </div>
     <div class="gsmart-splash-label">G-Smart · UPPKB Guyangan</div>
   </div>
-  <section id="loginView" class="login-shell">
+  <section id="gsmartAuthBoot" class="gsmart-auth-boot" role="status" aria-live="polite">
+    <div class="gsmart-auth-boot-inner">
+      <img src="./G-SMART%20Traffic%20Monitoring%20Emblem.png" alt="">
+      <strong>G-Smart</strong>
+      <div class="gsmart-auth-boot-spinner" aria-hidden="true"></div>
+      <p id="gsmartAuthBootText">Memulihkan sesi G-Smart...</p>
+      <div class="gsmart-auth-boot-actions">
+        <button id="gsmartAuthRetry" type="button" class="hidden">Coba lagi</button>
+        <button id="gsmartAuthLogout" type="button" class="secondary hidden">Keluar akun</button>
+      </div>
+    </div>
+  </section>
+  <section id="loginView" class="login-shell hidden">
     <div class="login-card">
       <div class="brand"><div class="logo brand-logo"><img src="./G-SMART%20Traffic%20Monitoring%20Emblem.png" alt="Logo G-Smart"></div><div><h1>G-Smart</h1><p>UPPKB Guyangan · ETLE Monitoring</p></div></div>
       <form id="loginForm"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><div class="login-help-row"><button type="button" id="forgotPasswordBtn" class="forgot-password-btn">Lupa password?</button></div><button type="submit">Masuk</button><button type="button" id="demoBtn" class="secondary">Preview dengan data contoh</button><p id="loginMessage"></p></form>
@@ -347,7 +372,7 @@
   <script src="./whatsapp-templates.js?v=20261006-3"></script>
   <script src="./whatsapp-status-bridge.js?v=20261006-2"></script>
   <link rel="stylesheet" href="./gsmart-web-push.css?v=20261009-live1">
-  <script type="module" src="./app-v2.js?v=20261010-history-tnkb1"></script>
+  <script type="module" src="./app-v2.js?v=20261011-authboot1"></script>
   <script src="./gita-avatar.js?v=20261004-gita-avatar2"></script>
   <script type="module" src="./analytics-drilldown.js?v=20261002-1"></script>
   <script type="module" src="./court-enhancement.js?v=20261002-4"></script>
