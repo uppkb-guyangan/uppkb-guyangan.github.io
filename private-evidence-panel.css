@@ -1,0 +1,13 @@
+/* Admin-only private dispute evidence. No changes to vehicle photo styles. */
+.gsmart-private-body{font-size:13px;color:var(--text,#203a54)}
+.gsmart-private-details{display:grid;gap:14px}
+.gsmart-private-fields{margin:0;display:grid;gap:0}
+.gsmart-private-row{padding:8px 0;border-bottom:1px solid rgba(85,121,164,.13);display:grid;grid-template-columns:minmax(105px,1fr) minmax(0,1.5fr);gap:9px}
+.gsmart-private-row dt{font-size:12px;color:#617b97}
+.gsmart-private-row dd{margin:0;font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap}
+.gsmart-private-reason{background:rgba(226,236,249,.5);border-radius:10px;padding:11px;overflow-wrap:anywhere}
+.gsmart-private-actions{display:flex;gap:9px;flex-wrap:wrap}
+.gsmart-private-actions .action-btn{min-height:40px}
+.gsmart-private-preview{width:100%;min-width:0}
+.gsmart-private-photo{display:block;width:100%;max-width:480px;height:auto;max-height:570px;object-fit:contain;border-radius:10px;border:1px solid rgba(65,99,145,.2);background:#edf3fa}
+@media(max-width:520px){.gsmart-private-row{grid-template-columns:1fr;gap:2px}.gsmart-private-actions .action-btn{flex:1 1 100%}}
