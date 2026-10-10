@@ -7,6 +7,7 @@ on:
       - 'scripts/push-pilot.mjs'
       - 'scripts/pwa-push-navigation.test.mjs'
       - 'scripts/pwa-auth-startup.test.mjs'
+      - 'scripts/pwa-auth-persistence.test.mjs'
       - 'gsmart-push-sw/**'
       - 'sw.js'
       - 'gsmart-web-push.js'
