@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordRe
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-offender1";
+import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-vehicle-photo.js?v=20261010-stopped1";
 
 const $=id=>document.getElementById(id);
 const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
@@ -1723,7 +1724,7 @@ function openRequestedCase(){
   state.detailSource="OTHER";
   setTimeout(()=>openDetail(caseId),80)
 }
-async function openDetail(caseId){disposePrivateEvidencePreview();$("modalBackdrop").classList.remove("hidden");$("modalBody").innerHTML='<div class="loading">Memuat detail perkara...</div>';const c=caseById(caseId);$("modalTitle").textContent="Detail Perkara";$("modalSubtitle").textContent=(c?.tnkb||"-")+" · "+(c?.ref_number||c?.no_registrasi||"");try{const d=state.demo?demoDetail(caseId):await loadDetail(caseId);state.detail=d;renderDetail(d)}catch(e){$("modalBody").innerHTML='<div class="notice">'+esc(e.message)+'</div>'}}
+async function openDetail(caseId){disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.remove("hidden");$("modalBody").innerHTML='<div class="loading">Memuat detail perkara...</div>';const c=caseById(caseId);$("modalTitle").textContent="Detail Perkara";$("modalSubtitle").textContent=(c?.tnkb||"-")+" · "+(c?.ref_number||c?.no_registrasi||"");try{const d=state.demo?demoDetail(caseId):await loadDetail(caseId);state.detail=d;renderDetail(d)}catch(e){$("modalBody").innerHTML='<div class="notice">'+esc(e.message)+'</div>'}}
 function demoDetail(id){const c=caseById(id)||demo.cases[0];return{case:c,offender:demo.offenders.find(x=>x.case_id===id),vehicle:{case_id:id,nama_pemilik:c.nama_pemilik,merk:"MITSUBISHI",tipe:"FUSO",jenis_kendaraan:"MOBIL BARANG",tahun_rakit:"2020",bahan_bakar:"SOLAR",jbb:3200,jbi:3100,berat_timbang:3450,berat_lebih:350},photos:[],shipping:demo.shipping.find(x=>x.case_id===id),payment:c.no_blanko?{no_briva:c.no_briva,status_bayar:c.status_bayar,titipan:500000,denda_maksimum:500000,denda_pengadilan:150000,biaya_perkara:5000,nominal_sisa:350000}:null,dispute:demo.disputes.find(x=>x.case_id===id),terminated:demo.terminated.find(x=>x.case_id===id),court:demo.courts.find(x=>x.case_id===id),manual:{kategori_internal:"BELUM_DIPROSES",prioritas:"NORMAL",catatan_ringkas:"Preview"},notes:[],history:demo.histories.filter(x=>x.case_id===id)}}
 async function loadDetail(caseId){const c=caseById(caseId);if(!c)throw new Error("Perkara tidak ditemukan.");// One fresh token per detail opening, reused across eleven independent reads.
 const authToken=await auth.currentUser.getIdToken(true);const detailQ=(table,opts)=>q(table,{...opts,authToken});const one=async(t,f,v)=>{if(!v)return null;const r=await detailQ(t,{filters:{[f]:"eq."+v},limit:1});return r[0]||null};const [offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history]=await Promise.all([one("etle_offenders","case_id",caseId),one("etle_vehicles","case_id",caseId),detailQ("etle_photos",{filters:{case_id:"eq."+caseId},order:"sort_order.asc"}),c.ref_number?one("etle_shipping","ref_number",c.ref_number):one("etle_shipping","case_id",caseId),one("etle_payments","case_id",caseId),c.violation_id?one("etle_disputes","violation_id",c.violation_id):one("etle_disputes","case_id",caseId),c.ref_number?one("etle_terminated_cases","ref_number",c.ref_number):one("etle_terminated_cases","case_id",caseId),c.violation_id?one("etle_court_info","violation_id",c.violation_id):one("etle_court_info","case_id",caseId),one("gsmart_case_status","case_id",caseId),detailQ("gsmart_case_notes",{filters:{case_id:"eq."+caseId},order:"created_at.desc"}),detailQ("gsmart_case_history",{filters:{case_id:"eq."+caseId},order:"event_time.desc.nullslast"})]);return{case:c,offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history}}
@@ -1842,6 +1843,7 @@ function showCaseQr(d){
   }
 }
 function renderDetail(d){
+  disposeStoppedVehiclePhoto();
   const p=perms();
   const c=d.case;
   const phone=d.offender?.no_telp;
@@ -1962,6 +1964,15 @@ function renderDetail(d){
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
+  if(!mainPhoto&&!state.demo&&d.terminated){
+    const container=document.querySelector("#modalBody .detail-photo-main");
+    if(container)loadStoppedVehiclePhoto(container,{
+      caseId:c.case_id,
+      endpoint:supabaseConfig.url+"/functions/v1/gsmart-stopped-vehicle",
+      apiKey:supabaseConfig.publishableKey,
+      getToken:()=>auth.currentUser.getIdToken(true)
+    }).catch(()=>{});
+  }
   if(p.admin&&!state.demo&&d.dispute&&$("gsmartPrivateEvidence")){
     mountPrivateEvidence($("gsmartPrivateEvidence"),{
       caseId:c.case_id,
@@ -1980,7 +1991,7 @@ function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onc
 async function refreshDetail(){const id=state.detail.case.case_id;state.detail=await loadDetail(id);renderDetail(state.detail)}
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
 function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWith("08"))return"62"+d.slice(1);if(d.startsWith("628"))return d;return null}
-$("closeModal").onclick=()=>{disposePrivateEvidencePreview();$("modalBackdrop").classList.add("hidden")};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop")){disposePrivateEvidencePreview();$("modalBackdrop").classList.add("hidden")}};
+$("closeModal").onclick=()=>{disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop")){disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")}};
 async function loadProfile(user){const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists())throw new Error("Profil petugas belum terdaftar.");const p=snap.data();if(p.aktif===false)throw new Error("Akun Anda tidak aktif. Hubungi administrator.");if(!user.uid||p.aktif!==true)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");const required=key=>{const value=typeof p[key]==="string"?p[key].trim():"";if(!value)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");return value};const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;return{uid:user.uid,nama:required("nama"),nip:required("nip"),username:required("username"),role:required("role"),aktif:true,photoUrl}}
 async function loadDashboard(){
   setSync("Memuat...");
