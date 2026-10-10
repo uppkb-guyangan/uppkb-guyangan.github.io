@@ -189,7 +189,7 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase();launchPushMigration()}
+function showApp(){hideAuthBoot();$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase();launchPushMigration()}
 function launchPushMigration(){
   if(state.demo||!auth.currentUser||!state.profile)return;
   // Independent best-effort upgrade; never blocks login, dashboard, or ETLE data.
@@ -214,7 +214,18 @@ if("serviceWorker" in navigator){
   });
 }
 
-function showLogin(){$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
+function hideAuthBoot(){
+  $("gsmartAuthBoot").classList.add("hidden");
+}
+function showAuthBoot(message="Memulihkan sesi G-Smart...",{retry=false,logout=false}={}){
+  $("loginView").classList.add("hidden");
+  $("appView").classList.add("hidden");
+  $("gsmartAuthBootText").textContent=message;
+  $("gsmartAuthRetry").classList.toggle("hidden",!retry);
+  $("gsmartAuthLogout").classList.toggle("hidden",!logout);
+  $("gsmartAuthBoot").classList.remove("hidden");
+}
+function showLogin(){hideAuthBoot();$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function renderNav(){
   const b=state.bundle||demo;
@@ -1999,7 +2010,8 @@ async function refreshDetail(){const id=state.detail.case.case_id;state.detail=a
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
 function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWith("08"))return"62"+d.slice(1);if(d.startsWith("628"))return d;return null}
 $("closeModal").onclick=()=>{disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop")){disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")}};
-async function loadProfile(user){const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists())throw new Error("Profil petugas belum terdaftar.");const p=snap.data();if(p.aktif===false)throw new Error("Akun Anda tidak aktif. Hubungi administrator.");if(!user.uid||p.aktif!==true)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");const required=key=>{const value=typeof p[key]==="string"?p[key].trim():"";if(!value)throw new Error("Profil petugas tidak lengkap. Hubungi administrator.");return value};const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;return{uid:user.uid,nama:required("nama"),nip:required("nip"),username:required("username"),role:required("role"),aktif:true,photoUrl}}
+function profileDenied(message){const error=new Error(message);error.code="gsmart/profile-denied";return error}
+async function loadProfile(user){const snap=await getDoc(doc(db,"users",user.uid));if(!snap.exists())throw profileDenied("Profil petugas belum terdaftar.");const p=snap.data();if(p.aktif===false)throw profileDenied("Akun Anda tidak aktif. Hubungi administrator.");if(!user.uid||p.aktif!==true)throw profileDenied("Profil petugas tidak lengkap. Hubungi administrator.");const required=key=>{const value=typeof p[key]==="string"?p[key].trim():"";if(!value)throw profileDenied("Profil petugas tidak lengkap. Hubungi administrator.");return value};const photoUrl=typeof p.photoUrl==="string"&&p.photoUrl.trim()?p.photoUrl.trim():null;return{uid:user.uid,nama:required("nama"),nip:required("nip"),username:required("username"),role:required("role"),aktif:true,photoUrl}}
 async function loadDashboard(){
   setSync("Memuat...");
   // Force-refresh once per dashboard load; avoid eight redundant token checks.
@@ -2020,7 +2032,31 @@ async function loadDashboard(){
   state.lastDataLoadedAt=new Date();
   setSync("Data dimuat "+syncTimeLabel(state.lastDataLoadedAt))
 }
-$("loginForm").onsubmit=async e=>{e.preventDefault();interactiveLogin=true;$("loginMessage").textContent="Memverifikasi akun...";try{const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);state.profile=await loadProfile(c.user);state.demo=false;recordSuccessfulLogin();await loadDashboard();$("loginMessage").textContent="";if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");showApp()}catch(err){if(auth.currentUser)await signOut(auth).catch(()=>{});$("loginMessage").textContent=err.message||"Login gagal."}finally{interactiveLogin=false}};
+$("loginForm").onsubmit=async e=>{
+  e.preventDefault();
+  interactiveLogin=true;
+  $("loginMessage").textContent="Memverifikasi akun...";
+  try{
+    const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
+    state.profile=await loadProfile(c.user);
+    state.demo=false;
+    recordSuccessfulLogin();
+    await loadDashboard();
+    $("loginMessage").textContent="";
+    if(window.gsmartPlaySplash)await window.gsmartPlaySplash("post-login");
+    showApp();
+  }catch(error){
+    if(error?.code==="gsmart/profile-denied"){
+      if(auth.currentUser)await signOut(auth).catch(()=>{});
+      $("loginMessage").textContent=error.message;
+    }else if(auth.currentUser){
+      // A temporary Firestore/Supabase failure must not destroy a valid Firebase session.
+      showAuthBoot("Akun tersambung, tetapi data G-Smart belum dapat dimuat. Coba lagi saat koneksi stabil.",{retry:true,logout:true});
+    }else{
+      $("loginMessage").textContent=error.message||"Login gagal.";
+    }
+  }finally{interactiveLogin=false}
+};
 $("forgotPasswordBtn").onclick=async()=>{const email=$("email").value.trim();const message=$("loginMessage");if(!email){message.textContent="Masukkan email akun G-Smart terlebih dahulu."; $("email").focus();return}const btn=$("forgotPasswordBtn");btn.disabled=true;const oldText=btn.textContent;btn.textContent="Mengirim link reset...";message.textContent="";try{await sendPasswordResetEmail(auth,email);message.classList.add("success");message.textContent="Link reset password sudah dikirim. Silakan cek inbox atau folder spam email Anda."}catch(err){message.classList.remove("success");if(err?.code==="auth/invalid-email")message.textContent="Format email tidak valid.";else if(err?.code==="auth/too-many-requests")message.textContent="Terlalu banyak percobaan. Silakan coba lagi beberapa saat.";else message.textContent="Permintaan reset password belum dapat diproses. Pastikan email akun benar lalu coba lagi."}finally{btn.disabled=false;btn.textContent=oldText}};
 $("demoBtn").onclick=()=>{state.lastDataLoadedAt=null;state.demo=true;state.profile={uid:"demo",nama:"Preview Demo",role:"ADMIN"};state.bundle=demo;state.favoriteIds=getLocalFavoriteIds();state.favoritesRemote=false;showApp()};
 $("logoutBtn").onclick=async()=>{state.profile=null;state.bundle=null;state.lastDataLoadedAt=null;state.demo=false;state.month=null;state.favoriteIds=null;state.favoritesRemote=false;await signOut(auth);showLogin()};
@@ -2148,4 +2184,68 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-onAuthStateChanged(auth,async u=>{if(!u||state.demo||interactiveLogin)return;try{state.profile=await loadProfile(u);await loadDashboard();showApp()}catch(e){console.error(e);await signOut(auth);showLogin()}})
+async function restoreSignedInSession(user){
+  showAuthBoot("Memulihkan sesi G-Smart...");
+  try{
+    const profile=await loadProfile(user);
+    if(auth.currentUser?.uid!==user.uid)return;
+    state.profile=profile;
+  }catch(error){
+    if(auth.currentUser?.uid!==user.uid)return;
+    console.error("G-Smart: pemulihan profil gagal",error);
+    if(error?.code==="gsmart/profile-denied"){
+      try{await signOut(auth)}catch(signOutError){
+        console.error("G-Smart: gagal mengakhiri sesi yang tidak diizinkan",signOutError);
+        showAuthBoot("Akses akun tidak diizinkan. Periksa koneksi dan coba keluar akun.",{retry:true,logout:true});
+        return;
+      }
+      state.profile=null;
+      state.bundle=null;
+      showLogin();
+      $("loginMessage").textContent=error.message;
+    }else{
+      showAuthBoot("Sesi tersimpan, tetapi profil belum dapat diperiksa. Coba lagi saat koneksi stabil.",{retry:true,logout:true});
+    }
+    return;
+  }
+  showAuthBoot("Menyiapkan data G-Smart...");
+  try{
+    await loadDashboard();
+    if(auth.currentUser?.uid!==user.uid)return;
+    showApp();
+  }catch(error){
+    if(auth.currentUser?.uid!==user.uid)return;
+    console.error("G-Smart: pemuatan data gagal, sesi tetap tersimpan",error);
+    showAuthBoot("Sesi Anda masih aktif, tetapi data G-Smart belum dapat dimuat. Coba lagi saat koneksi stabil.",{retry:true,logout:true});
+  }
+}
+$("gsmartAuthRetry").onclick=()=>{
+  const user=auth.currentUser;
+  if(!user){showLogin();return}
+  void restoreSignedInSession(user);
+};
+$("gsmartAuthLogout").onclick=async()=>{
+  const button=$("gsmartAuthLogout");
+  if(button.disabled)return;
+  button.disabled=true;
+  try{
+    await signOut(auth);
+    state.profile=null;
+    state.bundle=null;
+    showLogin();
+  }catch(error){
+    console.error("G-Smart: logout gagal",error);
+    showAuthBoot("Belum dapat keluar dari akun. Coba kembali.",{retry:true,logout:true});
+  }finally{button.disabled=false}
+};
+onAuthStateChanged(auth,u=>{
+  if(state.demo||interactiveLogin)return;
+  if(!u){
+    state.profile=null;
+    state.bundle=null;
+    showLogin();
+    return;
+  }
+  void restoreSignedInSession(u);
+});
+

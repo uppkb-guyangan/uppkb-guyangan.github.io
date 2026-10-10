@@ -6,6 +6,7 @@ on:
       - 'scripts/push-production.test.mjs'
       - 'scripts/push-pilot.mjs'
       - 'scripts/pwa-push-navigation.test.mjs'
+      - 'scripts/pwa-auth-startup.test.mjs'
       - 'gsmart-push-sw/**'
       - 'sw.js'
       - 'gsmart-web-push.js'
