@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebas
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
-import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-admin1";
+import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-offender1";
 
 const $=id=>document.getElementById(id);
 const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
@@ -1908,6 +1908,7 @@ function renderDetail(d){
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">◉</span>Data Pelanggar</h3>'+
           infoGrid(d.offender,[["nama","Nama"],["alamat","Alamat"],...(p.copyPhone?[["no_telp","No. Telepon"]]:[]),["email","Email"],["no_ktp","No. KTP"],["golongan_sim","Golongan SIM"],["tempat_lahir","Tempat Lahir"],["tanggal_lahir","Tanggal Lahir","date"],["pekerjaan","Pekerjaan"]])+
+          (p.admin&&!state.demo&&d.dispute?'<div class="gsmart-private-offender-card" id="gsmartPrivateOffender"><p class="prefs-note">Memuat konfirmasi data pelanggar...</p></div><div class="gsmart-private-evidence-subsection"><h4>Bukti Sanggahan Privat <small>· Khusus Admin</small></h4><div id="gsmartPrivateEvidence" class="gsmart-private-body"><p class="prefs-note">Memeriksa arsip...</p></div></div>':"")+
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▤</span>Kendaraan & KIR</h3>'+
           infoGrid(vehicleDetail,[["nama_pemilik","Nama Pemilik"],["alamat_pemilik","Alamat Pemilik"],["merk","Merk"],["tipe","Tipe"],["jenis_kendaraan","Jenis Kendaraan"],["tahun_rakit","Tahun"],["bahan_bakar","Bahan Bakar"],["no_uji","No. Uji"],["masa_berlaku_kir","Masa Berlaku KIR","date"],["jbb","JBB"],["jbi","JBI"],["berat_timbang","Berat Timbang"],["berat_lebih","Berat Lebih"],["persentase_lebih","Persentase Lebih"]])+
@@ -1930,7 +1931,6 @@ function renderDetail(d){
           infoGrid(d.dispute,[["status","Status Sanggah"],["confirmation_date","Tanggal","date"],["reason","Alasan"],["result","Hasil"]])+
           infoGrid(d.terminated,[["status","Status Dihentikan"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal","date"]])+
         '</section>'+
-        (p.admin&&!state.demo&&d.dispute?'<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">▧</span>Bukti Sanggahan Privat <small>· Khusus Admin</small></h3><div id="gsmartPrivateEvidence" class="gsmart-private-body"><p class="prefs-note">Memeriksa arsip...</p></div></section>':"")+
         (showManualStatus?'<div class="detail-card">'+manualSection(d).replace('<section class="detail-section">','').replace('</section>','')+'</div>':"")+
         '<div class="detail-card">'+notesSection(d).replace('<section class="detail-section">','').replace('</section>','')+'</div>'+
       '</aside>'+
@@ -1967,7 +1967,9 @@ function renderDetail(d){
       caseId:c.case_id,
       endpoint:supabaseConfig.url+"/functions/v1/gsmart-dispute-private",
       apiKey:supabaseConfig.publishableKey,
-      getToken:()=>auth.currentUser.getIdToken(true)
+      getToken:()=>auth.currentUser.getIdToken(true),
+      offenderPanel:$("gsmartPrivateOffender"),
+      publicOffender:d.offender||{}
     }).catch(()=>{});
   }
 }
