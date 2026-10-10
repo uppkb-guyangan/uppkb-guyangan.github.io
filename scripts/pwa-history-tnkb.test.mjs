@@ -48,6 +48,7 @@ test("renders TNKB as first history column on desktop and mobile cards",()=>{
   const tableSource=sourceBetween("function genericTable(page,rows){","function historyDisplayTitle(");
   const genericTable=runInNewContext(tableSource+"\ngenericTable",{
     rowCaseId:(_page,r)=>r.case_id,
+    state:{disputeTab:"active"},
     rolePermissions:()=>({copyPhone:false}),
     esc:x=>String(x??""),
     cell:(_key,value)=>String(value??"-")
