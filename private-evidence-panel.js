@@ -4,7 +4,13 @@ let liveObjectUrl=null;
 function clearPreview(){
   if(liveObjectUrl){URL.revokeObjectURL(liveObjectUrl);liveObjectUrl=null}
 }
-export function disposePrivateEvidencePreview(){clearPreview();const panel=document.getElementById("gsmartPrivateEvidence");if(panel)panel.dataset.privateCase=""}
+export function disposePrivateEvidencePreview(){
+  clearPreview();
+  for(const id of ["gsmartPrivateEvidence","gsmartPrivateOffender"]){
+    const node=document.getElementById(id);
+    if(node)node.dataset.privateCase="";
+  }
+}
 async function requestEvidence(endpoint,apiKey,getToken,caseId,action,kind=null){
   const token=await getToken();
   const response=await fetch(endpoint,{
@@ -29,7 +35,7 @@ function element(tag,text,cls){
 function note(panel,message){
   panel.replaceChildren(element("p",message,"prefs-note"));
 }
-function metadataFields(record){
+function metadataFields(record,publicOffender={}){
   const data=record?.offender||{};
   const labels=[
     ["nama","Nama pelanggar"],
@@ -45,24 +51,32 @@ function metadataFields(record){
     ["tanggal_lahir","Tanggal lahir"],
     ["pekerjaan","Pekerjaan"]
   ];
-  return labels.filter(([k])=>data[k]!==undefined&&data[k]!==null&&String(data[k]).trim())
+  return labels.filter(([k])=>data[k]!==undefined&&data[k]!==null&&String(data[k]).trim()&&!(publicOffender?.[k]!=null&&String(publicOffender[k]).trim()))
     .map(([key,label])=>[label,String(data[key])]);
 }
-export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToken}){
+export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToken,offenderPanel=null,publicOffender={}}){
   if(!panel||!caseId)return;
   clearPreview();
   panel.dataset.privateCase=caseId;
   note(panel,"Memeriksa arsip sanggahan privat...");
+  if(offenderPanel){
+    offenderPanel.dataset.privateCase=caseId;
+    note(offenderPanel,"Memuat data pelanggar dari ETLE Hub...");
+  }
   let result;
   try{
     const response=await requestEvidence(endpoint,apiKey,getToken,caseId,"detail");
     if(!panel.isConnected||panel.dataset.privateCase!==caseId)return;
     if(response.status===404){
       note(panel,"Foto SIM dan dokumen sanggahan belum disinkronkan untuk perkara ini.");
+      if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId)
+        note(offenderPanel,"Data pelanggar dari konfirmasi ETLE belum tersedia.");
       return
     }
     if(response.status===401||response.status===403){
-      note(panel,"Akses bukti sanggahan dibatasi untuk Admin aktif.");
+      note(panel,"Akses bukti sanggahan dibatasi untuk Admin aktif. Silakan masuk ulang bila akun Anda adalah Admin.");
+      if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId)
+        note(offenderPanel,"Informasi pelanggar privat tidak dapat diakses. Periksa sesi dan role Admin.");
       return
     }
     if(!response.ok)throw Error("PRIVATE_EVIDENCE_UNAVAILABLE");
@@ -70,11 +84,13 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
   }catch(_){
     if(panel.isConnected&&panel.dataset.privateCase===caseId)
       note(panel,"Arsip privat belum dapat dimuat. Coba buka kembali Detail Perkara.");
+    if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId)
+      note(offenderPanel,"Data pelanggar privat belum dapat dimuat. Silakan coba lagi.");
     return;
   }
   if(!panel.isConnected||panel.dataset.privateCase!==caseId)return;
   const wrap=element("div",null,"gsmart-private-details");
-  const fields=metadataFields(result);
+  const fields=metadataFields(result,publicOffender);
   if(fields.length){
     const dl=element("dl",null,"gsmart-private-fields");
     for(const [label,value] of fields){
@@ -82,7 +98,16 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
       row.append(element("dt",label),element("dd",value));
       dl.append(row);
     }
-    wrap.append(dl);
+    if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId){
+      const title=element("p","Data konfirmasi dari ETLE Hub","gsmart-private-source-label");
+      offenderPanel.replaceChildren(title,dl);
+    }else{
+      wrap.append(dl);
+    }
+  }else if(offenderPanel?.isConnected&&offenderPanel.dataset.privateCase===caseId){
+    note(offenderPanel,metadataFields(result).length
+      ?"Data pelanggar sudah ditampilkan pada informasi utama."
+      :"Informasi pelanggar belum tersedia pada arsip privat.");
   }
   if(result.reason){
     const reason=element("p",null,"gsmart-private-reason");
@@ -130,7 +155,7 @@ export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToke
     controls.append(btn);
   }
   if(controls.childNodes.length)wrap.append(controls,preview);
-  if(!fields.length&&!result.reason&&!controls.childNodes.length)
-    wrap.append(element("p","Belum ada detail atau bukti privat yang tersedia."));
+  if(!result.reason&&!controls.childNodes.length)
+    wrap.append(element("p","Belum ada foto SIM atau dokumen pendukung untuk perkara ini."));
   panel.replaceChildren(wrap);
 }
