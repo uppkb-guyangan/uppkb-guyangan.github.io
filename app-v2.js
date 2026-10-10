@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
 import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-wasatpel1";
@@ -10,6 +10,26 @@ const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:
 let interactiveLogin=false;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
+// Firebase LOCAL persistence survives closing the installed PWA. Prefer IndexedDB;
+// fall back to localStorage where IndexedDB is restricted. Do not cache passwords.
+async function ensurePersistentAuth(){
+  try{
+    await setPersistence(auth,indexedDBLocalPersistence);
+    return "indexeddb";
+  }catch(indexedDBError){
+    try{
+      await setPersistence(auth,browserLocalPersistence);
+      return "localstorage";
+    }catch(localStorageError){
+      console.warn("G-Smart: penyimpanan sesi lokal tidak tersedia pada perangkat ini.",{
+        indexedDB:indexedDBError?.code||"unavailable",
+        localStorage:localStorageError?.code||"unavailable"
+      });
+      return "unavailable";
+    }
+  }
+}
+const authPersistenceReady=ensurePersistentAuth();
 
 const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"],["settings","Pengaturan"],["management","Manajemen"]];
 const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",health:"♡",loginHistory:"◷",settings:"⚙",management:"▤"};
@@ -2037,6 +2057,7 @@ $("loginForm").onsubmit=async e=>{
   interactiveLogin=true;
   $("loginMessage").textContent="Memverifikasi akun...";
   try{
+    await authPersistenceReady;
     const c=await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
     state.profile=await loadProfile(c.user);
     state.demo=false;
@@ -2238,14 +2259,16 @@ $("gsmartAuthLogout").onclick=async()=>{
     showAuthBoot("Belum dapat keluar dari akun. Coba kembali.",{retry:true,logout:true});
   }finally{button.disabled=false}
 };
-onAuthStateChanged(auth,u=>{
-  if(state.demo||interactiveLogin)return;
-  if(!u){
-    state.profile=null;
-    state.bundle=null;
-    showLogin();
-    return;
-  }
-  void restoreSignedInSession(u);
+void authPersistenceReady.then(()=>{
+  onAuthStateChanged(auth,u=>{
+    if(state.demo||interactiveLogin)return;
+    if(!u){
+      state.profile=null;
+      state.bundle=null;
+      showLogin();
+      return;
+    }
+    void restoreSignedInSession(u);
+  });
 });
 
