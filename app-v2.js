@@ -866,7 +866,10 @@ async function fetchBlankoManualStatuses(rows){
 function processPage(page,rows){
   if(page==="history")rows=enrichHistoryWithTnkb(rows,(state.bundle||demo).cases);
   const titles=Object.fromEntries(menu);
+  const blankoView=++blankoViewSequence;
+  refreshBlankoView=null;
   let extra="";
+  if(page==="blanko")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>';
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
   const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
@@ -895,13 +898,25 @@ function processPage(page,rows){
         extra+
         '<button id="resetTableFilters" class="toolbar-reset-btn" type="button">Reset Filter</button>'+
       '</div>'+
+      (page==="blanko"?'<p id="blankoManualNotice" class="blanko-manual-notice" role="status" aria-live="polite"></p>':"")+
       '<div id="slot">'+genericTable(page,rows)+'</div>'+
     '</div>';
   const apply=()=>{
     const q=norm($("filter").value);
     const compactQuery=page==="history"?q.replace(/\s+/g,""):q;
-    let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q));
+    let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q)||(page==="blanko"&&["kategori_internal","status_lebih_bayar","status_pengembalian"].some(field=>blankoManualValue(x,field).toLowerCase().includes(q))));
     if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
+    if(page==="blanko"){
+      const loading=rows.some(x=>!blankoManualEntry(x));
+      const error=rows.some(x=>blankoManualEntry(x)?.state==="error");
+      const selected=$("blankoGsmartFilter").value||$("blankoOverFilter").value;
+      if(!loading&&!error)r=r.filter(x=>blankoMatchesManualFilter(x,"kategori_internal",$("blankoGsmartFilter").value)&&blankoMatchesManualFilter(x,"status_lebih_bayar",$("blankoOverFilter").value));
+      const notice=$("blankoManualNotice");
+      if(notice){
+        notice.textContent=error?"Status manual gagal dimuat. Filter status tidak diterapkan; data blanko tetap tersedia. Silakan refresh.":loading?(selected?"Memuat status manual; filter status diterapkan setelah pemuatan selesai.":"Memuat status manual G-Smart…"):"";
+        notice.classList.toggle("visible",!!notice.textContent);
+      }
+    }
     $("slot").innerHTML=genericTable(page,r);
     $("resultCount").textContent=r.length===rows.length?r.length+" data":r.length+" dari "+rows.length+" data";
     $("clearFilter").classList.toggle("hidden",!q);
@@ -917,7 +932,18 @@ function processPage(page,rows){
   $("filter").oninput=apply;
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
-  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";apply()};
+  if(page==="blanko"){
+    const synchronize=async()=>{
+      await fetchBlankoManualStatuses(rows);
+      if(state.page!=="blanko"||blankoViewSequence!==blankoView||!$("filter"))return;
+      updateBlankoManualOptions(rows);
+      apply();
+    };
+    for(const id of ["blankoGsmartFilter","blankoOverFilter"])$(id).onchange=()=>{apply();synchronize()};
+    refreshBlankoView=apply;
+    synchronize();
+  }
+  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";apply()};
   if($("showAllFocusedData"))$("showAllFocusedData").onclick=()=>openPage(page);
   bindDetailRows();
 }
@@ -927,7 +953,7 @@ function genericTable(page,rows){
   if(!rows.length)return'<div class="empty">Belum ada data pada periode ini.</div>';
   const defs={
     shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],
-    blanko:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
+    blanko:[["tnkb","TNKB"],["__manual_status","Status G-Smart"],["__manual_refund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
     disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],...(state.disputeTab==="stopped"?[["terminated_at","Tgl Dihentikan"]]:[]),["reason","Alasan"]],
     terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
     court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
@@ -935,11 +961,11 @@ function genericTable(page,rows){
     history:[["tnkb","TNKB"],["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]
   };
   const cols=defs[page]||[];
-  return'<div class="table-wrap responsive-table"><table class="data-table"><thead><tr>'+
+  return'<div class="table-wrap responsive-table'+(page==="blanko"?" blanko-responsive-table":"")+'"><table class="data-table"><thead><tr>'+
     cols.map(c=>'<th>'+c[1]+'</th>').join("")+
     '</tr></thead><tbody>'+
     rows.map(r=>{const caseId=rowCaseId(page,r);return '<tr class="'+(caseId?"clickable":"")+'" data-case="'+esc(caseId||"")+'">'+
-      cols.map(([k,label])=>'<td data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
+      cols.map(([k,label])=>'<td data-col="'+esc(k)+'" data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
     '</tr>'}).join("")+
     '</tbody></table></div>'
 }
@@ -951,6 +977,7 @@ function historyDisplayTitle(h){
   return h?.title||h?.event_type||"-"
 }
 function cell(k,v,row=null){
+  if(k==="__manual_status"||k==="__manual_refund")return blankoManualCell(k,row);
   if(k==="__phone"){
     if(!rolePermissions().copyPhone)return"-";
     const offender=state.bundle?.offenders?.find(o=>o.case_id===row?.case_id);
