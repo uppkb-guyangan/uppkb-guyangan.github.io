@@ -215,7 +215,7 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){hideAuthBoot();$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("blanko");openRequestedCase()}
+function showApp(){hideAuthBoot();$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("court");openRequestedCase()}
 function launchPushMigration(){
   if(state.demo||!auth.currentUser||!state.profile)return;
   // Independent best-effort upgrade; never blocks login, dashboard, or ETLE data.
@@ -871,7 +871,7 @@ function processPage(page,rows){
   const blankoView=++blankoViewSequence;
   refreshBlankoView=null;
   let extra="";
-  if(page==="blanko")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>';
+  if(page==="blanko"||page==="court")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>';
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
   const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
@@ -900,15 +900,15 @@ function processPage(page,rows){
         extra+
         '<button id="resetTableFilters" class="toolbar-reset-btn" type="button">Reset Filter</button>'+
       '</div>'+
-      (page==="blanko"?'<p id="blankoManualNotice" class="blanko-manual-notice" role="status" aria-live="polite"></p>':"")+
+      ((page==="blanko"||page==="court")?'<p id="blankoManualNotice" class="blanko-manual-notice" role="status" aria-live="polite"></p>':"")+
       '<div id="slot">'+genericTable(page,rows)+'</div>'+
     '</div>';
   const apply=()=>{
     const q=norm($("filter").value);
     const compactQuery=page==="history"?q.replace(/\s+/g,""):q;
-    let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q)||(page==="blanko"&&["kategori_internal","status_lebih_bayar","status_pengembalian"].some(field=>blankoManualValue(x,field).toLowerCase().includes(q))));
+    let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q)||(page==="court"&&courtTnkb(x).toLowerCase().includes(q))||((page==="blanko"||page==="court")&&["kategori_internal","status_lebih_bayar","status_pengembalian"].some(field=>blankoManualValue(x,field).toLowerCase().includes(q))));
     if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
-    if(page==="blanko"){
+    if(page==="blanko"||page==="court"){
       const loading=rows.some(x=>!blankoManualEntry(x));
       const error=rows.some(x=>blankoManualEntry(x)?.state==="error");
       const selected=$("blankoGsmartFilter").value||$("blankoOverFilter").value;
@@ -934,10 +934,10 @@ function processPage(page,rows){
   $("filter").oninput=apply;
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
-  if(page==="blanko"){
+  if(page==="blanko"||page==="court"){
     const synchronize=async()=>{
       await fetchBlankoManualStatuses(rows);
-      if(state.page!=="blanko"||blankoViewSequence!==blankoView||!$("filter"))return;
+      if(state.page!==page||blankoViewSequence!==blankoView||!$("filter"))return;
       updateBlankoManualOptions(rows);
       apply();
     };
@@ -958,13 +958,13 @@ function genericTable(page,rows){
     blanko:[["tnkb","TNKB"],["__manual_status","Status G-Smart"],["__manual_refund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
     disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],...(state.disputeTab==="stopped"?[["terminated_at","Tgl Dihentikan"]]:[]),["reason","Alasan"]],
     terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
-    court:[["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
+    court:[["__court_tnkb","TNKB"],["__manual_status","Status G-Smart"],["__manual_refund","Lebih Bayar / Pengembalian"],["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
     new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],
     history:[["tnkb","TNKB"],["event_time","Waktu"],["event_type","Event"],["title","Judul"],["source","Sumber"]]
   };
   const cols=defs[page]||[];
-  return'<div class="table-wrap responsive-table'+(page==="blanko"?" blanko-responsive-table":"")+'"><table class="data-table"><thead><tr>'+
-    cols.map(c=>'<th>'+c[1]+'</th>').join("")+
+  return'<div class="table-wrap responsive-table'+((page==="blanko"||page==="court")?" blanko-responsive-table":"")+'"><table class="data-table"><thead><tr>'+
+    cols.map(c=>'<th'+(page==="court"&&c[0]==="__court_tnkb"?' data-court-tnkb="1"':"")+'>'+c[1]+'</th>').join("")+
     '</tr></thead><tbody>'+
     rows.map(r=>{const caseId=rowCaseId(page,r);return '<tr class="'+(caseId?"clickable":"")+'" data-case="'+esc(caseId||"")+'">'+
       cols.map(([k,label])=>'<td data-col="'+esc(k)+'" data-label="'+esc(label)+'">'+cell(k,r[k],r)+'</td>').join("")+
@@ -978,7 +978,14 @@ function historyDisplayTitle(h){
   if(type==="SOURCE_RESTORED")return"Data kembali tercatat di Pengiriman Surat";
   return h?.title||h?.event_type||"-"
 }
+function courtTnkb(row){
+  const cases=(state.bundle||demo).cases||[];
+  const match=cases.find(c=>row?.case_id&&c.case_id===row.case_id)||
+    (!row?.case_id?cases.find(c=>row?.violation_id&&String(c.violation_id)===String(row.violation_id)):null);
+  return String(match?.tnkb||"-");
+}
 function cell(k,v,row=null){
+  if(k==="__court_tnkb")return '<b>'+esc(courtTnkb(row))+'</b>';
   if(k==="__manual_status"||k==="__manual_refund")return blankoManualCell(k,row);
   if(k==="__phone"){
     if(!rolePermissions().copyPhone)return"-";
@@ -2121,7 +2128,7 @@ function renderDetail(d){
 function manualSection(d){const m=d.manual||{};if(PREVIEW_READ_ONLY||!perms().admin)return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3>'+infoGrid(m,[["kategori_internal","Kategori"],["prioritas","Prioritas"],["status_lebih_bayar","Status Lebih Bayar"],["nominal_lebih_bayar","Nominal Lebih Bayar","money"],["status_pengembalian","Status Pengembalian"],["pic_name","PIC"],["catatan_ringkas","Catatan"]])+'<div class="action-row" style="margin-top:10px"><button class="action-btn" id="deniedManualEdit">🔒 Ubah Status G-SMART</button></div></section>';return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3><div class="form-grid"><label>Kategori<select id="manualCategory"><option>BELUM_DIPROSES</option><option>SUDAH_DIKONFIRMASI</option><option>SIAP_SIDANG</option><option>SELESAI</option></select></label><label>Prioritas<select id="manualPriority"><option>NORMAL</option><option>TINGGI</option><option>URGENT</option></select></label><label>Status Lebih Bayar<input id="overStatus" value="'+esc(m.status_lebih_bayar||"")+'"></label><label>Nominal Lebih Bayar<input id="overAmount" type="number" min="0" value="'+esc(m.nominal_lebih_bayar||"")+'"></label><label>Status Pengembalian<input id="refundStatus" value="'+esc(m.status_pengembalian||"")+'"></label><label class="full">Catatan<textarea id="manualNote" rows="3">'+esc(m.catatan_ringkas||"")+'</textarea></label><div class="full"><button id="saveManual" class="primary-btn">Simpan Status G-Smart</button></div></div></section>'}
 function notesSection(d){return'<section class="detail-section"><h3 class="section-heading">Catatan Petugas</h3><div class="form-grid"><label class="full">Tambah Catatan<textarea id="newNote" rows="2" placeholder="Tulis catatan petugas..."></textarea></label><div class="full"><button id="addNote" class="action-btn primary">Tambah Catatan</button></div></div><div class="timeline" style="margin-top:14px">'+(d.notes?.length?d.notes.map(n=>'<div class="timeline-item"><b>'+esc(n.created_by_name||"Petugas")+'</b><span>'+esc(n.note)+'</span><small>'+fmtDate(n.created_at)+'</small></div>').join(""):'<div class="empty">Belum ada catatan.</div>')+'</div></section>'}
 function timelineSection(rows){return'<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3><div class="timeline">'+(rows.length?rows.map(h=>'<div class="timeline-item"><b>'+esc(historyDisplayTitle(h))+'</b><span>'+esc(h.description||h.source||"")+'</span><small>'+fmtDate(h.event_time)+'</small></div>').join(""):'<div class="empty">Belum ada riwayat.</div>')+'</div></section>'}
-function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onclick=()=>toast("User Anda tidak mempunyai kewenangan untuk mengubah Status G-SMART. Silakan hubungi Administrator.");if($("manualCategory"))$("manualCategory").value=d.manual?.kategori_internal||"BELUM_DIPROSES";if($("manualPriority"))$("manualPriority").value=d.manual?.prioritas||"NORMAL";if($("saveManual"))$("saveManual").onclick=async()=>{try{setSync("Menyimpan");await write("gsmart_case_status",{case_id:d.case.case_id,kategori_internal:$("manualCategory").value,prioritas:$("manualPriority").value,status_lebih_bayar:$("overStatus").value||null,nominal_lebih_bayar:$("overAmount").value?Number($("overAmount").value):null,status_pengembalian:$("refundStatus").value||null,catatan_ringkas:$("manualNote").value||null,pic_uid:state.profile.uid,pic_name:state.profile.nama,updated_by:state.profile.uid},{onConflict:"case_id"});blankoManualCache.set(String(d.case.case_id),{state:"ready",data:{kategori_internal:$("manualCategory").value,status_lebih_bayar:$("overStatus").value||null,status_pengembalian:$("refundStatus").value||null}});if(state.page==="blanko")refreshBlankoView?.();toast("Status G-Smart disimpan");await refreshDetail()}catch(e){toast(e.message)}finally{setSync("Siap")}};if($("addNote"))$("addNote").onclick=async()=>{const note=$("newNote").value.trim();if(!note)return;try{await write("gsmart_case_notes",{case_id:d.case.case_id,note,created_by:state.profile.uid,created_by_name:state.profile.nama});toast("Catatan ditambahkan");await refreshDetail()}catch(e){toast(e.message)}}}
+function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onclick=()=>toast("User Anda tidak mempunyai kewenangan untuk mengubah Status G-SMART. Silakan hubungi Administrator.");if($("manualCategory"))$("manualCategory").value=d.manual?.kategori_internal||"BELUM_DIPROSES";if($("manualPriority"))$("manualPriority").value=d.manual?.prioritas||"NORMAL";if($("saveManual"))$("saveManual").onclick=async()=>{try{setSync("Menyimpan");await write("gsmart_case_status",{case_id:d.case.case_id,kategori_internal:$("manualCategory").value,prioritas:$("manualPriority").value,status_lebih_bayar:$("overStatus").value||null,nominal_lebih_bayar:$("overAmount").value?Number($("overAmount").value):null,status_pengembalian:$("refundStatus").value||null,catatan_ringkas:$("manualNote").value||null,pic_uid:state.profile.uid,pic_name:state.profile.nama,updated_by:state.profile.uid},{onConflict:"case_id"});blankoManualCache.set(String(d.case.case_id),{state:"ready",data:{kategori_internal:$("manualCategory").value,status_lebih_bayar:$("overStatus").value||null,status_pengembalian:$("refundStatus").value||null}});if(state.page==="blanko"||state.page==="court")refreshBlankoView?.();toast("Status G-Smart disimpan");await refreshDetail()}catch(e){toast(e.message)}finally{setSync("Siap")}};if($("addNote"))$("addNote").onclick=async()=>{const note=$("newNote").value.trim();if(!note)return;try{await write("gsmart_case_notes",{case_id:d.case.case_id,note,created_by:state.profile.uid,created_by_name:state.profile.nama});toast("Catatan ditambahkan");await refreshDetail()}catch(e){toast(e.message)}}}
 async function refreshDetail(){const id=state.detail.case.case_id;state.detail=await loadDetail(id);renderDetail(state.detail)}
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
 function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWith("08"))return"62"+d.slice(1);if(d.startsWith("628"))return d;return null}
