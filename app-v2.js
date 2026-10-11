@@ -8,6 +8,11 @@ import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-v
 const $=id=>document.getElementById(id);
 const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
 let interactiveLogin=false;
+// Read-only Blanko list status, keyed by case_id (never by TNKB).
+const blankoManualCache=new Map();
+let blankoManualRequest=0;
+let blankoViewSequence=0;
+let refreshBlankoView=null;
 let auth=null,db=null;
 const fb=initializeApp(firebaseConfig); auth=getAuth(fb); db=getFirestore(fb);
 // Firebase LOCAL persistence survives closing the installed PWA. Prefer IndexedDB;
@@ -795,6 +800,68 @@ function shippingSummary(rows){const cats=["Tercetak","Dalam Proses","Terkirim",
 function enrichHistoryWithTnkb(rows,cases){
   const byCaseId=new Map((cases||[]).filter(c=>c?.case_id).map(c=>[String(c.case_id),String(c.tnkb||"").trim()]));
   return rows.map(h=>({...h,tnkb:byCaseId.get(String(h?.case_id||""))||"-"}))
+}
+
+const BLANKO_MANUAL_SELECT="case_id,kategori_internal,status_lebih_bayar,status_pengembalian";
+const BLANKO_EMPTY_FILTER="__BELUM_DIISI__";
+function blankoManualEntry(row){return blankoManualCache.get(String(row?.case_id||""))}
+function blankoManualValue(row,field){
+  const entry=blankoManualEntry(row);
+  return entry?.state==="ready"?String(entry.data?.[field]??"").trim():"";
+}
+function blankoManualTag(value){
+  const label=String(value||"").trim(),normalized=label.toUpperCase();
+  const type=!label?"empty":(normalized==="SELESAI"||normalized==="LUNAS"||normalized==="SUDAH DIKEMBALIKAN")?"done":normalized==="GAGAL MEMUAT"?"failed":normalized==="MEMUAT..."?"loading":"progress";
+  return '<span class="blanko-manual-tag blanko-manual-'+type+'">'+esc(label||"BELUM DIISI")+'</span>';
+}
+function blankoManualCell(field,row){
+  const entry=blankoManualEntry(row);
+  if(entry?.state==="error")return blankoManualTag("GAGAL MEMUAT");
+  if(!entry||entry.state!=="ready")return blankoManualTag("MEMUAT...");
+  if(field==="__manual_status")return blankoManualTag(blankoManualValue(row,"kategori_internal"));
+  const refund=blankoManualValue(row,"status_lebih_bayar"),note=blankoManualValue(row,"status_pengembalian");
+  return '<div class="blanko-refund-cell">'+blankoManualTag(refund)+(note?'<small class="blanko-refund-note" title="'+esc(note)+'">'+esc(note)+'</small>':"")+'</div>';
+}
+function blankoManualOptionList(rows,field){
+  const values=new Set();
+  rows.forEach(row=>{const value=blankoManualValue(row,field);if(value)values.add(value)});
+  return '<option value="">Semua Status</option><option value="'+BLANKO_EMPTY_FILTER+'">BELUM DIISI</option>'+
+    [...values].sort((a,b)=>a.localeCompare(b,"id")).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
+}
+function updateBlankoManualOptions(rows){
+  for(const [id,field] of [["blankoGsmartFilter","kategori_internal"],["blankoOverFilter","status_lebih_bayar"]]){
+    const el=$(id);if(!el)continue;
+    const selected=el.value;el.innerHTML=blankoManualOptionList(rows,field);
+    if([...el.options].some(option=>option.value===selected))el.value=selected;
+  }
+}
+function blankoMatchesManualFilter(row,field,wanted){
+  if(!wanted)return true;
+  const value=blankoManualValue(row,field);
+  return wanted===BLANKO_EMPTY_FILTER?!value:value===wanted;
+}
+async function fetchBlankoManualStatuses(rows){
+  const ids=[...new Set(rows.map(r=>String(r?.case_id||"")).filter(Boolean))];
+  if(!ids.length)return;
+  const request=++blankoManualRequest;
+  if(state.demo){ids.forEach(id=>blankoManualCache.set(id,{state:"ready",data:null}));return}
+  const validIds=ids.filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+  try{
+    // Batch by the current period to bound URL length and API concurrency.
+    const result=[];
+    for(let i=0;i<validIds.length;i+=70){
+      const batch=validIds.slice(i,i+70);
+      const data=await q("gsmart_case_status",{select:BLANKO_MANUAL_SELECT,filters:{case_id:"in.("+batch.join(",")+")"},limit:batch.length});
+      result.push(...data);
+    }
+    if(request!==blankoManualRequest)return;
+    const found=new Map(result.map(item=>[String(item.case_id),item]));
+    ids.forEach(id=>blankoManualCache.set(id,{state:"ready",data:found.get(id)||null}));
+  }catch(error){
+    if(request!==blankoManualRequest)return;
+    ids.forEach(id=>blankoManualCache.set(id,{state:"error",data:null}));
+    console.warn("G-Smart: status manual blanko tidak dapat dimuat",error?.message||"unavailable");
+  }
 }
 function processPage(page,rows){
   if(page==="history")rows=enrichHistoryWithTnkb(rows,(state.bundle||demo).cases);
