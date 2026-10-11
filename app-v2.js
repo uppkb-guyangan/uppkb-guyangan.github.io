@@ -849,9 +849,10 @@ async function fetchBlankoManualStatuses(rows){
   try{
     // Batch by the current period to bound URL length and API concurrency.
     const result=[];
+    const authToken=await auth.currentUser.getIdToken(true);
     for(let i=0;i<validIds.length;i+=70){
       const batch=validIds.slice(i,i+70);
-      const data=await q("gsmart_case_status",{select:BLANKO_MANUAL_SELECT,filters:{case_id:"in.("+batch.join(",")+")"},limit:batch.length});
+      const data=await q("gsmart_case_status",{select:BLANKO_MANUAL_SELECT,filters:{case_id:"in.("+batch.join(",")+")"},limit:batch.length,authToken});
       result.push(...data);
     }
     if(request!==blankoManualRequest)return;
