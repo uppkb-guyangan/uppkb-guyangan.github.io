@@ -33,11 +33,13 @@
     display:block;content:attr(data-label);margin-bottom:5px;
     color:#8190a2;font-size:9px;font-weight:750;letter-spacing:.03em;text-align:left
   }
-  .blanko-responsive-table .data-table td[data-col="tnkb"]{
+  .blanko-responsive-table .data-table td[data-col="tnkb"],
+  .blanko-responsive-table .data-table td[data-col="__court_tnkb"]{
     grid-column:1/-1;border-bottom:1px solid #edf2f7!important;
     padding:1px 20px 11px 2px!important;font-size:17px;font-weight:850
   }
-  .blanko-responsive-table .data-table td[data-col="tnkb"]:before{display:none}
+  .blanko-responsive-table .data-table td[data-col="tnkb"]:before,
+  .blanko-responsive-table .data-table td[data-col="__court_tnkb"]:before{display:none}
   .blanko-responsive-table .data-table td[data-col="__manual_status"],
   .blanko-responsive-table .data-table td[data-col="__manual_refund"]{
     background:#f6f9fd;padding:10px 9px!important;border-radius:9px
