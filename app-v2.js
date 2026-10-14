@@ -275,7 +275,7 @@ function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.fl
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
 function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;if(p==="disputes"&&activityFocus?.mode==="today")state.disputeTab="active";state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
-function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
+function activeDisputes(b){const resolved=new Set([...b.terminated.map(x=>x.case_id),...b.cases.filter(x=>x.no_blanko).map(x=>x.case_id)].filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!resolved.has(x.case_id))}
 function stoppedDisputes(b){
   const term=new Map(b.terminated.filter(x=>x.case_id).map(x=>[x.case_id,x]));
   return b.disputes
@@ -1598,7 +1598,7 @@ function reportSnapshot(b){
   const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));
   const disputes=new Set(b.disputes.map(x=>x.case_id));
   const terminated=new Set(b.terminated.map(x=>x.case_id));
-  const socialization=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));
+  const socialization=new Set(b.cases.filter(x=>x.is_archived&&(!x.archive_reason||norm(x.archive_reason)==="konfirmasi daya angkut sosialisasi")).map(x=>x.case_id));
   const shipping=new Set(activeShippingRows(b).map(x=>x.case_id));
   const court=new Set(b.courts.map(x=>x.case_id));
   const byId=new Map(b.cases.map(x=>[x.case_id,x]));

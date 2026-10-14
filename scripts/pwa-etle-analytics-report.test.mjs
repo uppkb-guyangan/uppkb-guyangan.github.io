@@ -17,7 +17,7 @@ const code=[
   "const norm=v=>String(v??'').trim().toLowerCase();",
   "const monthName=v=>v||'Semua Data';",
   "function period(v){return !state.month||ym(v)===state.month}",
-  "function activeDisputes(b){const stopped=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!stopped.has(x.case_id))}",
+  part("function activeDisputes(b){","function stoppedDisputes(b){"),
   "function activeShippingRows(b){const archived=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));return b.shipping.filter(x=>!archived.has(x.case_id))}",
   part("function wibDateKey(","function buildSmartActivities("),
   part("function etleViolationCategory(","function analytics(b){"),
@@ -46,12 +46,12 @@ test("Only identifiable historical stopped cases with missing types count as Dok
 test("Clicking process cards follows process dates and excludes resolved disputes",()=>{
   const b={cases:[
     makeCase("b","DOKUMEN",{no_blanko:"B001",tanggal_blanko:"2026-10-02"}),
-    makeCase("d","DOKUMEN"),makeCase("t","DOKUMEN"),makeCase("c","DAYA ANGKUT")
-  ],disputes:[{case_id:"d",confirmation_date:"2026-10-02"},{case_id:"t",confirmation_date:"2026-10-02"}],
+    makeCase("d","DOKUMEN"),makeCase("t","DOKUMEN"),makeCase("c","DAYA ANGKUT"),makeCase("r","DOKUMEN",{no_blanko:"B002",tanggal_blanko:"2026-10-05"})
+  ],disputes:[{case_id:"d",confirmation_date:"2026-10-02"},{case_id:"t",confirmation_date:"2026-10-02"},{case_id:"r",confirmation_date:"2026-10-02"}],
   terminated:[{case_id:"t",terminated_at:"2026-10-03"}],courts:[{case_id:"c",tanggal_sidang:"2026-10-04"}],
   histories:[],shipping:[]};
   state.month="2026-10";
-  assert.deepEqual(Array.from(analyticsProcessCases(b,"blanko"),x=>x.case_id),["b"]);
+  assert.deepEqual(Array.from(analyticsProcessCases(b,"blanko"),x=>x.case_id),["b","r"]);
   assert.deepEqual(Array.from(analyticsProcessCases(b,"disputes"),x=>x.case_id),["d"]);
   assert.deepEqual(Array.from(analyticsProcessCases(b,"terminated"),x=>x.case_id),["t"]);
   assert.deepEqual(Array.from(analyticsProcessCases(b,"court"),x=>x.case_id),["c"]);
@@ -119,4 +119,11 @@ test("Original report copy/print and app shell caches remain connected",()=>{
   assert.match(html,/app-v2\.js\?v=20261014-agreed-etle1/);
   assert.match(sw,/app-v2\.js\?v=20261014-agreed-etle1/);
   assert.match(sw,/gsmart-shell-v55/);
+});
+
+test("An unrelated archived record does not automatically count as Sosialisasi in reports",()=>{
+  const row=makeCase("other","DOKUMEN",{is_archived:true,archive_reason:"ARSIP LAIN"});
+  const b={cases:[row],shipping:[],disputes:[],terminated:[],courts:[],histories:[{case_id:"other",event_time:"2026-09-20T10:00:00Z"}]};
+  state.month=null;
+  assert.equal(reportSnapshot(b).success,0);
 });
