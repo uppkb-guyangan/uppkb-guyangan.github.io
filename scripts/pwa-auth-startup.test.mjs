@@ -19,8 +19,8 @@ test("initial paint hides the login form pending Firebase state",()=>{
   assert.match(html,/id="gsmartAuthBootText">Memulihkan sesi G-Smart/);
   assert.match(html,/id="gsmartAuthRetry" type="button" class="hidden"/);
   assert.match(html,/id="gsmartAuthLogout" type="button" class="secondary hidden"/);
-  assert.match(html,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
-  assert.match(sw,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
+  assert.match(html,/app-v2\.js\?v=20261011-authpersist1/);
+  assert.match(sw,/app-v2\.js\?v=20261011-authpersist1/);
 });
 test("login page is revealed only after boot concludes",()=>{
   const sections=between("function hideAuthBoot(){","function renderProfile(");

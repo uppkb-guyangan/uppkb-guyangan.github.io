@@ -41,14 +41,7 @@ const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminat
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
-// DATE values retain their calendar day; timestamptz values follow Asia/Jakarta rather than UTC.
-const ym=v=>{
-  if(!v)return null;
-  const s=String(v),m=s.match(/^(\d{4})-(\d{2})/);
-  if(!m)return null;
-  if(!s.includes("T"))return m[1]+"-"+m[2];
-  return wibDateKey(s).slice(0,7)||m[1]+"-"+m[2]
-};
+const ym=v=>{if(!v)return null;const m=String(v).match(/^(\d{4})-(\d{2})/);return m?m[1]+"-"+m[2]:null};
 const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new Intl.DateTimeFormat("id-ID",{month:"long",year:"numeric"}).format(new Date(Number(y),Number(m)-1,1))};
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
 const money=v=>v==null||v===""?"-":"Rp "+new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Number(v));
@@ -1017,34 +1010,20 @@ function caseTable(rows){
 }
 function detailSourceForPage(page){return({shipping:"SHIPPING",blanko:"BLANKO",disputes:"DISPUTE",terminated:"TERMINATED",court:"COURT"})[page]||"OTHER"}
 function bindDetailRows(){document.querySelectorAll("[data-case]").forEach(r=>r.onclick=()=>{if(!r.dataset.case)return;state.detailSource=detailSourceForPage(state.page);openDetail(r.dataset.case)})}
-// Every analytics metric and its clicked detail must resolve the SAME case_id set.
-function analyticsMetricCases(b,key){
-  if(key==="blanko")return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
-  const events=key==="disputes"?activeDisputes(b)
-    :key==="terminated"?b.terminated.filter(x=>period(x.terminated_at))
-    :key==="court"?b.courts.filter(x=>period(x.tanggal_sidang))
-    :[];
-  const ids=new Set(events.map(x=>String(x.case_id||"")).filter(Boolean));
-  const violations=new Set(events.map(x=>norm(x.violation_id)).filter(Boolean));
-  const refs=new Set(events.map(x=>norm(x.ref_number)).filter(Boolean));
-  return b.cases.filter(c=>ids.has(String(c.case_id||""))||
-    (!!c.violation_id&&violations.has(norm(c.violation_id)))||
-    (!!c.ref_number&&refs.has(norm(c.ref_number))));
-}
 function analytics(b){
   const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran));
   const c=counts(b);
   const byTnkb={};
   const byOwner={};
-  const byType={DOKUMEN:0,"DAYA ANGKUT":0,KOMBINASI:0,LAINNYA:0,"TANPA JENIS":0};
+  const byType={DOKUMEN:0,"DAYA ANGKUT":0,KOMBINASI:0,LAINNYA:0};
   let missingTypeCount=0;
   const daily={};
   const monthly={};
 
   const classifyType=value=>{
     const s=String(value||"").trim().toUpperCase();
-    if(!s)return"TANPA JENIS";
-    if(s.includes("KOMBINASI")||(s.includes("DOKUMEN")&&(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))))return"KOMBINASI";
+    if(!s)return null;
+    if(s.includes("KOMBINASI"))return"KOMBINASI";
     if(s.includes("DOKUMEN"))return"DOKUMEN";
     if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
     return"LAINNYA"
@@ -1076,8 +1055,8 @@ function analytics(b){
       byOwner[k].n++
     }
     const typeKey=classifyType(x.jenis_pelanggaran);
-    byType[typeKey]++;
-    if(typeKey==="TANPA JENIS")missingTypeCount++;
+    if(typeKey)byType[typeKey]++;
+    else missingTypeCount++;
     const day=wibDateKey(x.tanggal_pelanggaran);
     if(day)daily[day]=(daily[day]||0)+1
   });
@@ -1095,7 +1074,6 @@ function analytics(b){
   const typeRows=Object.entries(byType).map(([label,n])=>({label,n,key:label})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
   const ownerRows=Object.values(byOwner).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,10);
   const periodLabel=monthName(state.month);
-  const noDateCount=b.cases.filter(x=>!x.tanggal_pelanggaran).length;
 
   const metric=(key,label,value,note="")=>'<button type="button" class="card analytics-action analytics-metric" data-analytics-kind="metric" data-analytics-key="'+esc(key)+'"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'<span class="metric-nav-arrow" aria-hidden="true">›</span></button>';
   const repeatTable=repeatRows.length
@@ -1108,14 +1086,13 @@ function analytics(b){
       metric("total","Pelanggaran Diproses",cases.length,periodLabel)+
       metric("tnkb","Total TNKB",Object.keys(byTnkb).length,periodLabel)+
       metric("repeat","Pelanggaran Berulang",repeatAll.length,"TNKB >1 pelanggaran")+
-      (!state.month&&noDateCount?metric("no-date","Tanpa Tanggal",noDateCount,"Tidak masuk tren bulanan"): "")+
-      metric("blanko","Blanko Terbit",analyticsMetricCases(b,"blanko").length,"Berdasarkan tanggal blanko")+
-      metric("disputes","Tersanggah Aktif",analyticsMetricCases(b,"disputes").length,"Berdasarkan tanggal konfirmasi")+
-      metric("terminated","Dihentikan",analyticsMetricCases(b,"terminated").length,"Berdasarkan tanggal dihentikan")+
-      metric("court","Persidangan",analyticsMetricCases(b,"court").length,"Berdasarkan tanggal sidang")+
+      metric("blanko","Blanko Terbit",c.blanko,periodLabel)+
+      metric("disputes","Tersanggah",c.disputes,periodLabel)+
+      metric("terminated","Dihentikan",c.terminated,periodLabel)+
+      metric("court","Persidangan",c.court,periodLabel)+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><div class="title-row"><div><h3>Tren Bulanan</h3>'+(!state.month&&noDateCount?'<p class="search-hint">'+noDateCount+' perkara tanpa tanggal tidak masuk grafik tren.</p>':"")+'</div><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
       '<div class="panel analytics-type-panel"><div class="title-row"><div><h3>Jenis Pelanggaran</h3>'+(missingTypeCount?'<p class="search-hint">'+missingTypeCount+' pelanggaran belum memiliki data jenis pelanggaran.</p>':'')+'</div><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
@@ -1237,22 +1214,26 @@ function openAnalyticsDetail(kind,key){
       currentCases.forEach(x=>{const k=norm(x.tnkb);if(k)counts[k]=(counts[k]||0)+1});
       rows=currentCases.filter(x=>(counts[norm(x.tnkb)]||0)>1);
       title="Pelanggaran Berulang"
-    }else if(key==="no-date"){
-      rows=b.cases.filter(x=>!x.tanggal_pelanggaran);
-      title="Perkara Tanpa Tanggal Pelanggaran";
-      subtitle="Tidak dimasukkan ke grafik tren bulanan"
-    }else if(["blanko","disputes","terminated","court"].includes(key)){
-      rows=analyticsMetricCases(b,key);
-      const config={
-        blanko:["Blanko Terbit","tanggal blanko"],
-        disputes:["Pelanggaran Tersanggah Aktif","tanggal konfirmasi"],
-        terminated:["Pelanggaran Dihentikan","tanggal penghentian"],
-        court:["Persidangan","tanggal sidang"]
-      }[key];
-      title=config[0];
-      subtitle="Berdasarkan "+config[1]+" · "+monthName(state.month)
+    }else if(key==="blanko"){rows=currentCases.filter(x=>x.no_blanko);title="Blanko Terbit"}
+    else if(key==="disputes"){
+      const active=activeDisputes(b);
+      const ids=new Set(active.map(x=>x.case_id).filter(Boolean));
+      const violations=new Set(active.map(x=>norm(x.violation_id)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
+      title="Pelanggaran Tersanggah"
+    }else if(key==="terminated"){
+      const items=b.terminated.filter(x=>period(x.terminated_at));
+      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
+      const refs=new Set(items.map(x=>norm(x.ref_number)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||refs.has(norm(x.ref_number)));
+      title="Pelanggaran Dihentikan"
+    }else if(key==="court"){
+      const items=b.courts.filter(x=>period(x.tanggal_sidang));
+      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
+      const violations=new Set(items.map(x=>norm(x.violation_id)).filter(Boolean));
+      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
+      title="Persidangan"
     }
-
   }else if(kind==="month"){
     rows=b.cases.filter(x=>ym(x.tanggal_pelanggaran)===key);
     title="Tren Bulanan";
@@ -1264,8 +1245,8 @@ function openAnalyticsDetail(kind,key){
   }else if(kind==="type"){
     const classify=value=>{
       const s=String(value||"").trim().toUpperCase();
-      if(!s)return"TANPA JENIS";
-      if(s.includes("KOMBINASI")||(s.includes("DOKUMEN")&&(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))))return"KOMBINASI";
+      if(!s)return null;
+      if(s.includes("KOMBINASI"))return"KOMBINASI";
       if(s.includes("DOKUMEN"))return"DOKUMEN";
       if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
       return"LAINNYA"
@@ -1612,70 +1593,10 @@ function runAssistantQuery(question){
   },120)
 }
 
-// Case cohort = violation month; process activity = each process's own WIB/date month.
-// No inference of 'official confirmation' from a blanko, objection, stop or archived flag.
-function reportSnapshot(b){
-  const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran));
-  const disputeIds=new Set(b.disputes.map(x=>x.case_id).filter(Boolean));
-  const terminatedIds=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));
-  const success=cases.filter(c=>!!c.no_blanko||disputeIds.has(c.case_id)||terminatedIds.has(c.case_id)||c.is_archived===true).length;
-  return{
-    total:cases.length,
-    success,
-    pending:cases.length-success,
-    withoutDate:!state.month?b.cases.filter(x=>!x.tanggal_pelanggaran).length:0,
-    shipping:activeShippingRows(b).filter(x=>period(x.printed_date)).length,
-    blanko:b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko)).length,
-    disputes:b.disputes.filter(x=>period(x.confirmation_date)).length,
-    disputesActive:activeDisputes(b).length,
-    terminated:b.terminated.filter(x=>period(x.terminated_at)).length,
-    socialization:b.cases.filter(x=>x.is_archived&&period(x.archived_at||x.tanggal_pelanggaran)).length,
-    court:b.courts.filter(x=>period(x.tanggal_sidang)).length
-  }
-}
-function reportText(s){
-  const rate=s.total?s.success*100/s.total:0;
-  const pending=s.total?s.pending*100/s.total:0;
-  return 'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+
-    '\n\nA. PERKARA BERDASARKAN TANGGAL PELANGGARAN (WIB)'+
-    '\n• Total Perkara: '+s.total+
-    '\n• Perkara Memiliki Tindak Lanjut: '+s.success+
-    '\n• Belum Tercatat Tindak Lanjut: '+s.pending+
-    '\n• Tingkat Tindak Lanjut: '+rate.toFixed(2)+'%'+
-    '\n• Belum Tercatat Tindak Lanjut: '+pending.toFixed(2)+'%'+
-    (s.withoutDate?'\n• Perkara Tanpa Tanggal Pelanggaran: '+s.withoutDate+' (terhitung pada Semua Data, tidak pada bulan tertentu)':'')+
-    '\n\nB. AKTIVITAS PROSES BERDASARKAN TANGGAL MASING-MASING (WIB)'+
-    '\n• Pengiriman Surat Aktif (tanggal cetak): '+s.shipping+
-    '\n• Blanko Terbit (tanggal blanko): '+s.blanko+
-    '\n• Sanggahan Diterima (tanggal konfirmasi): '+s.disputes+
-    '\n• Sanggahan Masih Aktif: '+s.disputesActive+
-    '\n• Dihentikan (tanggal penghentian): '+s.terminated+
-    '\n• Konfirmasi Daya Angkut Sosialisasi / Arsip (tanggal arsip): '+s.socialization+
-    '\n• Persidangan Terjadwal (tanggal sidang): '+s.court+
-    '\n\nC. CATATAN DEFINISI'+
-    '\n• Tindak lanjut mencakup perkara dengan blanko, sanggahan, penghentian, atau arsip sosialisasi (unik berdasarkan case_id).'+
-    '\n• Tindak lanjut bukan bukti konfirmasi resmi ETLE. Angka Konfirmasi Resmi belum tersedia karena sumber konfirmasi tersendiri belum terintegrasi/terverifikasi.'+
-    '\n• Angka aktivitas proses menghitung kejadian dalam periode terpilih; kasusnya dapat berasal dari bulan pelanggaran lain. Angka antarbagian tidak untuk dijumlahkan.'+
-    '\n• Pengiriman aktif mengecualikan perkara yang diarsipkan sebagai sosialisasi. Status Terkirim oleh kurir adalah indikator terpisah.'+
-    '\n\nSumber: G-Smart UPPKB Guyangan / Supabase'
-}
-function reportPage(b){
-  const s=reportSnapshot(b);
-  const metric=(label,value)=>'<div class="card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div></div>';
-  $("content").innerHTML=
-    '<div class="cards">'+
-      metric("Total Pelanggaran",s.total)+
-      metric("Perkara Ditindaklanjuti",s.success)+
-      metric("Belum Tercatat Tindak Lanjut",s.pending)+
-      metric("Tingkat Tindak Lanjut",(s.total?s.success*100/s.total:0).toFixed(1)+"%")+
-    '</div>'+
-    '<div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div>'+
-      '<p class="search-hint">Perkara mengikuti tanggal pelanggaran; aktivitas proses mengikuti tanggal kejadiannya. Konfirmasi resmi tidak disamakan dengan tindak lanjut.</p>'+
-      '<div class="report-summary">'+esc(reportText(s))+'</div>'+
-    '</div>';
-  $("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};
-  $("printReport").onclick=()=>window.print()
-}
+function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const socialization=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));const shipping=new Set(activeShippingRows(b).map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id)||socialization.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,socialization:ids.filter(x=>socialization.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
+function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Konfirmasi Daya Angkut Sosialisasi: '+s.socialization+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
+function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
+
 function loginAuditDeviceMeta(){
   const ua=navigator.userAgent||"";
   let browser="Browser";

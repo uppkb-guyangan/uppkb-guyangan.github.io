@@ -51,9 +51,9 @@ test("auth restoration and manual password sign-in both await persistence select
   assert.match(app,/await authPersistenceReady;\s*const c=await signInWithEmailAndPassword/);
   assert.match(app,/void authPersistenceReady\.then\(\(\)=>\{\s*onAuthStateChanged\(auth,u=>\{/);
   assert.doesNotMatch(block,/browserSessionPersistence|sessionStorage|password/i);
-  assert.match(html,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
-  assert.match(sw,/gsmart-shell-v\d+/);
-  assert.match(sw,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
+  assert.match(html,/app-v2\.js\?v=20261011-authpersist1/);
+  assert.match(sw,/gsmart-shell-v51/);
+  assert.match(sw,/app-v2\.js\?v=20261011-authpersist1/);
   assert.match(app,/function showApp\(\)\{hideAuthBoot\(\)/);
   assert.match(app,/openRequestedCase\(\);launchPushMigration\(\)/);
 });

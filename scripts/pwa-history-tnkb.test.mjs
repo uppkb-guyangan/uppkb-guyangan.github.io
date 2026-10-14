@@ -11,7 +11,7 @@ function sourceBetween(start,end){
   assert.ok(first>=0&&last>first,"Missing app block "+start);
   return app.slice(first,last);
 }
-const helper=sourceBetween("function enrichHistoryWithTnkb(rows,cases){","const BLANKO_MANUAL_SELECT=");
+const helper=sourceBetween("function enrichHistoryWithTnkb(rows,cases){","function processPage(");
 const enrichHistoryWithTnkb=runInNewContext(helper+"\nenrichHistoryWithTnkb",{Map,String});
 
 test("history TNKB is resolved by case_id without changing events or their count",()=>{
@@ -55,7 +55,7 @@ test("renders TNKB as first history column on desktop and mobile cards",()=>{
   });
   const result=genericTable("history",[{case_id:"a",tnkb:"AG 9741 VJ",event_time:"2026-10-10",event_type:"LETTER_DELIVERED",title:"Surat diterima",source:"ETLE_SHIPPING"}]);
   assert.match(result,/<th>TNKB<\/th><th>Waktu<\/th>/);
-  assert.match(result,/<td[^>]*data-label="TNKB">AG 9741 VJ<\/td>/);
+  assert.match(result,/<td data-label="TNKB">AG 9741 VJ<\/td>/);
   assert.match(result,/data-case="a"/);
 });
 
@@ -69,7 +69,7 @@ test("history search accepts TNKB with or without whitespace",()=>{
 test("no per-row API requests or legacy global fetch interception",()=>{
   assert.doesNotMatch(helper,/\bfetch\s*\(|\bawait\b|supabase|\.table\(/i);
   assert.doesNotMatch(html,/script src="\.\/history-tnkb\.js/);
-  assert.match(html,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
+  assert.match(html,/app-v2\.js\?v=20261011-authpersist1/);
   assert.match(app,/const\[cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs\]=await Promise\.all\(/);
 });
 
