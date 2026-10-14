@@ -2206,7 +2206,7 @@ async function loadDashboard(){
     dashboardQ("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),
     dashboardQ("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),
     dashboardQ("etle_offenders",{order:"case_id.asc"}),
-    dashboardQ("gsmart_case_history",{order:"event_time.desc.nullslast"}),
+    dashboardQ("gsmart_case_history",{order:"event_time.desc.nullslast,history_id.desc"}),
     dashboardQ("gsmart_sync_log",{order:"started_at.desc",limit:30})
   ]);
   state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};

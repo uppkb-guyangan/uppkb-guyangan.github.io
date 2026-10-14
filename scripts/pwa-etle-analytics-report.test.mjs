@@ -127,3 +127,7 @@ test("An unrelated archived record does not automatically count as Sosialisasi i
   state.month=null;
   assert.equal(reportSnapshot(b).success,0);
 });
+
+test("History pagination uses a stable tie-breaker across 1000-row page boundaries",()=>{
+  assert.match(source,/dashboardQ\("gsmart_case_history",\{order:"event_time\.desc\.nullslast,history_id\.desc"\}\)/);
+});
