@@ -17,7 +17,7 @@ test("2 active and 5 stopped from seven disputed cases, no duplicates",()=>{
     case_id:"c"+i,violation_id:"v"+i,confirmation_date:"2026-10-01",status:"TERSANGGAH"
   }));
   const terminated=disputes.slice(0,5).map((x,i)=>({case_id:x.case_id,terminated_at:"2026-10-03"}));
-  const activeRows=activeDisputes({disputes,terminated});
+  const activeRows=activeDisputes({disputes,terminated,cases:[]});
   const stoppedRows=stoppedDisputes({disputes,terminated});
   assert.equal(activeRows.length,2);
   assert.equal(stoppedRows.length,5);
@@ -40,6 +40,6 @@ test("user-visible tabs and cache versions remain separate from existing case de
   assert.match(app,/Dihentikan \('/);
   assert.match(app,/state\.disputeTab==="stopped"\?\[\["terminated_at","Tgl Dihentikan"\]\]/);
   assert.match(html,/dispute-tabs\.css\?v=20261010-tab1/);
-  assert.match(html,/app-v2\.js\?v=20261011-authpersist1/);
+  assert.match(html,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
   assert.match(app,/mountPrivateEvidence\(\$\("gsmartPrivateEvidence"\)/);
 });

@@ -275,7 +275,7 @@ function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.fl
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
 function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;if(p==="disputes"&&activityFocus?.mode==="today")state.disputeTab="active";state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
 function period(v){return !state.month||ym(v)===state.month}
-function activeDisputes(b){const term=new Set(b.terminated.map(x=>x.case_id).filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!term.has(x.case_id))}
+function activeDisputes(b){const resolved=new Set([...b.terminated.map(x=>x.case_id),...b.cases.filter(x=>x.no_blanko).map(x=>x.case_id)].filter(Boolean));return b.disputes.filter(x=>period(x.confirmation_date)&&x.case_id&&!resolved.has(x.case_id))}
 function stoppedDisputes(b){
   const term=new Map(b.terminated.filter(x=>x.case_id).map(x=>[x.case_id,x]));
   return b.disputes
@@ -1010,24 +1010,38 @@ function caseTable(rows){
 }
 function detailSourceForPage(page){return({shipping:"SHIPPING",blanko:"BLANKO",disputes:"DISPUTE",terminated:"TERMINATED",court:"COURT"})[page]||"OTHER"}
 function bindDetailRows(){document.querySelectorAll("[data-case]").forEach(r=>r.onclick=()=>{if(!r.dataset.case)return;state.detailSource=detailSourceForPage(state.page);openDetail(r.dataset.case)})}
+// Shared classification for Analitik and Laporan ETLE. No source data is changed.
+function etleViolationCategory(x){
+  const s=String(x?.jenis_pelanggaran||"").trim().toUpperCase();
+  const hasDocument=s.includes("DOKUMEN");
+  const hasLoad=s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT");
+  if(s.includes("KOMBINASI")||(hasDocument&&hasLoad))return"DOKUMEN DAYA ANGKUT";
+  if(hasDocument)return"DOKUMEN";
+  if(hasLoad)return"DAYA ANGKUT";
+  // Identifiable batch of 10 pre-centralization stopped/document violations.
+  // New cases without a type must never be silently assumed to be Dokumen.
+  if(!s&&!x?.tanggal_pelanggaran&&String(x?.status_etle||"").toUpperCase()==="DIHENTIKAN"&&wibDateKey(x?.first_seen_at)==="2026-09-25")return"DOKUMEN";
+  return s?"LAINNYA":null;
+}
+
+// Match counts in Analitik action cards to the same rows opened by the user.
+function analyticsProcessCases(b,key){
+  if(key==="blanko")return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
+  const events=key==="disputes"?activeDisputes(b):
+    key==="terminated"?b.terminated.filter(x=>period(x.terminated_at)):
+    key==="court"?b.courts.filter(x=>period(x.tanggal_sidang)):[];
+  const ids=new Set(events.map(x=>x.case_id).filter(Boolean));
+  return b.cases.filter(x=>ids.has(x.case_id));
+}
 function analytics(b){
   const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran));
-  const c=counts(b);
   const byTnkb={};
   const byOwner={};
-  const byType={DOKUMEN:0,"DAYA ANGKUT":0,KOMBINASI:0,LAINNYA:0};
+  const byType={DOKUMEN:0,"DAYA ANGKUT":0,"DOKUMEN DAYA ANGKUT":0,LAINNYA:0};
   let missingTypeCount=0;
   const daily={};
   const monthly={};
 
-  const classifyType=value=>{
-    const s=String(value||"").trim().toUpperCase();
-    if(!s)return null;
-    if(s.includes("KOMBINASI"))return"KOMBINASI";
-    if(s.includes("DOKUMEN"))return"DOKUMEN";
-    if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
-    return"LAINNYA"
-  };
 
   const monthLabel=key=>{
     const [y,m]=String(key).split("-");
@@ -1054,7 +1068,7 @@ function analytics(b){
       byOwner[k]=byOwner[k]||{label:x.nama_pemilik,n:0,key:k};
       byOwner[k].n++
     }
-    const typeKey=classifyType(x.jenis_pelanggaran);
+    const typeKey=etleViolationCategory(x);
     if(typeKey)byType[typeKey]++;
     else missingTypeCount++;
     const day=wibDateKey(x.tanggal_pelanggaran);
@@ -1074,6 +1088,7 @@ function analytics(b){
   const typeRows=Object.entries(byType).map(([label,n])=>({label,n,key:label})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
   const ownerRows=Object.values(byOwner).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,10);
   const periodLabel=monthName(state.month);
+  const withoutViolationDate=!state.month?b.cases.filter(x=>!x.tanggal_pelanggaran).length:0;
 
   const metric=(key,label,value,note="")=>'<button type="button" class="card analytics-action analytics-metric" data-analytics-kind="metric" data-analytics-key="'+esc(key)+'"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+value+'</div>'+(note?'<div class="metric-note">'+esc(note)+'</div>':'')+'<span class="metric-nav-arrow" aria-hidden="true">›</span></button>';
   const repeatTable=repeatRows.length
@@ -1086,13 +1101,13 @@ function analytics(b){
       metric("total","Pelanggaran Diproses",cases.length,periodLabel)+
       metric("tnkb","Total TNKB",Object.keys(byTnkb).length,periodLabel)+
       metric("repeat","Pelanggaran Berulang",repeatAll.length,"TNKB >1 pelanggaran")+
-      metric("blanko","Blanko Terbit",c.blanko,periodLabel)+
-      metric("disputes","Tersanggah",c.disputes,periodLabel)+
-      metric("terminated","Dihentikan",c.terminated,periodLabel)+
-      metric("court","Persidangan",c.court,periodLabel)+
+      metric("blanko","Blanko Terbit",analyticsProcessCases(b,"blanko").length,periodLabel)+
+      metric("disputes","Tersanggah",analyticsProcessCases(b,"disputes").length,periodLabel)+
+      metric("terminated","Dihentikan",analyticsProcessCases(b,"terminated").length,periodLabel)+
+      metric("court","Persidangan",analyticsProcessCases(b,"court").length,periodLabel)+
     '</div>'+
     '<div class="grid-2">'+
-      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+'</div>'+
+      '<div class="panel"><div class="title-row"><h3>Tren Bulanan</h3><span class="badge">Klik titik</span></div>'+analyticsLineChart(monthlyRows,{kind:"month"})+(withoutViolationDate?'<p class="search-hint">'+withoutViolationDate+' perkara tanpa tanggal pelanggaran tidak masuk grafik bulanan.</p>':"")+'</div>'+
       '<div class="panel analytics-type-panel"><div class="title-row"><div><h3>Jenis Pelanggaran</h3>'+(missingTypeCount?'<p class="search-hint">'+missingTypeCount+' pelanggaran belum memiliki data jenis pelanggaran.</p>':'')+'</div><span class="badge">Klik batang</span></div>'+analyticsBars(typeRows,{gold:true,kind:"type"})+'</div>'+
     '</div>'+
     '<div class="grid-2">'+
@@ -1214,25 +1229,12 @@ function openAnalyticsDetail(kind,key){
       currentCases.forEach(x=>{const k=norm(x.tnkb);if(k)counts[k]=(counts[k]||0)+1});
       rows=currentCases.filter(x=>(counts[norm(x.tnkb)]||0)>1);
       title="Pelanggaran Berulang"
-    }else if(key==="blanko"){rows=currentCases.filter(x=>x.no_blanko);title="Blanko Terbit"}
-    else if(key==="disputes"){
-      const active=activeDisputes(b);
-      const ids=new Set(active.map(x=>x.case_id).filter(Boolean));
-      const violations=new Set(active.map(x=>norm(x.violation_id)).filter(Boolean));
-      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
-      title="Pelanggaran Tersanggah"
-    }else if(key==="terminated"){
-      const items=b.terminated.filter(x=>period(x.terminated_at));
-      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
-      const refs=new Set(items.map(x=>norm(x.ref_number)).filter(Boolean));
-      rows=currentCases.filter(x=>ids.has(x.case_id)||refs.has(norm(x.ref_number)));
-      title="Pelanggaran Dihentikan"
-    }else if(key==="court"){
-      const items=b.courts.filter(x=>period(x.tanggal_sidang));
-      const ids=new Set(items.map(x=>x.case_id).filter(Boolean));
-      const violations=new Set(items.map(x=>norm(x.violation_id)).filter(Boolean));
-      rows=currentCases.filter(x=>ids.has(x.case_id)||violations.has(norm(x.violation_id)));
-      title="Persidangan"
+    }else if(["blanko","disputes","terminated","court"].includes(key)){
+      rows=analyticsProcessCases(b,key);
+      const label={blanko:"Blanko Terbit",disputes:"Pelanggaran Tersanggah",terminated:"Pelanggaran Dihentikan",court:"Persidangan"};
+      const basis={blanko:"tanggal blanko",disputes:"tanggal konfirmasi sanggahan",terminated:"tanggal dihentikan",court:"tanggal sidang"};
+      title=label[key];
+      subtitle=monthName(state.month)+" · Berdasarkan "+basis[key];
     }
   }else if(kind==="month"){
     rows=b.cases.filter(x=>ym(x.tanggal_pelanggaran)===key);
@@ -1243,15 +1245,7 @@ function openAnalyticsDetail(kind,key){
     title="Pelanggaran Harian";
     subtitle=key
   }else if(kind==="type"){
-    const classify=value=>{
-      const s=String(value||"").trim().toUpperCase();
-      if(!s)return null;
-      if(s.includes("KOMBINASI"))return"KOMBINASI";
-      if(s.includes("DOKUMEN"))return"DOKUMEN";
-      if(s.includes("DAYA ANGKUT")||s.includes("DAYAANGKUT"))return"DAYA ANGKUT";
-      return"LAINNYA"
-    };
-    rows=currentCases.filter(x=>classify(x.jenis_pelanggaran)===key);
+    rows=currentCases.filter(x=>etleViolationCategory(x)===key);
     title="Jenis Pelanggaran";
     subtitle=key+" · "+monthName(state.month)
   }else if(kind==="tnkb"){
@@ -1593,8 +1587,64 @@ function runAssistantQuery(question){
   },120)
 }
 
-function reportSnapshot(b){const first={};b.histories.forEach(h=>{if(!h.case_id||!h.event_time)return;if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time});const ids=Object.entries(first).filter(([,v])=>!state.month||ym(v)===state.month).map(([k])=>k);const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));const disputes=new Set(b.disputes.map(x=>x.case_id));const terminated=new Set(b.terminated.map(x=>x.case_id));const socialization=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));const shipping=new Set(activeShippingRows(b).map(x=>x.case_id));const court=new Set(b.courts.map(x=>x.case_id));const success=ids.filter(id=>blanko.has(id)||disputes.has(id)||terminated.has(id)||socialization.has(id));return{ids,total:ids.length,blanko:ids.filter(x=>blanko.has(x)).length,disputes:ids.filter(x=>disputes.has(x)).length,terminated:ids.filter(x=>terminated.has(x)).length,socialization:ids.filter(x=>socialization.has(x)).length,shipping:ids.filter(x=>shipping.has(x)).length,court:ids.filter(x=>court.has(x)).length,success:success.length,pending:ids.length-success.length}}
-function reportText(s){const rate=s.total?s.success*100/s.total:0;const pending=s.total?s.pending*100/s.total:0;return'LAPORAN ETLE UPPKB GUYANGAN\nPeriode: '+monthName(state.month)+'\n\nRingkasan ETLE\n• Pelanggaran Diproses: '+s.total+'\n• Pengiriman Surat: '+s.shipping+'\n• Blanko Tilang: '+s.blanko+'\n• Tersanggah: '+s.disputes+'\n• Konfirmasi Daya Angkut Sosialisasi: '+s.socialization+'\n• Dihentikan: '+s.terminated+'\n• Persidangan: '+s.court+'\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: '+s.success+' dari '+s.total+' pelanggaran\n• Success Rate: '+rate.toFixed(2)+'%\n• Belum Konfirmasi: '+s.pending+' pelanggaran ('+pending.toFixed(2)+'%)\n\nSumber: G-SMART UPPKB Guyangan'}
+function reportSnapshot(b){
+  const first={};
+  b.histories.forEach(h=>{
+    if(!h.case_id||!h.event_time)return;
+    if(!first[h.case_id]||String(h.event_time)<String(first[h.case_id]))first[h.case_id]=h.event_time;
+  });
+  // Retain the existing cohort source; interpret its month in WIB.
+  const ids=Object.entries(first).filter(([,v])=>!state.month||ym(wibDateKey(v))===state.month).map(([id])=>id);
+  const blanko=new Set(b.cases.filter(x=>x.no_blanko).map(x=>x.case_id));
+  const disputes=new Set(b.disputes.map(x=>x.case_id));
+  const terminated=new Set(b.terminated.map(x=>x.case_id));
+  const socialization=new Set(b.cases.filter(x=>x.is_archived&&(!x.archive_reason||norm(x.archive_reason)==="konfirmasi daya angkut sosialisasi")).map(x=>x.case_id));
+  const shipping=new Set(activeShippingRows(b).map(x=>x.case_id));
+  const court=new Set(b.courts.map(x=>x.case_id));
+  const byId=new Map(b.cases.map(x=>[x.case_id,x]));
+  const types={dokumen:0,dayaAngkut:0,dokumenDayaAngkut:0,lainnya:0,tidakDiketahui:0};
+  ids.forEach(id=>{
+    const cat=etleViolationCategory(byId.get(id));
+    if(cat==="DOKUMEN")types.dokumen++;
+    else if(cat==="DAYA ANGKUT")types.dayaAngkut++;
+    else if(cat==="DOKUMEN DAYA ANGKUT")types.dokumenDayaAngkut++;
+    else if(cat==="LAINNYA")types.lainnya++;
+    else types.tidakDiketahui++;
+  });
+  // Per the ETLE workflow, active disputes alone are not a confirmed outcome.
+  const success=ids.filter(id=>blanko.has(id)||terminated.has(id)||socialization.has(id));
+  return{
+    ids,total:ids.length,
+    blanko:ids.filter(x=>blanko.has(x)).length,
+    disputes:ids.filter(x=>disputes.has(x)).length,
+    terminated:ids.filter(x=>terminated.has(x)).length,
+    socialization:ids.filter(x=>socialization.has(x)).length,
+    shipping:ids.filter(x=>shipping.has(x)).length,
+    court:ids.filter(x=>court.has(x)).length,
+    success:success.length,pending:ids.length-success.length,types
+  };
+}
+function reportText(s){
+  const rate=s.total?s.success*100/s.total:0;
+  const pending=s.total?s.pending*100/s.total:0;
+  return "LAPORAN ETLE UPPKB GUYANGAN\nPeriode: "+monthName(state.month)+
+    "\n\nRingkasan ETLE\n• Pelanggaran Diproses: "+s.total+
+    "\n• Pengiriman Surat: "+s.shipping+
+    "\n• Blanko Tilang: "+s.blanko+
+    "\n• Tersanggah: "+s.disputes+
+    "\n• Konfirmasi Daya Angkut Sosialisasi: "+s.socialization+
+    "\n• Dihentikan: "+s.terminated+
+    "\n• Persidangan: "+s.court+
+    "\n\nJenis Pelanggaran\n• Dokumen: "+s.types.dokumen+
+    "\n• Daya Angkut: "+s.types.dayaAngkut+
+    "\n• Dokumen Daya Angkut: "+s.types.dokumenDayaAngkut+
+    (s.types.lainnya?"\n• Lainnya: "+s.types.lainnya:"")+
+    (s.types.tidakDiketahui?"\n• Belum diketahui: "+s.types.tidakDiketahui:"")+
+    "\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: "+s.success+" dari "+s.total+" pelanggaran"+
+    "\n• Success Rate: "+rate.toFixed(2)+"%"+
+    "\n• Belum Konfirmasi: "+s.pending+" pelanggaran ("+pending.toFixed(2)+"%)"+
+    "\n\nSumber: G-SMART UPPKB Guyangan";
+}
 function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print()}
 
 function loginAuditDeviceMeta(){
@@ -2156,7 +2206,7 @@ async function loadDashboard(){
     dashboardQ("etle_terminated_cases",{order:"terminated_at.desc.nullslast"}),
     dashboardQ("etle_court_info",{order:"tanggal_sidang.desc.nullslast"}),
     dashboardQ("etle_offenders",{order:"case_id.asc"}),
-    dashboardQ("gsmart_case_history",{order:"event_time.desc.nullslast"}),
+    dashboardQ("gsmart_case_history",{order:"event_time.desc.nullslast,history_id.desc"}),
     dashboardQ("gsmart_sync_log",{order:"started_at.desc",limit:30})
   ]);
   state.bundle={cases,shipping,disputes,terminated,courts,offenders,histories,syncLogs};
