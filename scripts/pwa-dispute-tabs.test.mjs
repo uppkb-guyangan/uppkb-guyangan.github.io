@@ -17,7 +17,7 @@ test("2 active and 5 stopped from seven disputed cases, no duplicates",()=>{
     case_id:"c"+i,violation_id:"v"+i,confirmation_date:"2026-10-01",status:"TERSANGGAH"
   }));
   const terminated=disputes.slice(0,5).map((x,i)=>({case_id:x.case_id,terminated_at:"2026-10-03"}));
-  const activeRows=activeDisputes({disputes,terminated});
+  const activeRows=activeDisputes({disputes,terminated,cases:[]});
   const stoppedRows=stoppedDisputes({disputes,terminated});
   assert.equal(activeRows.length,2);
   assert.equal(stoppedRows.length,5);
