@@ -171,8 +171,8 @@ test("September violations processed in October remain September events but Octo
   const text=reportText(s);
   assert.match(text,/Pelanggaran Terjadi: 1/);
   assert.match(text,/Pengiriman Surat Dicetak: 2/);
-  assert.match(text,/September 2026: 1/);
-  assert.match(text,/Oktober 2026: 1/);
+  assert.match(text,/2026-09: 1/);
+  assert.match(text,/2026-10: 1/);
   assert.match(text,/Perkara Mulai Tercatat: 2/);
   state.month="2026-09";
   assert.equal(reportSnapshot(b).periodOverview.violations,2);
