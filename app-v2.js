@@ -36,8 +36,8 @@ async function ensurePersistentAuth(){
 }
 const authPersistenceReady=ensurePersistentAuth();
 
-const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"],["settings","Pengaturan"],["management","Manajemen"]];
-const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",health:"♡",loginHistory:"◷",settings:"⚙",management:"▤"};
+const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["etleHubLogin","Login ETLE Hub"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"],["settings","Pengaturan"],["management","Manajemen"]];
+const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",etleHubLogin:"↗",health:"♡",loginHistory:"◷",settings:"⚙",management:"▤"};
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
@@ -252,6 +252,11 @@ function showAuthBoot(message="Memulihkan sesi G-Smart...",{retry=false,logout=f
 }
 function showLogin(){hideAuthBoot();$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
+function openEtleHubLogin(){
+  // Official authenticated ETLE Hub login in the browser. G-Smart does not
+  // receive or persist ETLE passwords, session cookies, or backend tokens.
+  window.open("https://etilang-djpd.kemenhub.go.id:9000/main/","_blank","noopener,noreferrer");
+}
 function renderNav(){
   const b=state.bundle||demo;
   const c=counts(b);
@@ -266,6 +271,7 @@ function renderNav(){
   }).join("");
   $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     setMobileSidebarOpen(false);
+    if(b.dataset.id==="etleHubLogin"){openEtleHubLogin();return}
     if(b.dataset.id==="favorites"&&!perms().watchCases){toast("Pelanggaran Dipantau hanya dapat diakses Admin dan Wasatpel.");return}
     if((b.dataset.id==="loginHistory"||b.dataset.id==="health")&&!perms().admin){toast("Menu ini hanya dapat diakses Admin.");return}
     openPage(b.dataset.id)

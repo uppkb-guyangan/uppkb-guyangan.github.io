@@ -121,7 +121,7 @@ test("Original report copy/print and app shell caches remain connected",()=>{
   assert.match(source,/\$\("printReport"\)\.onclick=\(\)=>window\.print\(\)/);
   assert.match(html,/app-v2\.js\?v=20261015-etlehub-route2/);
   assert.match(sw,/app-v2\.js\?v=20261015-etlehub-route2/);
-  assert.match(sw,/gsmart-shell-v60/);
+  assert.match(sw,/gsmart-shell-v61/);
 });
 
 test("An unrelated archived record does not automatically count as Sosialisasi in reports",()=>{
