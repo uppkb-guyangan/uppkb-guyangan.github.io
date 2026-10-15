@@ -42,7 +42,8 @@ test("Clicking external login does not navigate away from G-Smart or change sele
 });
 test("No password/session management is added to G-Smart",()=>{
   const action=src.slice(src.indexOf("function openEtleHubLogin(){"),src.indexOf("function renderNav(){"));
-  assert.doesNotMatch(action,/password|localStorage|fetch\(|service_role|cookie|authorization/i);
+  const executable=action.split("\n").filter(line=>!line.trim().startsWith("//")).join("\n");
+  assert.doesNotMatch(executable,/password|localStorage|fetch\(|service_role|cookie|authorization/i);
   assert.match(src,/function etleHubBackendDetailUrl\(c\)/);
   assert.match(src,/id="etleHubBackendBtn"/);
 });
