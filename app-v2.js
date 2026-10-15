@@ -1991,11 +1991,18 @@ function etleConfirmationUrl(c){
   return "https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb)
 }
 function etleHubBackendDetailUrl(c){
-  // Keep internal navigation on the fixed authenticated ETLE Hub origin.
-  // A case UUID, license plate or free-form input must never become a URL.
+  // ETLE Hub has distinct detail endpoints. Blanko/penagihan uses the
+  // violation_id parameter; other confirmed cases retain the existing route.
+  // The host and path are fixed, and identifiers are strictly numeric.
   const id=String(c?.violation_id??"").trim();
   if(!/^[0-9]{1,12}$/.test(id))return null;
-  return "https://etilang-djpd.kemenhub.go.id:9000/admin-etle/terkonfirmasi_detail.php?id="+encodeURIComponent(id);
+  const blanko=String(c?.no_blanko??"").trim();
+  const status=String(c?.status_etle??"").trim().toUpperCase();
+  const hasBlanko=(blanko!==""&&blanko!=="-")||
+    ["BLANKO_TERBIT","TERTAGIH","TERBAYAR","PERSIDANGAN","SELESAI_SIDANG"].includes(status);
+  const root="https://etilang-djpd.kemenhub.go.id:9000/admin-etle/";
+  if(hasBlanko)return root+"tertagih_detail.php?violation_id="+encodeURIComponent(id);
+  return root+"terkonfirmasi_detail.php?id="+encodeURIComponent(id);
 }
 function caseDeepLink(caseId){
   const url=new URL(window.location.href);

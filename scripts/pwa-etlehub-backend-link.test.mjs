@@ -22,6 +22,25 @@ test("ETLE Hub backend link points to authenticated detail page on the fixed por
     "https://etilang-djpd.kemenhub.go.id:9000/admin-etle/terkonfirmasi_detail.php?id=123");
 });
 
+
+test("Blanko Tilang opens the correct backend tagihan detail shown by ETLE Hub",()=>{
+  const correct="https://etilang-djpd.kemenhub.go.id:9000/admin-etle/tertagih_detail.php?violation_id=100035";
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100035",status_etle:"BLANKO_TERBIT",no_blanko:"AJ0001691"}),correct);
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100035",no_blanko:"AJ0001691"}),correct);
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100035",status_etle:"TERTAGIH"}),correct);
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100035",status_etle:"TERBAYAR"}),correct);
+  assert.equal(etleHubBackendDetailUrl({violation_id:100035,status_etle:"PERSIDANGAN"}),correct);
+});
+
+test("Non-blanko cases keep original confirmation detail; missing IDs stay blocked",()=>{
+  const original="https://etilang-djpd.kemenhub.go.id:9000/admin-etle/terkonfirmasi_detail.php?id=100567";
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100567",status_etle:"TERSANGGAH"}),original);
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100567",status_etle:"DIHENTIKAN",no_blanko:""}),original);
+  assert.equal(etleHubBackendDetailUrl({violation_id:"100567",status_etle:"TERTAGIH",no_blanko:"-"}),
+    "https://etilang-djpd.kemenhub.go.id:9000/admin-etle/tertagih_detail.php?violation_id=100567");
+  assert.equal(etleHubBackendDetailUrl({violation_id:"bad",no_blanko:"BL-1"}),null);
+});
+
 test("Never construct backend links from invalid identifiers or user-supplied paths",()=>{
   for(const id of ["",null,undefined,"abc","3?admin=1","1/../2","-1","1234567890123","100035#fragment","https://example.org"]){
     assert.equal(etleHubBackendDetailUrl({violation_id:id}),null,String(id));
@@ -42,7 +61,7 @@ test("Existing public Konfirmasi and QR buttons remain untouched; backend is add
 });
 
 test("Changes propagate via PWA cache and remain available on HP and desktop",()=>{
-  assert.match(html,/app-v2\.js\?v=20261015-etlehub-link1/);
-  assert.match(sw,/app-v2\.js\?v=20261015-etlehub-link1/);
-  assert.match(sw,/gsmart-shell-v59/);
+  assert.match(html,/app-v2\.js\?v=20261015-etlehub-route2/);
+  assert.match(sw,/app-v2\.js\?v=20261015-etlehub-route2/);
+  assert.match(sw,/gsmart-shell-v60/);
 });
