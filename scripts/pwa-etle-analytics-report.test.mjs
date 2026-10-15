@@ -134,3 +134,60 @@ test("An unrelated archived record does not automatically count as Sosialisasi i
 test("History pagination uses a stable tie-breaker across 1000-row page boundaries",()=>{
   assert.match(source,/dashboardQ\("gsmart_case_history",\{order:"event_time\.desc\.nullslast,history_id\.desc"\}\)/);
 });
+
+
+test("September violations processed in October remain September events but October workloads",()=>{
+  const cases=[
+    makeCase("s1","DOKUMEN",{tanggal_pelanggaran:"2026-09-30T14:00:00Z",first_seen_at:"2026-10-03T12:00:00Z"}),
+    makeCase("o1","DAYA ANGKUT",{tanggal_pelanggaran:"2026-10-04T06:00:00Z",first_seen_at:"2026-10-05T10:00:00Z"}),
+    makeCase("s2","DOKUMEN",{tanggal_pelanggaran:"2026-09-18T06:00:00Z",first_seen_at:"2026-09-20T06:00:00Z",no_blanko:"BL-01",tanggal_blanko:"2026-10-06"})
+  ];
+  const b={
+    cases,
+    shipping:[
+      {case_id:"s1",printed_date:"2026-10-05"},{case_id:"o1",printed_date:"2026-10-06"},
+      {case_id:"s2",printed_date:"2026-09-25"}
+    ],
+    disputes:[{case_id:"s1",confirmation_date:"2026-10-08"}],
+    terminated:[],courts:[{case_id:"s2",tanggal_sidang:"2026-11-02"}],
+    histories:[
+      {case_id:"s1",event_time:"2026-10-03T12:00:00Z"},
+      {case_id:"o1",event_time:"2026-10-05T10:00:00Z"},
+      {case_id:"s2",event_time:"2026-09-20T06:00:00Z"}
+    ]
+  };
+  state.month="2026-10";
+  const s=reportSnapshot(b),p=s.periodOverview;
+  assert.equal(p.violations,1,"Only the October incident counts as an October violation");
+  assert.equal(p.types.dayaAngkut,1);
+  assert.equal(p.types.dokumen,0);
+  assert.equal(p.process.shipping,2,"October letters include September incidents");
+  assert.equal(p.process.blanko,1,"October blanko for September cohort must be counted as workload");
+  assert.equal(p.process.disputes,1);
+  assert.equal(p.process.court,0);
+  assert.equal(s.total,2,"Cohort remains based on first history, not incident date");
+  assert.equal(s.success,0,"The October cohort is not confirmed by September cohort's blanko");
+  assert.deepEqual(Array.from(p.shippingOrigins,x=>[x.month,x.count]),[["2026-09",1],["2026-10",1]]);
+  const text=reportText(s);
+  assert.match(text,/Pelanggaran Terjadi: 1/);
+  assert.match(text,/Pengiriman Surat Dicetak: 2/);
+  assert.match(text,/September 2026: 1/);
+  assert.match(text,/Oktober 2026: 1/);
+  assert.match(text,/Perkara Mulai Tercatat: 2/);
+  state.month="2026-09";
+  assert.equal(reportSnapshot(b).periodOverview.violations,2);
+  assert.equal(reportSnapshot(b).periodOverview.process.shipping,1);
+  assert.equal(reportSnapshot(b).total,1);
+  state.month=null;
+});
+test("UTC crossing midnight is grouped into the Jakarta-local violation month",()=>{
+  const c=makeCase("cross","DAYA ANGKUT",{tanggal_pelanggaran:"2026-09-30T18:45:00Z"});
+  const b={cases:[c],shipping:[{case_id:"cross",printed_date:"2026-10-01"}],disputes:[],
+    terminated:[],courts:[],histories:[{case_id:"cross",event_time:"2026-09-30T18:45:00Z"}]};
+  state.month="2026-09";
+  assert.equal(reportSnapshot(b).periodOverview.violations,0);
+  state.month="2026-10";
+  assert.equal(reportSnapshot(b).periodOverview.violations,1);
+  assert.equal(reportSnapshot(b).periodOverview.process.shipping,1);
+  state.month=null;
+});
