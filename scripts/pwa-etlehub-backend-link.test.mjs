@@ -61,7 +61,7 @@ test("Existing public Konfirmasi and QR buttons remain untouched; backend is add
 });
 
 test("Changes propagate via PWA cache and remain available on HP and desktop",()=>{
-  assert.match(html,/app-v2\.js\?v=20261015-etlehub-route2/);
-  assert.match(sw,/app-v2\.js\?v=20261015-etlehub-route2/);
+  assert.match(html,/app-v2\.js\?v=20261015-etle-login1/);
+  assert.match(sw,/app-v2\.js\?v=20261015-etle-login1/);
   assert.match(sw,/gsmart-shell-v61/);
 });
