@@ -1990,6 +1990,13 @@ function etleConfirmationUrl(c){
   if(!reg||!tnkb)return null;
   return "https://etilang-djpd.kemenhub.go.id/konfirmasi?ref_number="+encodeURIComponent(reg)+"&plates="+encodeURIComponent(tnkb)
 }
+function etleHubBackendDetailUrl(c){
+  // Keep internal navigation on the fixed authenticated ETLE Hub origin.
+  // A case UUID, license plate or free-form input must never become a URL.
+  const id=String(c?.violation_id??"").trim();
+  if(!/^[0-9]{1,12}$/.test(id))return null;
+  return "https://etilang-djpd.kemenhub.go.id:9000/admin-etle/terkonfirmasi_detail.php?id="+encodeURIComponent(id);
+}
 function caseDeepLink(caseId){
   const url=new URL(window.location.href);
   url.hash="";
@@ -2130,6 +2137,7 @@ function renderDetail(d){
   disposeStoppedVehiclePhoto();
   const p=perms();
   const c=d.case;
+  const etleHubUrl=etleHubBackendDetailUrl(c);
   const phone=d.offender?.no_telp;
   const canWhatsApp=p.admin&&state.detailSource==="BLANKO";
   const phoneAction=p.copyPhone&&phone
@@ -2162,7 +2170,7 @@ function renderDetail(d){
       '</div>'+
       '<div class="detail-identity">'+
         '<div class="detail-identity-top"><span class="detail-tnkb">'+esc(c.tnkb||"-")+'</span><span class="detail-status-chip '+statusBadgeClass(statusText)+'">'+esc(statusText)+'</span></div>'+
-        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb&&c.no_registrasi||c.tnkb&&c.ref_number?'<button class="detail-confirm-btn secondary" id="qrConfirmBtn" type="button">▦ QR Konfirmasi</button>':'')+'</div>'+
+        '<div class="detail-reg detail-reg-action">No. Registrasi &nbsp;<b>'+esc(c.no_registrasi||c.ref_number||"-")+'</b>'+(c.no_registrasi||c.ref_number?'<button class="detail-confirm-btn" id="confirmEtleBtn" type="button">Buka Konfirmasi ↗</button>':'')+(c.tnkb&&c.no_registrasi||c.tnkb&&c.ref_number?'<button class="detail-confirm-btn secondary" id="qrConfirmBtn" type="button">▦ QR Konfirmasi</button>':'')+(etleHubUrl?'<button class="detail-confirm-btn secondary" id="etleHubBackendBtn" type="button" title="Buka detail di backend ETLE Hub (perlu login)">Buka ETLE Hub ↗</button>':'')+'</div>'+
         '<div class="detail-key-grid">'+
           '<div class="detail-key"><small>Jenis Pelanggaran</small><strong>'+esc(c.jenis_pelanggaran||"-")+'</strong></div>'+
           '<div class="detail-key"><small>Tanggal Pelanggaran</small><strong>'+fmtDate(c.tanggal_pelanggaran)+'</strong></div>'+
@@ -2245,7 +2253,7 @@ function renderDetail(d){
   };
     if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
-  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);
+  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);if($("etleHubBackendBtn"))$("etleHubBackendBtn").onclick=()=>{const url=etleHubBackendDetailUrl(c);if(!url){toast("Violation ID belum tersedia");return}window.open(url,"_blank","noopener,noreferrer")};
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
   if(!mainPhoto&&!state.demo&&d.terminated){
