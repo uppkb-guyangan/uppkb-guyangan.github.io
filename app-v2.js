@@ -1033,10 +1033,31 @@ function analyticsProcessCases(b,key){
   const ids=new Set(events.map(x=>x.case_id).filter(Boolean));
   return b.cases.filter(x=>ids.has(x.case_id));
 }
+// Group owners for analytics without modifying source records or exported data.
+function ownerIdentityKey(value){
+  return String(value??"").normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g,"");
+}
+function analyticsOwnerGroups(rows){
+  const groups=new Map();
+  for(const item of rows){
+    const label=String(item.nama_pemilik||"").trim().replace(/\s+/g," ");
+    const key=ownerIdentityKey(label);
+    if(!key)continue;
+    if(!groups.has(key))groups.set(key,{key,n:0,variants:new Map()});
+    const group=groups.get(key);
+    group.n++;
+    group.variants.set(label,(group.variants.get(label)||0)+1);
+  }
+  return [...groups.values()].map(group=>({
+    key:group.key,
+    n:group.n,
+    // Prefer the most-used original spelling; deterministic ties.
+    label:[...group.variants].sort((a,b)=>b[1]-a[1]||b[0].length-a[0].length||a[0].localeCompare(b[0],"id"))[0][0]
+  })).sort((a,b)=>b.n-a.n||a.label.localeCompare(b.label,"id"));
+}
 function analytics(b){
   const cases=b.cases.filter(x=>period(x.tanggal_pelanggaran));
   const byTnkb={};
-  const byOwner={};
   const byType={DOKUMEN:0,"DAYA ANGKUT":0,"DOKUMEN DAYA ANGKUT":0,LAINNYA:0};
   let missingTypeCount=0;
   const daily={};
@@ -1063,11 +1084,6 @@ function analytics(b){
         byTnkb[k].case_id=x.case_id||byTnkb[k].case_id
       }
     }
-    if(x.nama_pemilik){
-      const k=norm(x.nama_pemilik);
-      byOwner[k]=byOwner[k]||{label:x.nama_pemilik,n:0,key:k};
-      byOwner[k].n++
-    }
     const typeKey=etleViolationCategory(x);
     if(typeKey)byType[typeKey]++;
     else missingTypeCount++;
@@ -1086,7 +1102,7 @@ function analytics(b){
   const dailyRows=Object.entries(daily).sort((a,z)=>a[0].localeCompare(z[0])).map(([key,n])=>({label:dayLabel(key),n,key}));
   const topDays=[...dailyRows].sort((a,z)=>z.n-a.n||z.key.localeCompare(a.key)).slice(0,5);
   const typeRows=Object.entries(byType).map(([label,n])=>({label,n,key:label})).filter(x=>x.n>0).sort((a,z)=>z.n-a.n);
-  const ownerRows=Object.values(byOwner).sort((a,z)=>z.n-a.n||String(a.label).localeCompare(String(z.label))).slice(0,10);
+  const ownerRows=analyticsOwnerGroups(cases).slice(0,10);
   const periodLabel=monthName(state.month);
   const withoutViolationDate=!state.month?b.cases.filter(x=>!x.tanggal_pelanggaran).length:0;
 
@@ -1189,7 +1205,7 @@ function ownerBars(rows){
   if(!rows.length)return'<div class="empty">Belum ada data.</div>';
   const max=Math.max(...rows.map(x=>x.n),1);
   return'<div class="chart-list">'+rows.map(x=>
-    '<button type="button" class="bar-row owner-analytics-row" data-owner-key="'+esc(x.key||norm(x.label))+'" title="Lihat detail '+esc(x.label)+'">'+
+    '<button type="button" class="bar-row owner-analytics-row" data-owner-key="'+esc(x.key||ownerIdentityKey(x.label))+'" title="Lihat detail '+esc(x.label)+'">'+
       '<span class="bar-label">'+esc(x.label)+'</span>'+
       '<span class="bar-track"><span class="bar-fill" style="width:'+Math.max(3,x.n/max*100)+'%"></span></span>'+
       '<b>'+x.n+'</b>'+
@@ -1270,10 +1286,10 @@ function openAnalyticsDetail(kind,key){
 function openOwnerAnalyticsDetail(ownerKey){
   const b=state.bundle||demo;
   const rows=b.cases
-    .filter(x=>period(x.tanggal_pelanggaran)&&norm(x.nama_pemilik)===ownerKey)
+    .filter(x=>period(x.tanggal_pelanggaran)&&ownerIdentityKey(x.nama_pemilik)===ownerKey)
     .sort((a,z)=>String(z.tanggal_pelanggaran||"").localeCompare(String(a.tanggal_pelanggaran||"")));
   if(!rows.length){toast("Data pemilik tidak ditemukan.");return}
-  const owner=rows[0].nama_pemilik||"-";
+  const owner=analyticsOwnerGroups(rows)[0]?.label||rows[0].nama_pemilik||"-";
   const uniquePlates=new Set(rows.map(x=>norm(x.tnkb)).filter(Boolean)).size;
   const repeatPlates={};
   rows.forEach(x=>{const k=norm(x.tnkb);if(k)repeatPlates[k]=(repeatPlates[k]||0)+1});

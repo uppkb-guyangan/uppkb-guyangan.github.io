@@ -119,9 +119,9 @@ test("Unknown future categories and missing types are distinct",()=>{
 test("Original report copy/print and app shell caches remain connected",()=>{
   assert.match(source,/navigator\.clipboard\.writeText\(reportText\(s\)\)/);
   assert.match(source,/\$\("printReport"\)\.onclick=\(\)=>window\.print\(\)/);
-  assert.match(html,/app-v2\.js\?v=20261015-reportperiod1/);
-  assert.match(sw,/app-v2\.js\?v=20261015-reportperiod1/);
-  assert.match(sw,/gsmart-shell-v57/);
+  assert.match(html,/app-v2\.js\?v=20261015-owner-normal1/);
+  assert.match(sw,/app-v2\.js\?v=20261015-owner-normal1/);
+  assert.match(sw,/gsmart-shell-v58/);
 });
 
 test("An unrelated archived record does not automatically count as Sosialisasi in reports",()=>{
