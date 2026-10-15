@@ -21,6 +21,7 @@ const code=[
   "function activeShippingRows(b){const archived=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));return b.shipping.filter(x=>!archived.has(x.case_id))}",
   part("function wibDateKey(","function buildSmartActivities("),
   part("function etleViolationCategory(","function analytics(b){"),
+  part("function reportPeriodOverview(b){","function reportSnapshot(b){"),
   part("function reportSnapshot(b){","function reportPage(b){"),
   "({state,etleViolationCategory,analyticsProcessCases,reportSnapshot,reportText})"
 ].join("\n");
@@ -86,10 +87,12 @@ test("626-case sample produces 340 Dokumen, 281 Daya Angkut, 5 combined and 50 s
   assert.equal(s.success,50);
   assert.equal(s.pending,576);
   const summary=reportText(s);
-  assert.match(summary,/Jenis Pelanggaran\n• Dokumen: 340\n• Daya Angkut: 281\n• Dokumen Daya Angkut: 5/);
+  assert.equal(s.periodOverview.violations,616);
+  assert.equal(s.periodOverview.unknownViolationDate,10);
+  assert.match(summary,/Jenis Pelanggaran \(tanggal kejadian\)\n• Dokumen: 330\n• Daya Angkut: 281\n• Dokumen Daya Angkut: 5/);
   assert.match(summary,/Berhasil Konfirmasi: 50 dari 626/);
   assert.match(summary,/Success Rate: 7\.99%/);
-  assert.ok(summary.indexOf("Jenis Pelanggaran")<summary.indexOf("Success Rate Konfirmasi"));
+  assert.ok(summary.indexOf("Jenis Pelanggaran")<summary.indexOf("KONFIRMASI PERKARA TERSEBUT"));
   assert.equal(summary.includes("Lainnya: "),false);
 });
 test("Report dates use WIB while first-history cohort source remains unchanged",()=>{
@@ -111,14 +114,14 @@ test("Unknown future categories and missing types are distinct",()=>{
   assert.equal(s.types.lainnya,1);
   assert.equal(s.types.tidakDiketahui,1);
   assert.match(reportText(s),/Lainnya: 1/);
-  assert.match(reportText(s),/Belum diketahui: 1/);
+  assert.match(reportText(s),/Jenis belum diketahui: 1/);
 });
 test("Original report copy/print and app shell caches remain connected",()=>{
   assert.match(source,/navigator\.clipboard\.writeText\(reportText\(s\)\)/);
   assert.match(source,/\$\("printReport"\)\.onclick=\(\)=>window\.print\(\)/);
-  assert.match(html,/app-v2\.js\?v=20261014-reportexcel1/);
-  assert.match(sw,/app-v2\.js\?v=20261014-reportexcel1/);
-  assert.match(sw,/gsmart-shell-v56/);
+  assert.match(html,/app-v2\.js\?v=20261015-reportperiod1/);
+  assert.match(sw,/app-v2\.js\?v=20261015-reportperiod1/);
+  assert.match(sw,/gsmart-shell-v57/);
 });
 
 test("An unrelated archived record does not automatically count as Sosialisasi in reports",()=>{

@@ -69,7 +69,7 @@ with zipfile.ZipFile(io.BytesIO(data)) as z:
     assert cell("A8").find("m:v",ns).text=="2"
     assert cell("C8").find("m:v",ns).text=="1"
     assert cell("G8").find("m:v",ns).text=="0.5"
-    assert cell("D30").find("m:f",ns).text=="IFERROR(D28/A8,0)"
+    assert cell("D31").find("m:f",ns).text=="IFERROR(D29/A8,0)"
     assert wb.find("m:calcPr",ns).attrib["fullCalcOnLoad"]=="1"
 print("OOXML_VALID: 7 sheets, CRC, XML, styles, relationships, numeric cells, formulas")
 `;
