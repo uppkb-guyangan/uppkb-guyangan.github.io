@@ -122,8 +122,8 @@ async function setFavoriteCase(caseId,active){
     return{active,remote:false}
   }
 }
-function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin,privateDisputeEvidence:isAdmin||isWasatpel}}
-const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges,privateDispute:rolePermissions().privateDisputeEvidence});
+function rolePermissions(){const normalizedRole=(state.profile?.role||"").trim().toUpperCase();const isAdmin=normalizedRole==="ADMIN";const isWasatpel=normalizedRole==="WASATPEL";return{etleReportVisible:true,etleReportAccessible:isAdmin||isWasatpel,copyPhone:isAdmin||isWasatpel,watchCases:isAdmin||isWasatpel,adminPrivileges:isAdmin,privateDisputeEvidence:isAdmin||isWasatpel,etleHubAccess:isAdmin||isWasatpel}}
+const perms=()=>({report:rolePermissions().etleReportAccessible,copyPhone:rolePermissions().copyPhone,watchCases:rolePermissions().watchCases,admin:rolePermissions().adminPrivileges,privateDispute:rolePermissions().privateDisputeEvidence,etleHub:rolePermissions().etleHubAccess});
 function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
 function syncTimeLabel(when=new Date()){
   return new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(when)+" WIB"
@@ -253,6 +253,7 @@ function showAuthBoot(message="Memulihkan sesi G-Smart...",{retry=false,logout=f
 function showLogin(){hideAuthBoot();$("appView").classList.add("hidden");$("loginView").classList.remove("hidden");resetPreviewAppearance()}
 function renderProfile(){const p=state.profile||{nama:"Preview Demo",role:"DEMO"};const photo=p.photoUrl?'<img class="profile-photo" src="'+esc(p.photoUrl)+'" alt="Foto profil">':'<div class="profile-fallback">'+esc((p.nama||"G")[0])+'</div>';$("profile").innerHTML='<div class="profile-card">'+photo+'<div class="profile"><b>'+esc(p.nama)+'</b><span>'+esc(p.role)+'</span></div></div>'}
 function openEtleHubLogin(){
+  if(!perms().etleHub||state.demo){toast("Login ETLE Hub hanya tersedia untuk Admin dan Wasatpel.");return}
   // Official authenticated ETLE Hub login in the browser. G-Smart does not
   // receive or persist ETLE passwords, session cookies, or backend tokens.
   window.open("https://etilang-djpd.kemenhub.go.id:9000/main/","_blank","noopener,noreferrer");
@@ -262,8 +263,9 @@ function renderNav(){
   const c=counts(b);
   const canWatch=perms().watchCases;
   const isAdmin=perms().admin;
+  const canEtleHub=perms().etleHub&&!state.demo;
   const badgeCounts={shipping:c.shipping,blanko:c.blanko,disputes:c.disputes,terminated:c.terminated,court:c.court,new:c.newData,history:c.transitions,archive:c.archive,favorites:canWatch?getFavoriteIds().length:null};
-  $("nav").innerHTML=menu.filter(([id])=>id!=="loginHistory"&&id!=="health"&&(id!=="management"||(isAdmin&&!state.demo))).map(([id,t])=>{
+  $("nav").innerHTML=menu.filter(([id])=>id!=="loginHistory"&&id!=="health"&&(id!=="management"||(isAdmin&&!state.demo))&&(id!=="etleHubLogin"||canEtleHub)).map(([id,t])=>{
     const n=badgeCounts[id];
     const badge=Number.isFinite(n)?'<span class="nav-badge" aria-label="'+n+' data">'+n+'</span>':(id==="favorites"&&!canWatch?'<span class="nav-lock" aria-label="Akses dibatasi">🔒</span>':"");
     const restricted=id==="favorites"&&!canWatch;
@@ -2150,7 +2152,7 @@ function renderDetail(d){
   disposeStoppedVehiclePhoto();
   const p=perms();
   const c=d.case;
-  const etleHubUrl=etleHubBackendDetailUrl(c);
+  const etleHubUrl=p.etleHub&&!state.demo?etleHubBackendDetailUrl(c):null;
   const phone=d.offender?.no_telp;
   const canWhatsApp=p.admin&&state.detailSource==="BLANKO";
   const phoneAction=p.copyPhone&&phone
@@ -2266,7 +2268,7 @@ function renderDetail(d){
   };
     if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
-  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);if($("etleHubBackendBtn"))$("etleHubBackendBtn").onclick=()=>{const url=etleHubBackendDetailUrl(c);if(!url){toast("Violation ID belum tersedia");return}window.open(url,"_blank","noopener,noreferrer")};
+  if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);if($("etleHubBackendBtn"))$("etleHubBackendBtn").onclick=()=>{if(!perms().etleHub||state.demo){toast("Akses ETLE Hub hanya untuk Admin dan Wasatpel.");return}const url=etleHubBackendDetailUrl(c);if(!url){toast("Violation ID belum tersedia");return}window.open(url,"_blank","noopener,noreferrer")};
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
   if(!mainPhoto&&!state.demo&&d.terminated){

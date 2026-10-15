@@ -7,17 +7,23 @@ const src=readFileSync(new URL("../app-v2.js",import.meta.url),"utf8");
 const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const sw=readFileSync(new URL("../sw.js",import.meta.url),"utf8");
 
-function loginModule(){
+function loginModule({role="ADMIN",demo=false}={}){
+  const roleStart=src.indexOf("function rolePermissions(){");
+  const roleEnd=src.indexOf("function toast(msg){",roleStart);
   const start=src.indexOf("function openEtleHubLogin(){");
   const end=src.indexOf("function renderNav(){",start);
-  assert.ok(start>=0&&end>start,"Isolated ETLE Hub login action exists");
-  const calls=[];
-  const {openEtleHubLogin}=runInNewContext(
-    src.slice(start,end)+"\n({openEtleHubLogin})",
-    {window:{open:(...args)=>calls.push(args)}}
+  assert.ok(roleStart>=0&&roleEnd>roleStart&&start>=0&&end>start,"Role and login helpers exist");
+  const calls=[],warnings=[];
+  const state={profile:{role},demo};
+  const {openEtleHubLogin,perms,rolePermissions}=runInNewContext(
+    src.slice(roleStart,roleEnd)+
+    src.slice(start,end)+
+    "\n({openEtleHubLogin,perms,rolePermissions})",
+    {state,window:{open:(...args)=>calls.push(args)},toast:(s)=>warnings.push(s)}
   );
-  return {openEtleHubLogin,calls};
+  return {openEtleHubLogin,calls,warnings,perms,rolePermissions};
 }
+
 test("Sidebar includes one non-invasive Login ETLE Hub entry",()=>{
   assert.match(src,/\["report","Laporan ETLE"\],\["etleHubLogin","Login ETLE Hub"\]/);
   assert.match(src,/etleHubLogin:"↗"/);
@@ -48,7 +54,45 @@ test("No password/session management is added to G-Smart",()=>{
   assert.match(src,/id="etleHubBackendBtn"/);
 });
 test("PWA cache updated and login available on mobile and desktop",()=>{
-  assert.match(html,/app-v2\.js\?v=20261015-etle-login1/);
-  assert.match(sw,/app-v2\.js\?v=20261015-etle-login1/);
-  assert.match(sw,/gsmart-shell-v61/);
+  assert.match(html,/app-v2\.js\?v=20261015-etlehub-roles1/);
+  assert.match(sw,/app-v2\.js\?v=20261015-etlehub-roles1/);
+  assert.match(sw,/gsmart-shell-v62/);
+});
+
+
+test("ETLE access permission is assigned only to active ADMIN and WASATPEL",()=>{
+  for(const role of ["ADMIN","WASATPEL"," admin "," wasatpel "]){
+    const ctx=loginModule({role});
+    assert.equal(ctx.perms().etleHub,true,role);
+    ctx.openEtleHubLogin();
+    assert.equal(ctx.calls.length,1,role);
+  }
+  for(const role of ["OPERATOR","PETUGAS","VERIFIKATOR","VIEWER","USER","KASATPEL","",null,"ADMINISTRATOR"]){
+    const ctx=loginModule({role});
+    assert.equal(ctx.perms().etleHub,false,String(role));
+    ctx.openEtleHubLogin();
+    assert.equal(ctx.calls.length,0,String(role));
+    assert.equal(ctx.warnings.length,1,String(role));
+  }
+  const preview=loginModule({role:"ADMIN",demo:true});
+  assert.equal(preview.perms().etleHub,true);
+  preview.openEtleHubLogin();
+  assert.equal(preview.calls.length,0);
+});
+
+test("Sidebar hides ETLE Hub Login for unauthorized roles and demo",()=>{
+  const from=src.indexOf("function renderNav(){");
+  const to=src.indexOf("function buildMonthOptions(){",from);
+  const nav=src.slice(from,to);
+  assert.match(nav,/const canEtleHub=perms\(\)\.etleHub&&!state\.demo/);
+  assert.match(nav,/id!=="etleHubLogin"\|\|canEtleHub/);
+  assert.match(nav,/if\(b\.dataset\.id==="etleHubLogin"\)\{openEtleHubLogin\(\);return\}/);
+});
+
+test("Detail Perkara renders and opens backend only for permitted role",()=>{
+  assert.match(src,/const etleHubUrl=p\.etleHub&&!state\.demo\?etleHubBackendDetailUrl\(c\):null/);
+  assert.match(src,/etleHubUrl\?'<button class="detail-confirm-btn secondary" id="etleHubBackendBtn"/);
+  assert.match(src,/if\(\$\("etleHubBackendBtn"\)\)\$\("etleHubBackendBtn"\)\.onclick=\(\)=>\{if\(!perms\(\)\.etleHub\|\|state\.demo\)/);
+  assert.match(src,/id="confirmEtleBtn" type="button">Buka Konfirmasi ↗/);
+  assert.match(src,/id="qrConfirmBtn" type="button">▦ QR Konfirmasi/);
 });
