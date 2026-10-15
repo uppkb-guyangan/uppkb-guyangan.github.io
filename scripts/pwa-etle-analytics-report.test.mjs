@@ -21,6 +21,7 @@ const code=[
   "function activeShippingRows(b){const archived=new Set(b.cases.filter(x=>x.is_archived).map(x=>x.case_id));return b.shipping.filter(x=>!archived.has(x.case_id))}",
   part("function wibDateKey(","function buildSmartActivities("),
   part("function etleViolationCategory(","function analytics(b){"),
+  part("function reportPeriodOverview(b){","function reportSnapshot(b){"),
   part("function reportSnapshot(b){","function reportPage(b){"),
   "({state,etleViolationCategory,analyticsProcessCases,reportSnapshot,reportText})"
 ].join("\n");
@@ -86,10 +87,12 @@ test("626-case sample produces 340 Dokumen, 281 Daya Angkut, 5 combined and 50 s
   assert.equal(s.success,50);
   assert.equal(s.pending,576);
   const summary=reportText(s);
-  assert.match(summary,/Jenis Pelanggaran\n• Dokumen: 340\n• Daya Angkut: 281\n• Dokumen Daya Angkut: 5/);
+  assert.equal(s.periodOverview.violations,616);
+  assert.equal(s.periodOverview.unknownViolationDate,10);
+  assert.match(summary,/Jenis Pelanggaran \(tanggal kejadian\)\n• Dokumen: 330\n• Daya Angkut: 281\n• Dokumen Daya Angkut: 5/);
   assert.match(summary,/Berhasil Konfirmasi: 50 dari 626/);
   assert.match(summary,/Success Rate: 7\.99%/);
-  assert.ok(summary.indexOf("Jenis Pelanggaran")<summary.indexOf("Success Rate Konfirmasi"));
+  assert.ok(summary.indexOf("Jenis Pelanggaran")<summary.indexOf("KONFIRMASI PERKARA TERSEBUT"));
   assert.equal(summary.includes("Lainnya: "),false);
 });
 test("Report dates use WIB while first-history cohort source remains unchanged",()=>{
@@ -111,14 +114,14 @@ test("Unknown future categories and missing types are distinct",()=>{
   assert.equal(s.types.lainnya,1);
   assert.equal(s.types.tidakDiketahui,1);
   assert.match(reportText(s),/Lainnya: 1/);
-  assert.match(reportText(s),/Belum diketahui: 1/);
+  assert.match(reportText(s),/Jenis belum diketahui: 1/);
 });
 test("Original report copy/print and app shell caches remain connected",()=>{
   assert.match(source,/navigator\.clipboard\.writeText\(reportText\(s\)\)/);
   assert.match(source,/\$\("printReport"\)\.onclick=\(\)=>window\.print\(\)/);
-  assert.match(html,/app-v2\.js\?v=20261014-reportexcel1/);
-  assert.match(sw,/app-v2\.js\?v=20261014-reportexcel1/);
-  assert.match(sw,/gsmart-shell-v56/);
+  assert.match(html,/app-v2\.js\?v=20261015-reportperiod1/);
+  assert.match(sw,/app-v2\.js\?v=20261015-reportperiod1/);
+  assert.match(sw,/gsmart-shell-v57/);
 });
 
 test("An unrelated archived record does not automatically count as Sosialisasi in reports",()=>{
@@ -130,4 +133,61 @@ test("An unrelated archived record does not automatically count as Sosialisasi i
 
 test("History pagination uses a stable tie-breaker across 1000-row page boundaries",()=>{
   assert.match(source,/dashboardQ\("gsmart_case_history",\{order:"event_time\.desc\.nullslast,history_id\.desc"\}\)/);
+});
+
+
+test("September violations processed in October remain September events but October workloads",()=>{
+  const cases=[
+    makeCase("s1","DOKUMEN",{tanggal_pelanggaran:"2026-09-30T14:00:00Z",first_seen_at:"2026-10-03T12:00:00Z"}),
+    makeCase("o1","DAYA ANGKUT",{tanggal_pelanggaran:"2026-10-04T06:00:00Z",first_seen_at:"2026-10-05T10:00:00Z"}),
+    makeCase("s2","DOKUMEN",{tanggal_pelanggaran:"2026-09-18T06:00:00Z",first_seen_at:"2026-09-20T06:00:00Z",no_blanko:"BL-01",tanggal_blanko:"2026-10-06"})
+  ];
+  const b={
+    cases,
+    shipping:[
+      {case_id:"s1",printed_date:"2026-10-05"},{case_id:"o1",printed_date:"2026-10-06"},
+      {case_id:"s2",printed_date:"2026-09-25"}
+    ],
+    disputes:[{case_id:"s1",confirmation_date:"2026-10-08"}],
+    terminated:[],courts:[{case_id:"s2",tanggal_sidang:"2026-11-02"}],
+    histories:[
+      {case_id:"s1",event_time:"2026-10-03T12:00:00Z"},
+      {case_id:"o1",event_time:"2026-10-05T10:00:00Z"},
+      {case_id:"s2",event_time:"2026-09-20T06:00:00Z"}
+    ]
+  };
+  state.month="2026-10";
+  const s=reportSnapshot(b),p=s.periodOverview;
+  assert.equal(p.violations,1,"Only the October incident counts as an October violation");
+  assert.equal(p.types.dayaAngkut,1);
+  assert.equal(p.types.dokumen,0);
+  assert.equal(p.process.shipping,2,"October letters include September incidents");
+  assert.equal(p.process.blanko,1,"October blanko for September cohort must be counted as workload");
+  assert.equal(p.process.disputes,1);
+  assert.equal(p.process.court,0);
+  assert.equal(s.total,2,"Cohort remains based on first history, not incident date");
+  assert.equal(s.success,0,"The October cohort is not confirmed by September cohort's blanko");
+  assert.deepEqual(Array.from(p.shippingOrigins,x=>[x.month,x.count]),[["2026-09",1],["2026-10",1]]);
+  const text=reportText(s);
+  assert.match(text,/Pelanggaran Terjadi: 1/);
+  assert.match(text,/Pengiriman Surat Dicetak: 2/);
+  assert.match(text,/2026-09: 1/);
+  assert.match(text,/2026-10: 1/);
+  assert.match(text,/Perkara Mulai Tercatat: 2/);
+  state.month="2026-09";
+  assert.equal(reportSnapshot(b).periodOverview.violations,2);
+  assert.equal(reportSnapshot(b).periodOverview.process.shipping,1);
+  assert.equal(reportSnapshot(b).total,1);
+  state.month=null;
+});
+test("UTC crossing midnight is grouped into the Jakarta-local violation month",()=>{
+  const c=makeCase("cross","DAYA ANGKUT",{tanggal_pelanggaran:"2026-09-30T18:45:00Z"});
+  const b={cases:[c],shipping:[{case_id:"cross",printed_date:"2026-10-01"}],disputes:[],
+    terminated:[],courts:[],histories:[{case_id:"cross",event_time:"2026-09-30T18:45:00Z"}]};
+  state.month="2026-09";
+  assert.equal(reportSnapshot(b).periodOverview.violations,0);
+  state.month="2026-10";
+  assert.equal(reportSnapshot(b).periodOverview.violations,1);
+  assert.equal(reportSnapshot(b).periodOverview.process.shipping,1);
+  state.month=null;
 });

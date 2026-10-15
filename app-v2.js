@@ -1587,6 +1587,45 @@ function runAssistantQuery(question){
   },120)
 }
 
+
+function reportPeriodOverview(b){
+  // Gunakan WIB untuk bulan kejadian dan bulan tiap tahapan, tanpa mengubah data.
+  const sameMonth=v=>Boolean(v)&&(!state.month||wibDateKey(v).slice(0,7)===state.month);
+  const violations=b.cases.filter(c=>sameMonth(c.tanggal_pelanggaran));
+  const types={dokumen:0,dayaAngkut:0,dokumenDayaAngkut:0,lainnya:0,tidakDiketahui:0};
+  violations.forEach(c=>{
+    const t=etleViolationCategory(c);
+    if(t==="DOKUMEN")types.dokumen++;
+    else if(t==="DAYA ANGKUT")types.dayaAngkut++;
+    else if(t==="DOKUMEN DAYA ANGKUT")types.dokumenDayaAngkut++;
+    else if(t==="LAINNYA")types.lainnya++;
+    else types.tidakDiketahui++;
+  });
+  const shipping=activeShippingRows(b).filter(x=>sameMonth(x.printed_date));
+  const process={
+    shipping:shipping.length,
+    blanko:b.cases.filter(x=>x.no_blanko&&sameMonth(x.tanggal_blanko)).length,
+    disputes:b.disputes.filter(x=>sameMonth(x.confirmation_date)).length,
+    socialization:b.cases.filter(x=>x.is_archived&&(!x.archive_reason||norm(x.archive_reason)==="konfirmasi daya angkut sosialisasi")&&sameMonth(x.archived_at||x.tanggal_pelanggaran)).length,
+    terminated:b.terminated.filter(x=>sameMonth(x.terminated_at)).length,
+    court:b.courts.filter(x=>sameMonth(x.tanggal_sidang)).length
+  };
+  const byId=new Map(b.cases.map(c=>[String(c.case_id),c]));
+  const byRef=new Map(b.cases.filter(c=>c.ref_number).map(c=>[norm(c.ref_number),c]));
+  const origins=new Map();
+  shipping.forEach(x=>{
+    const c=byId.get(String(x.case_id))||byRef.get(norm(x.ref_number));
+    const date=c?.tanggal_pelanggaran||x.tanggal_pelanggaran;
+    const key=date?wibDateKey(date).slice(0,7):"tanpa tanggal";
+    origins.set(key,(origins.get(key)||0)+1);
+  });
+  return {
+    violations:violations.length,
+    unknownViolationDate:!state.month?b.cases.filter(c=>!c.tanggal_pelanggaran).length:0,
+    types,process,
+    shippingOrigins:[...origins].map(([month,count])=>({month,count})).sort((a,b)=>b.count-a.count||a.month.localeCompare(b.month))
+  };
+}
 function reportSnapshot(b){
   const first={};
   b.histories.forEach(h=>{
@@ -1621,31 +1660,70 @@ function reportSnapshot(b){
     socialization:ids.filter(x=>socialization.has(x)).length,
     shipping:ids.filter(x=>shipping.has(x)).length,
     court:ids.filter(x=>court.has(x)).length,
-    success:success.length,pending:ids.length-success.length,types
+    success:success.length,pending:ids.length-success.length,types,periodOverview:reportPeriodOverview(b)
   };
 }
 function reportText(s){
+  const p=s.periodOverview;
   const rate=s.total?s.success*100/s.total:0;
   const pending=s.total?s.pending*100/s.total:0;
+  const sources=p.shippingOrigins.map(x=>"• "+(x.month==="tanpa tanggal"?"Tanpa tanggal pelanggaran":monthName(x.month))+": "+x.count).join("\n");
   return "LAPORAN ETLE UPPKB GUYANGAN\nPeriode: "+monthName(state.month)+
-    "\n\nRingkasan ETLE\n• Pelanggaran Diproses: "+s.total+
-    "\n• Pengiriman Surat: "+s.shipping+
-    "\n• Blanko Tilang: "+s.blanko+
-    "\n• Tersanggah: "+s.disputes+
-    "\n• Konfirmasi Daya Angkut Sosialisasi: "+s.socialization+
-    "\n• Dihentikan: "+s.terminated+
-    "\n• Persidangan: "+s.court+
-    "\n\nJenis Pelanggaran\n• Dokumen: "+s.types.dokumen+
-    "\n• Daya Angkut: "+s.types.dayaAngkut+
-    "\n• Dokumen Daya Angkut: "+s.types.dokumenDayaAngkut+
-    (s.types.lainnya?"\n• Lainnya: "+s.types.lainnya:"")+
-    (s.types.tidakDiketahui?"\n• Belum diketahui: "+s.types.tidakDiketahui:"")+
-    "\n\nSuccess Rate Konfirmasi Pelanggaran\n• Berhasil Konfirmasi: "+s.success+" dari "+s.total+" pelanggaran"+
+    "\n\nREKAP PELANGGARAN (berdasarkan tanggal kejadian)"+
+    "\n• Pelanggaran Terjadi: "+p.violations+
+    "\n\nJenis Pelanggaran (tanggal kejadian)"+
+    "\n• Dokumen: "+p.types.dokumen+
+    "\n• Daya Angkut: "+p.types.dayaAngkut+
+    "\n• Dokumen Daya Angkut: "+p.types.dokumenDayaAngkut+
+    (p.types.lainnya?"\n• Lainnya: "+p.types.lainnya:"")+
+    (p.types.tidakDiketahui?"\n• Jenis belum diketahui: "+p.types.tidakDiketahui:"")+
+    (p.unknownViolationDate?"\n• Perkara tanpa tanggal kejadian (di luar hitungan di atas): "+p.unknownViolationDate:"")+
+    "\n\nREKAP PENANGANAN ETLE (berdasarkan tanggal setiap proses)"+
+    "\n• Pengiriman Surat Dicetak: "+p.process.shipping+
+    "\n• Blanko Tilang Terbit: "+p.process.blanko+
+    "\n• Tersanggah (riwayat pengajuan): "+p.process.disputes+
+    "\n• Konfirmasi Daya Angkut Sosialisasi: "+p.process.socialization+
+    "\n• Dihentikan: "+p.process.terminated+
+    "\n• Jadwal Persidangan: "+p.process.court+
+    "\n\nAsal Tanggal Pelanggaran pada Surat yang Dicetak"+
+    "\n"+(sources||"• Tidak ada surat dicetak pada periode ini.")+
+    "\n\nPERKARA MULAI TERCATAT (berdasarkan riwayat proses pertama)"+
+    "\n• Perkara Mulai Tercatat: "+s.total+
+    "\n\nKONFIRMASI PERKARA TERSEBUT (status saat ini)"+
+    "\n• Berhasil Konfirmasi: "+s.success+" dari "+s.total+" perkara mulai tercatat"+
     "\n• Success Rate: "+rate.toFixed(2)+"%"+
-    "\n• Belum Konfirmasi: "+s.pending+" pelanggaran ("+pending.toFixed(2)+"%)"+
-    "\n\nSumber: G-SMART UPPKB Guyangan";
+    "\n• Belum Konfirmasi: "+s.pending+" perkara ("+pending.toFixed(2)+"%)"+
+    "\n\nCatatan: tanggal pelanggaran, tanggal proses, dan riwayat awal berbeda basis; angka antarbagian tidak dijumlahkan."+
+    "\nSumber: G-SMART UPPKB Guyangan";
 }
-function reportPage(b){const s=reportSnapshot(b);$("content").innerHTML='<div class="cards"><div class="card"><div class="metric-label">Total Pelanggaran</div><div class="metric-value">'+s.total+'</div></div><div class="card"><div class="metric-label">Berhasil Konfirmasi</div><div class="metric-value">'+s.success+'</div></div><div class="card"><div class="metric-label">Belum Konfirmasi</div><div class="metric-value">'+s.pending+'</div></div><div class="card"><div class="metric-label">Success Rate</div><div class="metric-value">'+(s.total?s.success*100/s.total:0).toFixed(1)+'%</div></div></div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row"><button id="copyReport" class="action-btn">Salin Ringkasan</button><button id="printReport" class="action-btn primary">Cetak / PDF</button><button id="exportExcel" type="button" class="action-btn">⬇ Export Excel</button></div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';$("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};$("printReport").onclick=()=>window.print();$("exportExcel").onclick=async()=>{const button=$("exportExcel");if(button.disabled)return;button.disabled=true;const original=button.textContent;button.textContent="Menyiapkan Excel...";try{const {downloadEtleExcel}=await import("./gsmart-report-excel.mjs?v=20261014-reportexcel1");downloadEtleExcel({bundle:b,summary:s,month:state.month,periodLabel:monthName(state.month),classify:etleViolationCategory,shippingRows:activeShippingRows(b),includePayment:perms().copyPhone,updatedAt:state.lastDataLoadedAt||new Date()});toast("Laporan Excel berhasil disiapkan")}catch(error){console.error("G-Smart: export Excel gagal",error);toast("Export Excel gagal. Coba lagi.")}finally{button.disabled=false;button.textContent=original}}}
+function reportPage(b){
+  const s=reportSnapshot(b),p=s.periodOverview;
+  const card=(name,value,note)=>'<div class="card"><div class="metric-label">'+esc(name)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></div>';
+  $("content").innerHTML='<div class="cards">'+
+    card("Pelanggaran Terjadi",p.violations,"Berdasarkan tanggal kejadian")+
+    card("Surat Dicetak",p.process.shipping,"Berdasarkan tanggal cetak")+
+    card("Perkara Mulai Tercatat",s.total,"Berdasarkan riwayat proses pertama")+
+    card("Success Rate",(s.total?s.success*100/s.total:0).toFixed(1)+"%","Konfirmasi "+s.success+" dari "+s.total+" perkara tercatat")+
+    '</div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row">'+
+    '<button id="copyReport" class="action-btn">Salin Ringkasan</button>'+
+    '<button id="printReport" class="action-btn primary">Cetak / PDF</button>'+
+    '<button id="exportExcel" type="button" class="action-btn">⬇ Export Excel</button>'+
+    '</div></div><div class="report-summary">'+esc(reportText(s))+'</div></div>';
+  $("copyReport").onclick=async()=>{await navigator.clipboard.writeText(reportText(s));toast("Ringkasan laporan disalin")};
+  $("printReport").onclick=()=>window.print();
+  $("exportExcel").onclick=async()=>{
+    const button=$("exportExcel");if(button.disabled)return;
+    button.disabled=true;const original=button.textContent;button.textContent="Menyiapkan Excel...";
+    try{
+      const {downloadEtleExcel}=await import("./gsmart-report-excel.mjs?v=20261015-reportperiod1");
+      downloadEtleExcel({bundle:b,summary:s,month:state.month,periodLabel:monthName(state.month),
+        classify:etleViolationCategory,shippingRows:activeShippingRows(b),
+        includePayment:perms().copyPhone,updatedAt:state.lastDataLoadedAt||new Date()});
+      toast("Laporan Excel berhasil disiapkan");
+    }catch(err){console.error("G-Smart: export Excel gagal",err);toast("Export Excel gagal. Coba lagi.")}
+    finally{button.disabled=false;button.textContent=original}
+  };
+}
 
 function loginAuditDeviceMeta(){
   const ua=navigator.userAgent||"";

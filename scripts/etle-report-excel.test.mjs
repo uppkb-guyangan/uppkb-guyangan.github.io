@@ -58,9 +58,9 @@ test("Excel workbook has all seven approved sheets and required OOXML parts",()=
 });
 test("Summary reuses existing G-Smart snapshot with formulas and no new status logic",()=>{
   const ws=entries(buildEtleExcel(args)).get("xl/worksheets/sheet1.xml");
-  for(const phrase of ["TOTAL PERKARA","BERHASIL KONFIRMASI","BELUM KONFIRMASI","SUCCESS RATE","JENIS PELANGGARAN","Dokumen Daya Angkut","Tersanggah (Riwayat)"])assert.ok(ws.includes(phrase));
-  assert.match(ws,/<f>SUM\(D20:D24\)<\/f>/);
-  assert.match(ws,/<f>IFERROR\(D28\/A8,0\)<\/f>/);
+  for(const phrase of ["PERKARA MULAI TERCATAT","BERHASIL KONFIRMASI","BELUM KONFIRMASI","SUCCESS RATE","JENIS PELANGGARAN","Dokumen Daya Angkut","Tersanggah (Riwayat Pengajuan)"])assert.ok(ws.includes(phrase));
+  assert.match(ws,/<f>SUM\(D22:D26\)<\/f>/);
+  assert.match(ws,/<f>IFERROR\(D31\/A8,0\)<\/f>/);
   assert.ok(ws.includes('<c r="A8" s="13"><v>3</v></c>'));
   assert.ok(ws.includes('<c r="C8" s="13"><v>2</v></c>'));
 });
@@ -118,8 +118,8 @@ test("Export uses browser-only data already loaded; it has no network dependenci
   assert.ok(app.includes('id="exportExcel"'));
   assert.ok(app.includes("shippingRows:activeShippingRows(b)"));
   assert.ok(app.includes("includePayment:perms().copyPhone"));
-  assert.ok(app.includes('import("./gsmart-report-excel.mjs?v=20261014-reportexcel1")'));
-  assert.ok(html.includes("app-v2.js?v=20261014-reportexcel1"));
-  assert.ok(sw.includes("gsmart-shell-v56"));
-  assert.ok(sw.includes("gsmart-report-excel.mjs?v=20261014-reportexcel1"));
+  assert.ok(app.includes('import("./gsmart-report-excel.mjs?v=20261015-reportperiod1")'));
+  assert.ok(html.includes("app-v2.js?v=20261015-reportperiod1"));
+  assert.ok(sw.includes("gsmart-shell-v57"));
+  assert.ok(sw.includes("gsmart-report-excel.mjs?v=20261015-reportperiod1"));
 });

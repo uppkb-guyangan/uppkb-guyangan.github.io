@@ -83,49 +83,73 @@ function listSheet({title,period,updated,note,headers,rows,widths}){
     +'<autoFilter ref="A6:'+last+lastRow+'"/>'+pageSettings+'</worksheet>';
 }
 function summarySheet(report,period,updated){
-  const cat=report.types||{};
-  const info=[
-    ["Pelanggaran Diproses",report.total],
-    ["Pengiriman Surat",report.shipping],
-    ["Blanko Tilang",report.blanko],
-    ["Tersanggah (Riwayat)",report.disputes],
-    ["Konfirmasi Daya Angkut Sosialisasi",report.socialization],
-    ["Dihentikan",report.terminated],
-    ["Persidangan",report.court],
+  const view=report.periodOverview||{
+    violations:report.total,types:report.types||{},unknownViolationDate:0,
+    process:{shipping:report.shipping,blanko:report.blanko,disputes:report.disputes,
+      socialization:report.socialization,terminated:report.terminated,court:report.court},
+    shippingOrigins:[]
+  };
+  const t=view.types||{};
+  const stages=[
+    ["Surat Dicetak",view.process.shipping],
+    ["Blanko Tilang Terbit",view.process.blanko],
+    ["Tersanggah (Riwayat Pengajuan)",view.process.disputes],
+    ["Konfirmasi Daya Angkut Sosialisasi",view.process.socialization],
+    ["Dihentikan",view.process.terminated],
+    ["Jadwal Persidangan",view.process.court]
   ];
-  const typeRows=[
-    ["Dokumen",cat.dokumen||0],["Daya Angkut",cat.dayaAngkut||0],
-    ["Dokumen Daya Angkut",cat.dokumenDayaAngkut||0],["Lainnya",cat.lainnya||0],
-    ["Belum diketahui",cat.tidakDiketahui||0],
+  const kinds=[
+    ["Dokumen",t.dokumen||0],["Daya Angkut",t.dayaAngkut||0],
+    ["Dokumen Daya Angkut",t.dokumenDayaAngkut||0],
+    ["Lainnya",t.lainnya||0],["Jenis belum diketahui",t.tidakDiketahui||0]
   ];
   const rows=[
     row(1,[textCell("A1","G-SMART  |  LAPORAN OPERASIONAL ETLE",1)],33),
-    row(3,[textCell("A3","UPPKB GUYANGAN  •  RINGKASAN PERKARA",2)]),
+    row(3,[textCell("A3","UPPKB GUYANGAN  •  REKAPITULASI ETLE",2)]),
     row(5,[textCell("A5","Periode: "+period+"  |  Data dimuat: "+updated,2)],28),
-    row(7,[textCell("A7","TOTAL PERKARA",3),textCell("C7","BERHASIL KONFIRMASI",3),
-      textCell("E7","BELUM KONFIRMASI",3),textCell("G7","SUCCESS RATE",3)],27),
+    row(7,[textCell("A7","PERKARA MULAI TERCATAT",3),textCell("C7","BERHASIL KONFIRMASI",3),
+      textCell("E7","BELUM KONFIRMASI",3),textCell("G7","SUCCESS RATE KOHORT",3)],27),
     row(8,[numberCell("A8",report.total,13),numberCell("C8",report.success,13),
       numberCell("E8",report.pending,13),numberCell("G8",report.total?report.success/report.total:0,8)],34),
-    row(10,[textCell("A10","RINGKASAN ETLE",9)],28),
+    row(10,[textCell("A10","REKAP PELANGGARAN • BERDASARKAN TANGGAL KEJADIAN",9)],28),
+    row(11,[textCell("A11","Pelanggaran Terjadi",4),numberCell("D11",view.violations)],24),
+    row(13,[textCell("A13","REKAP PENANGANAN • BERDASARKAN TANGGAL PROSES",9)],28)
   ];
-  info.forEach(([label,value],i)=>rows.push(row(11+i,[textCell("A"+(i+11),label,i%2?5:4),numberCell("D"+(i+11),value,i%2?7:6)],22)));
-  rows.push(row(19,[textCell("A19","JENIS PELANGGARAN",9)],28));
-  typeRows.forEach(([label,value],i)=>rows.push(row(20+i,[textCell("A"+(i+20),label,i%2?5:4),numberCell("D"+(i+20),value,i%2?7:6)],22)));
-  rows.push(row(25,[textCell("A25","TOTAL JENIS PELANGGARAN",9),formulaCell("D25","SUM(D20:D24)",13)],27));
-  rows.push(row(27,[textCell("A27","KONFIRMASI PELANGGARAN",9)],27));
-  rows.push(row(28,[textCell("A28","Berhasil Konfirmasi",4),numberCell("D28",report.success)]));
-  rows.push(row(29,[textCell("A29","Belum Konfirmasi",5),numberCell("D29",report.pending,7)]));
-  rows.push(row(30,[textCell("A30","Success Rate",4),formulaCell("D30","IFERROR(D28/A8,0)",8)]));
-  rows.push(row(32,[textCell("A32","CATATAN",9)],27));
-  rows.push(row(33,[textCell("A33","Ringkasan mengikuti perhitungan Laporan ETLE G-Smart pada periode terpilih.",12)],32));
-  rows.push(row(34,[textCell("A34","Sheet rincian memakai tanggal proses masing-masing; total antar-sheet tidak dijumlahkan.",12)],32));
-  rows.push(row(35,[textCell("A35","Tersanggah merupakan riwayat proses; perkara dapat berlanjut ke Blanko atau Dihentikan.",12)],32));
-  const merged=["A1:H2","A3:H3","A5:H5","A10:H10","A19:H19","A27:H27","A32:H32","A33:H33","A34:H34","A35:H35"];
+  stages.forEach(([label,value],i)=>rows.push(row(i+14,[textCell("A"+(i+14),label,i%2?5:4),
+    numberCell("D"+(i+14),value,i%2?7:6)],23)));
+  rows.push(row(21,[textCell("A21","JENIS PELANGGARAN • BERDASARKAN TANGGAL KEJADIAN",9)],28));
+  kinds.forEach(([label,value],i)=>rows.push(row(i+22,[textCell("A"+(i+22),label,i%2?5:4),
+    numberCell("D"+(i+22),value,i%2?7:6)],22)));
+  rows.push(row(27,[textCell("A27","TOTAL JENIS PELANGGARAN",9),formulaCell("D27","SUM(D22:D26)",13)],27));
+  rows.push(row(28,[textCell("A28","Perkara tanpa tanggal kejadian (khusus Semua Data)",4),
+    numberCell("D28",view.unknownViolationDate||0)],24));
+  rows.push(row(30,[textCell("A30","KONFIRMASI • KOHORT PERKARA MULAI TERCATAT",9)],27));
+  rows.push(row(31,[textCell("A31","Berhasil Konfirmasi",4),numberCell("D31",report.success)]));
+  rows.push(row(32,[textCell("A32","Belum Konfirmasi",5),numberCell("D32",report.pending,7)]));
+  rows.push(row(33,[textCell("A33","Success Rate",4),formulaCell("D33","IFERROR(D31/A8,0)",8)]));
+  rows.push(row(35,[textCell("A35","ASAL BULAN PELANGGARAN • SURAT DICETAK",9)],27));
+  const origins=view.shippingOrigins||[];
+  origins.forEach((x,i)=>{
+    const n=36+i;
+    rows.push(row(n,[textCell("A"+n,x.month==="tanpa tanggal"?"Tanpa tanggal":x.month,i%2?5:4),
+      numberCell("D"+n,x.count,i%2?7:6)],22));
+  });
+  if(!origins.length)rows.push(row(36,[textCell("A36","Tidak ada surat dicetak pada periode ini.",12)],24));
+  const noteAt=38+Math.max(0,origins.length-1);
+  rows.push(row(noteAt,[textCell("A"+noteAt,"CATATAN BASIS PERIODE",9)],27));
+  [
+    "Pelanggaran: tanggal kejadian. Penanganan: tanggal setiap tahapan proses ETLE.",
+    "Konfirmasi: status terkini dari perkara dengan riwayat proses pertama pada periode tersebut.",
+    "Daftar Perkara mengikuti riwayat pertama; sheet lainnya memakai tanggal proses.",
+    "Tersanggah tetap riwayat; satu perkara dapat tercatat dalam beberapa tahapan."
+  ].forEach((line,i)=>rows.push(row(noteAt+i+1,[textCell("A"+(noteAt+i+1),line,12)],30)));
+  const merges=["A1:H2","A3:H3","A5:H5","A10:H10","A13:H13","A21:H21","A30:H30","A35:H35",
+    ...Array.from({length:5},(_,i)=>"A"+(noteAt+i)+":H"+(noteAt+i))];
   return sheetHead+'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'
-    +'<dimension ref="A1:H35"/>'
-    +'<sheetViews><sheetView workbookViewId="0"/></sheetViews>'+widthTag([27,13,26,16,25,13,23,17])
+    +'<dimension ref="A1:H'+(noteAt+4)+'"/>'
+    +'<sheetViews><sheetView workbookViewId="0"/></sheetViews>'+widthTag([36,13,28,16,29,13,26,18])
     +'<sheetData>'+rows.join("")+'</sheetData>'
-    +'<mergeCells count="'+merged.length+'">'+merged.map(ref=>'<mergeCell ref="'+ref+'"/>').join("")+'</mergeCells>'
+    +'<mergeCells count="'+merges.length+'">'+merges.map(ref=>'<mergeCell ref="'+ref+'"/>').join("")+'</mergeCells>'
     +pageSettings+'</worksheet>';
 }
 function xlsxFiles(namedSheets){
@@ -216,7 +240,7 @@ export function buildEtleExcel({bundle,summary,month=null,periodLabel="Semua Dat
   const common="Sheet rincian mengikuti tanggal proses masing-masing; satu perkara dapat muncul di lebih dari satu sheet.";
   const named=[
     ["Ringkasan ETLE",summarySheet(summary,period,loaded)],
-    ["Daftar Perkara",listSheet({...ctx,title:"DAFTAR PERKARA",note:"Daftar perkara berdasarkan kelompok Ringkasan ETLE pada periode yang dipilih.",headers:["No","No. Registrasi","TNKB","Tanggal Pelanggaran","Jenis Pelanggaran","Pertama Tercatat","Status ETLE","No. Blanko","Tanggal Blanko","Tgl. Sosialisasi","Tgl. Dihentikan","Status Konfirmasi"],rows:detailRecords,widths:[7,29,19,21,26,20,23,22,19,20,20,23]})],
+    ["Daftar Perkara",listSheet({...ctx,title:"DAFTAR PERKARA",note:"Perkara dengan riwayat proses pertama di periode pilihan; tidak sama dengan pelanggaran yang terjadi pada periode tersebut.",headers:["No","No. Registrasi","TNKB","Tanggal Pelanggaran","Jenis Pelanggaran","Pertama Tercatat","Status ETLE","No. Blanko","Tanggal Blanko","Tgl. Sosialisasi","Tgl. Dihentikan","Status Konfirmasi"],rows:detailRecords,widths:[7,29,19,21,26,20,23,22,19,20,20,23]})],
     ["Pengiriman Surat",listSheet({...ctx,title:"PENGIRIMAN SURAT",note:common,headers:["No","Tanggal Cetak","No. Registrasi","TNKB","Jenis Pelanggaran","Resi JNE","Kurir","Status Pengiriman","Tanggal Diterima"],rows:shipping,widths:[7,19,29,18,26,25,16,25,20]})],
     ["Blanko Tilang",listSheet({...ctx,title:"BLANKO TILANG",note:common,headers:["No","Tanggal Terbit","No. Registrasi","TNKB","Jenis Pelanggaran","No. Blanko","Status Pembayaran","Status ETLE"],rows:blanko,widths:[7,21,29,18,26,23,25,25]})],
     ["Tersanggah",listSheet({...ctx,title:"TERSANGGAH",note:"Riwayat sanggahan tetap tercatat walaupun perkara kemudian menjadi Blanko atau Dihentikan.",headers:["No","Tanggal Sanggahan","No. Registrasi","TNKB","Jenis Pelanggaran","Alasan Sanggahan","Status Sekarang","Keterangan"],rows:disputes,widths:[7,21,29,18,26,48,23,43]})],
