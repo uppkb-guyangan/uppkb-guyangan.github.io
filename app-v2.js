@@ -49,10 +49,11 @@ function paymentStatusLabel(v){
   return v??"-";
 }
 function paymentIsPaid(v){
-  const code=String(v??"").trim();
-  if(code==="20")return false;
+  const raw=String(v??"").trim();
+  const code=raw.toLowerCase();
+  if(code==="20"||/^(belum bayar|belum terbayar|unpaid|not paid)$/.test(code))return false;
   if(code==="21")return true;
-  return /paid|terbayar|lunas|selesai/.test(String(v??"").trim().toLowerCase());
+  return /paid|terbayar|lunas|selesai/.test(code);
 }
 const ym=v=>{if(!v)return null;const m=String(v).match(/^(\d{4})-(\d{2})/);return m?m[1]+"-"+m[2]:null};
 const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new Intl.DateTimeFormat("id-ID",{month:"long",year:"numeric"}).format(new Date(Number(y),Number(m)-1,1))};
