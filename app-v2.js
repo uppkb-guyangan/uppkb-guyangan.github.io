@@ -977,7 +977,7 @@ function genericTable(page,rows){
   const defs={
     shipping:[["tnkb","TNKB"],["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["printed_date","Tgl Cetak"]],
     blanko:[["tnkb","TNKB"],["__manual_status","Status G-Smart"],["__manual_refund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tgl Blanko"],...(rolePermissions().copyPhone?[["__phone","No. Telepon"]]:[]),["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]],
-    disputes:[["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],...(state.disputeTab==="stopped"?[["terminated_at","Tgl Dihentikan"]]:[]),["reason","Alasan"]],
+    disputes:[["__dispute_tnkb","TNKB"],["violation_id","Violation ID"],["status","Status"],["confirmation_type","Jenis Konfirmasi"],["confirmation_date","Tgl Konfirmasi"],...(state.disputeTab==="stopped"?[["terminated_at","Tgl Dihentikan"]]:[]),["reason","Alasan"]],
     terminated:[["tnkb","TNKB"],["status","Status"],["reason","Alasan"],["officer_name","Petugas"],["terminated_at","Tanggal"]],
     court:[["__court_tnkb","TNKB"],["__manual_status","Status G-Smart"],["__manual_refund","Lebih Bayar / Pengembalian"],["violation_id","Violation ID"],["tanggal_sidang","Tgl Sidang"],["pengadilan","Pengadilan"],["status_sidang","Status"],["denda_putusan","Denda"]],
     new:[["tnkb","TNKB"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_pelanggaran","Pelanggaran"],["first_seen_at","Pertama Masuk"],["status_etle","Status ETLE"]],
@@ -1005,7 +1005,14 @@ function courtTnkb(row){
     (!row?.case_id?cases.find(c=>row?.violation_id&&String(c.violation_id)===String(row.violation_id)):null);
   return String(match?.tnkb||"-");
 }
+function disputeTnkb(row){
+  const cases=(state.bundle||demo).cases||[];
+  const direct=cases.find(c=>row?.case_id&&String(c.case_id)===String(row.case_id));
+  const byViolation=row?.violation_id!=null?cases.find(c=>norm(c.violation_id)===norm(row.violation_id)):null;
+  return String((direct||byViolation)?.tnkb||"-");
+}
 function cell(k,v,row=null){
+  if(k==="__dispute_tnkb")return '<b>'+esc(disputeTnkb(row))+'</b>';
   if(k==="__court_tnkb")return '<b>'+esc(courtTnkb(row))+'</b>';
   if(k==="__manual_status"||k==="__manual_refund")return blankoManualCell(k,row);
   if(k==="__phone"){
