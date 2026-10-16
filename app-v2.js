@@ -1720,6 +1720,34 @@ function reportText(s){
     "\n\nCatatan: tanggal pelanggaran, tanggal proses, dan riwayat awal berbeda basis; angka antarbagian tidak dijumlahkan."+
     "\nSumber: G-SMART UPPKB Guyangan";
 }
+function reportQualityHtml(p){
+  const rows=[
+    ["Dokumen",p.types.dokumen],
+    ["Daya Angkut",p.types.dayaAngkut],
+    ["Dokumen Daya Angkut",p.types.dokumenDayaAngkut],
+    ["Lainnya",p.types.lainnya],
+    ["Jenis belum diketahui",p.types.tidakDiketahui]
+  ];
+  const total=Number(p.violations)||0;
+  const categoryTotal=rows.reduce((sum,row)=>sum+(Number(row[1])||0),0);
+  const max=Math.max(1,...rows.map(row=>Number(row[1])||0));
+  const aligned=categoryTotal===total;
+  const unknownDates=Number(p.unknownViolationDate)||0;
+  return '<section class="report-quality panel" aria-labelledby="reportQualityTitle">'+
+    '<div class="report-quality-head"><div><h3 id="reportQualityTitle">Pemeriksaan Kualitas Data</h3>'+
+    '<p>Validasi ringkas sebelum laporan disalin, dicetak, atau diekspor.</p></div>'+
+    '<span class="report-quality-status '+(aligned?'is-ok':'is-review')+'">'+(aligned?'Rincian sesuai total':'Perlu pemeriksaan')+'</span></div>'+
+    '<div class="report-quality-grid"><div class="report-quality-breakdown">'+
+    rows.map(([label,value])=>'<div class="report-quality-row"><div><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>'+
+      '<div class="report-quality-track"><span style="width:'+Math.max(0,Math.min(100,(Number(value)||0)/max*100))+'%"></span></div></div>').join("")+
+    '</div><div class="report-quality-checks">'+
+      '<div><span>Total tanggal kejadian</span><b>'+esc(total)+'</b></div>'+
+      '<div><span>Total rincian kategori</span><b>'+esc(categoryTotal)+'</b></div>'+
+      '<div><span>Tanpa tanggal kejadian</span><b>'+esc(unknownDates)+'</b></div>'+
+      '<p>'+(aligned?'Jumlah kategori cocok dengan total pelanggaran bertanggal.': 'Selisih '+esc(Math.abs(total-categoryTotal))+' antara total dan rincian kategori; periksa klasifikasi sebelum publikasi.')+
+      (unknownDates?' Ada '+esc(unknownDates)+' perkara tanpa tanggal kejadian yang perlu ditinjau terpisah.':'')+'</p>'+
+    '</div></div></section>';
+}
 function reportPage(b){
   const s=reportSnapshot(b),p=s.periodOverview;
   const card=(name,value,note)=>'<div class="card"><div class="metric-label">'+esc(name)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></div>';
@@ -1728,7 +1756,7 @@ function reportPage(b){
     card("Surat Dicetak",p.process.shipping,"Berdasarkan tanggal cetak")+
     card("Perkara Mulai Tercatat",s.total,"Berdasarkan riwayat proses pertama")+
     card("Success Rate",(s.total?s.success*100/s.total:0).toFixed(1)+"%","Konfirmasi "+s.success+" dari "+s.total+" perkara tercatat")+
-    '</div><div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row">'+
+    '</div>'+reportQualityHtml(p)+'<div class="panel"><div class="title-row"><h3>Laporan ETLE</h3><div class="action-row">'+
     '<button id="copyReport" class="action-btn">Salin Ringkasan</button>'+
     '<button id="printReport" class="action-btn primary">Cetak / PDF</button>'+
     '<button id="exportExcel" type="button" class="action-btn">⬇ Export Excel</button>'+
@@ -2245,6 +2273,7 @@ function renderDetail(d){
       '</aside>'+
     '</div>';
 
+  bindTimelineControls();
   document.querySelectorAll(".detail-photo-thumb").forEach(btn=>btn.onclick=()=>{
     const main=$("detailMainPhoto");
     const src=btn.dataset.photo;
@@ -2303,7 +2332,51 @@ function overpaymentStatusOptions(currentValue){
 }
 function manualSection(d){const m=d.manual||{};if(!perms().admin)return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3>'+infoGrid(m,[["kategori_internal","Kategori"],["prioritas","Prioritas"],["status_lebih_bayar","Status Lebih Bayar"],["nominal_lebih_bayar","Nominal Lebih Bayar","money"],["status_pengembalian","Status Pengembalian"],["pic_name","PIC"],["catatan_ringkas","Catatan"]])+'<div class="action-row" style="margin-top:10px"><button class="action-btn" id="deniedManualEdit">🔒 Ubah Status G-SMART</button></div></section>';return'<section class="detail-section"><h3 class="section-heading">Status Manual G-Smart</h3><div class="form-grid"><label>Kategori<select id="manualCategory"><option>BELUM_DIPROSES</option><option>SUDAH_DIKONFIRMASI</option><option>SIAP_SIDANG</option><option>SELESAI</option><option value="LEBIH_BAYAR">LEBIH BAYAR</option></select></label><label>Prioritas<select id="manualPriority"><option>NORMAL</option><option>TINGGI</option><option>URGENT</option></select></label><label>Status Lebih Bayar<select id="overStatus">'+overpaymentStatusOptions(m.status_lebih_bayar)+'</select></label><label>Nominal Lebih Bayar<input id="overAmount" type="number" min="0" value="'+esc(m.nominal_lebih_bayar||"")+'"></label><label>Status Pengembalian<input id="refundStatus" value="'+esc(m.status_pengembalian||"")+'"></label><label class="full">Catatan<textarea id="manualNote" rows="3">'+esc(m.catatan_ringkas||"")+'</textarea></label><div class="full"><button id="saveManual" class="primary-btn">Simpan Status G-Smart</button></div></div></section>'}
 function notesSection(d){return'<section class="detail-section"><h3 class="section-heading">Catatan Petugas</h3><div class="form-grid"><label class="full">Tambah Catatan<textarea id="newNote" rows="2" placeholder="Tulis catatan petugas..."></textarea></label><div class="full"><button id="addNote" class="action-btn primary">Tambah Catatan</button></div></div><div class="timeline" style="margin-top:14px">'+(d.notes?.length?d.notes.map(n=>'<div class="timeline-item"><b>'+esc(n.created_by_name||"Petugas")+'</b><span>'+esc(n.note)+'</span><small>'+fmtDate(n.created_at)+'</small></div>').join(""):'<div class="empty">Belum ada catatan.</div>')+'</div></section>'}
-function timelineSection(rows){return'<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3><div class="timeline">'+(rows.length?rows.map(h=>'<div class="timeline-item"><b>'+esc(historyDisplayTitle(h))+'</b><span>'+esc(h.description||h.source||"")+'</span><small>'+fmtDate(h.event_time)+'</small></div>').join(""):'<div class="empty">Belum ada riwayat.</div>')+'</div></section>'}
+function timelineSection(rows){
+  const events=Array.isArray(rows)?rows:[];
+  return '<section class="detail-section"><h3 class="section-heading">Timeline Perkara</h3>'+
+    '<div class="timeline-toolbar">'+
+      '<label class="timeline-search-label" for="timelineSearch">Cari peristiwa</label>'+
+      '<input id="timelineSearch" class="timeline-search" type="search" placeholder="Cari status, catatan, atau tanggal..." autocomplete="off">'+
+      '<button id="timelineSort" class="action-btn timeline-sort" type="button" data-order="desc" aria-pressed="false">Terbaru dahulu</button>'+
+      '<span id="timelineCount" class="timeline-count" aria-live="polite">'+events.length+' peristiwa</span>'+
+    '</div>'+
+    '<div class="timeline timeline-enhanced" id="caseTimeline" aria-live="polite">'+
+      (events.length?events.map(h=>'<div class="timeline-item timeline-event" data-timeline-event data-event-time="'+esc(h.event_time||"")+'" data-event-search="'+esc([historyDisplayTitle(h),h.description||"",h.source||"",h.event_time||""].join(" "))+'">'+
+        '<span class="timeline-marker" aria-hidden="true"></span><div class="timeline-event-body">'+
+        '<b>'+esc(historyDisplayTitle(h))+'</b>'+
+        '<span>'+esc(h.description||h.source||"Keterangan tidak tersedia")+'</span>'+
+        '<div class="timeline-event-meta"><small>'+fmtDate(h.event_time)+'</small>'+
+        (h.source?'<small>Sumber: '+esc(h.source)+'</small>':'')+
+        '</div></div></div>').join(""):'<div class="empty timeline-empty">Belum ada riwayat perkara yang tersedia.</div>')+
+    '</div></section>'
+}
+function bindTimelineControls(){
+  const root=$("caseTimeline"),search=$("timelineSearch"),sort=$("timelineSort"),count=$("timelineCount");
+  if(!root||!search||!sort||!count)return;
+  const filter=()=>{
+    const q=norm(search.value||"");
+    let visible=0;
+    root.querySelectorAll("[data-timeline-event]").forEach(item=>{
+      const show=!q||norm(item.dataset.eventSearch||"").includes(q);
+      item.hidden=!show;if(show)visible++;
+    });
+    count.textContent=visible+" dari "+root.querySelectorAll("[data-timeline-event]").length+" peristiwa";
+  };
+  search.addEventListener("input",filter);
+  sort.addEventListener("click",()=>{
+    const next=sort.dataset.order==="desc"?"asc":"desc";
+    sort.dataset.order=next;
+    sort.setAttribute("aria-pressed",String(next==="asc"));
+    sort.textContent=next==="asc"?"Terlama dahulu":"Terbaru dahulu";
+    const items=[...root.querySelectorAll("[data-timeline-event]")];
+    items.sort((a,b)=>{
+      const av=Date.parse(a.dataset.eventTime||"")||0,bv=Date.parse(b.dataset.eventTime||"")||0;
+      return next==="asc"?av-bv:bv-av;
+    }).forEach(item=>root.appendChild(item));
+    filter();
+  });
+}
 function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onclick=()=>toast("User Anda tidak mempunyai kewenangan untuk mengubah Status G-SMART. Silakan hubungi Administrator.");if($("manualCategory"))$("manualCategory").value=d.manual?.kategori_internal||"BELUM_DIPROSES";if($("manualPriority"))$("manualPriority").value=d.manual?.prioritas||"NORMAL";if($("saveManual"))$("saveManual").onclick=async()=>{try{setSync("Menyimpan");await write("gsmart_case_status",{case_id:d.case.case_id,kategori_internal:$("manualCategory").value,prioritas:$("manualPriority").value,status_lebih_bayar:$("overStatus").value||null,nominal_lebih_bayar:$("overAmount").value?Number($("overAmount").value):null,status_pengembalian:$("refundStatus").value||null,catatan_ringkas:$("manualNote").value||null,pic_uid:state.profile.uid,pic_name:state.profile.nama,updated_by:state.profile.uid},{onConflict:"case_id"});blankoManualCache.set(String(d.case.case_id),{state:"ready",data:{kategori_internal:$("manualCategory").value,status_lebih_bayar:$("overStatus").value||null,status_pengembalian:$("refundStatus").value||null}});if(state.page==="blanko"||state.page==="court")refreshBlankoView?.();toast("Status G-Smart disimpan");await refreshDetail()}catch(e){toast(e.message)}finally{setSync("Siap")}};if($("addNote"))$("addNote").onclick=async()=>{const note=$("newNote").value.trim();if(!note)return;try{await write("gsmart_case_notes",{case_id:d.case.case_id,note,created_by:state.profile.uid,created_by_name:state.profile.nama});toast("Catatan ditambahkan");await refreshDetail()}catch(e){toast(e.message)}}}
 async function refreshDetail(){const id=state.detail.case.case_id;state.detail=await loadDetail(id);renderDetail(state.detail)}
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
