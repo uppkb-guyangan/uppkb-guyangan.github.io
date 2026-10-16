@@ -892,7 +892,7 @@ function processPage(page,rows){
   const blankoView=++blankoViewSequence;
   refreshBlankoView=null;
   let extra="";
-  if(page==="blanko"||page==="court")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>';
+  if(page==="blanko"||page==="court")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar / Pengembalian">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>'+(page==="blanko"?'<select id="blankoPaymentFilter" aria-label="Filter Status Bayar"><option value="">Semua Status Bayar</option><option value="unpaid">Belum Bayar</option><option value="paid">Sudah Terbayar</option></select>':"");
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
   const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
@@ -916,7 +916,7 @@ function processPage(page,rows){
     '<div class="panel">'+
       '<div class="title-row"><div><h3>'+pageTitle+'</h3>'+(focusNote?'<p class="history-focus-note">'+focusNote+'</p>':'')+'</div><div class="history-title-actions"><span class="badge" id="resultCount">'+rows.length+' data</span>'+focusAction+'</div></div>'+
       disputeTabs+
-      '<div class="toolbar table-toolbar sticky-table-toolbar">'+
+      '<div class="toolbar table-toolbar sticky-table-toolbar'+(page==="blanko"?" blanko-compact-toolbar":"")+'">'+
         '<div class="search-field-wrap"><span class="search-field-icon">⌕</span><input id="filter" placeholder="Cari TNKB, nomor, status, pemilik..."><button id="clearFilter" class="clear-filter-btn hidden" type="button" title="Hapus pencarian">✕</button></div>'+
         extra+
         '<button id="resetTableFilters" class="toolbar-reset-btn" type="button">Reset Filter</button>'+
@@ -929,6 +929,7 @@ function processPage(page,rows){
     const compactQuery=page==="history"?q.replace(/\s+/g,""):q;
     let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q)||(page==="court"&&courtTnkb(x).toLowerCase().includes(q))||((page==="blanko"||page==="court")&&["kategori_internal","status_lebih_bayar","status_pengembalian"].some(field=>blankoManualValue(x,field).toLowerCase().includes(q))));
     if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
+    if(page==="blanko"&&$("blankoPaymentFilter")?.value){const paid=$("blankoPaymentFilter").value==="paid";r=r.filter(x=>paymentIsPaid(x.status_bayar)===paid)}
     if(page==="blanko"||page==="court"){
       const loading=rows.some(x=>!blankoManualEntry(x));
       const error=rows.some(x=>blankoManualEntry(x)?.state==="error");
@@ -963,10 +964,11 @@ function processPage(page,rows){
       apply();
     };
     for(const id of ["blankoGsmartFilter","blankoOverFilter"])$(id).onchange=()=>{apply();synchronize()};
+    if($("blankoPaymentFilter"))$("blankoPaymentFilter").onchange=apply;
     refreshBlankoView=apply;
     synchronize();
   }
-  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";apply()};
+  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";if($("blankoPaymentFilter"))$("blankoPaymentFilter").value="";apply()};
   if($("showAllFocusedData"))$("showAllFocusedData").onclick=()=>openPage(page);
   bindDetailRows();
 }
