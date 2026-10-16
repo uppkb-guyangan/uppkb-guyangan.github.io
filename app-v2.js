@@ -55,6 +55,10 @@ function paymentIsPaid(v){
   if(code==="21")return true;
   return /paid|terbayar|lunas|selesai/.test(code);
 }
+function paymentIsUnpaid(v){
+  const code=String(v??"").trim().toLowerCase();
+  return code==="20"||/^(belum bayar|belum terbayar|unpaid|not paid)$/.test(code);
+}
 const ym=v=>{if(!v)return null;const m=String(v).match(/^(\d{4})-(\d{2})/);return m?m[1]+"-"+m[2]:null};
 const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new Intl.DateTimeFormat("id-ID",{month:"long",year:"numeric"}).format(new Date(Number(y),Number(m)-1,1))};
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
@@ -929,7 +933,7 @@ function processPage(page,rows){
     const compactQuery=page==="history"?q.replace(/\s+/g,""):q;
     let r=rows.filter(x=>!q||(page==="history"&&String(x.tnkb||"").toLowerCase().replace(/\s+/g,"").includes(compactQuery))||JSON.stringify(x).toLowerCase().includes(q)||(page==="court"&&courtTnkb(x).toLowerCase().includes(q))||((page==="blanko"||page==="court")&&["kategori_internal","status_lebih_bayar","status_pengembalian"].some(field=>blankoManualValue(x,field).toLowerCase().includes(q))));
     if(page==="shipping"&&$("statusFilter").value)r=r.filter(x=>shipClass(x.status)[0]===$("statusFilter").value);
-    if(page==="blanko"&&$("blankoPaymentFilter")?.value){const paid=$("blankoPaymentFilter").value==="paid";r=r.filter(x=>paymentIsPaid(x.status_bayar)===paid)}
+    if(page==="blanko"&&$("blankoPaymentFilter")?.value){const selected=$("blankoPaymentFilter").value;r=r.filter(x=>selected==="paid"?paymentIsPaid(x.status_bayar):paymentIsUnpaid(x.status_bayar))}
     if(page==="blanko"||page==="court"){
       const loading=rows.some(x=>!blankoManualEntry(x));
       const error=rows.some(x=>blankoManualEntry(x)?.state==="error");
