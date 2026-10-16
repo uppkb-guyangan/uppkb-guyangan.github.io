@@ -41,6 +41,20 @@ const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminat
 const demo={cases:[{case_id:"demo-1",violation_id:"39567",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",no_registrasi:"516-FCBDC-S9319WI",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-19T14:09:00+07:00",status_etle:"TERTAGIH",status_bayar:"PAID",no_blanko:"AJ0001039",no_briva:"1682-DEMO-001",tanggal_blanko:"2026-09-20",tanggal_sidang:"2026-09-28",nama_pemilik:"PT MAJU JAYA LOGISTIK",first_seen_at:"2026-09-19T14:20:00+07:00"},{case_id:"demo-2",violation_id:"57993",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",jenis_pelanggaran:"DAYA ANGKUT",pasal:"Pasal 307",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-21T03:30:40+07:00",status_etle:"TERSANGGAH",status_bayar:"INQUIRY",nama_pemilik:"CV SUMBER REJEKI",first_seen_at:"2026-09-21T04:00:00+07:00"},{case_id:"demo-3",violation_id:"48210",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",jenis_pelanggaran:"DOKUMEN",pasal:"Pasal 288",lokasi:"Jl. Raya Guyangan",tanggal_pelanggaran:"2026-09-17T09:12:00+07:00",status_etle:"DIHENTIKAN",nama_pemilik:"BUDI SANTOSO",first_seen_at:"2026-09-17T10:00:00+07:00"}],shipping:[{shipping_id:"s1",case_id:"demo-1",ref_number:"516-FCBDC-S9319WI",tnkb:"S9319WI",tracking_number:"JNE123456",courier:"JNE",status:"Terkirim",printed_date:"2026-09-19",delivered_at:"2026-09-22T11:00:00+07:00"},{shipping_id:"s2",case_id:"demo-2",ref_number:"70F-F02B3-AD8020Y",tnkb:"AD8020Y",tracking_number:"JNE234567",courier:"JNE",status:"Dalam Proses Pengiriman",printed_date:"2026-09-21"}],disputes:[{dispute_id:"d1",case_id:"demo-2",violation_id:"57993",status:"TERSANGGAH",confirmation_date:"2026-09-21T08:45:00+07:00",reason:"Masih tahap klarifikasi muatan"}],terminated:[{terminated_id:"t1",case_id:"demo-3",ref_number:"081-DC263-S8324NJ",tnkb:"S8324NJ",status:"Dihentikan",reason:"KIR MASIH HIDUP & VALID",officer_name:"Petugas UPPKB",terminated_at:"2026-09-17"}],courts:[{court_id:"c1",case_id:"demo-1",violation_id:"39567",tanggal_sidang:"2026-09-28",pengadilan:"Pengadilan Negeri Nganjuk",status_sidang:"COMPLETED",denda_putusan:150000}],offenders:[{offender_id:"o1",case_id:"demo-1",nama:"PAMBUDI",alamat:"Nganjuk",no_telp:"081234567890",email:"demo@example.com"}],histories:[{history_id:"h1",case_id:"demo-1",event_type:"LETTER_PRINTED",event_time:"2026-09-19T15:00:00+07:00",title:"Surat Konfirmasi Dicetak",source:"ETLE_SHIPPING"},{history_id:"h2",case_id:"demo-1",event_type:"BLANKO_ISSUED",event_time:"2026-09-20T09:00:00+07:00",title:"Blanko tilang diterbitkan",source:"ETLE_BLANKO"}],syncLogs:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const norm=v=>String(v??"").trim().toLowerCase();
+// Translate source payment status codes for display only; the raw values remain unchanged.
+function paymentStatusLabel(v){
+  const code=String(v??"").trim();
+  if(code==="20")return "Belum Bayar";
+  if(code==="21")return "Sudah Terbayar";
+  return v??"-";
+}
+function paymentIsPaid(v){
+  const raw=String(v??"").trim();
+  const code=raw.toLowerCase();
+  if(code==="20"||/^(belum bayar|belum terbayar|unpaid|not paid)$/.test(code))return false;
+  if(code==="21")return true;
+  return /paid|terbayar|lunas|selesai/.test(code);
+}
 const ym=v=>{if(!v)return null;const m=String(v).match(/^(\d{4})-(\d{2})/);return m?m[1]+"-"+m[2]:null};
 const monthName=v=>{if(!v)return"Semua Data";const [y,m]=v.split("-");return new Intl.DateTimeFormat("id-ID",{month:"long",year:"numeric"}).format(new Date(Number(y),Number(m)-1,1))};
 const fmtDate=v=>{if(!v)return"-";const d=new Date(v);if(Number.isNaN(d.getTime()))return esc(v);return new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:String(v).includes("T")?"2-digit":undefined,minute:String(v).includes("T")?"2-digit":undefined,timeZone:"Asia/Jakarta"}).format(d)};
@@ -795,7 +809,7 @@ function statusBadgeClass(v){
   if(/dihentikan|terminated|gagal|failed|batal/.test(s))return"status-danger";
   if(/sidang|court|siap sidang/.test(s))return"status-indigo";
   if(/blanko|terbit|issued/.test(s))return"status-gold";
-  if(/proses|pengiriman|inquiry|pending|menunggu|tercetak|cetak/.test(s))return"status-warning";
+  if(/belum bayar|proses|pengiriman|inquiry|pending|menunggu|tercetak|cetak/.test(s))return"status-warning";
   if(/baru|verifikasi|validasi|data di verifikasi/.test(s))return"status-info";
   return"status-neutral"
 }
@@ -999,6 +1013,7 @@ function cell(k,v,row=null){
     const offender=state.bundle?.offenders?.find(o=>o.case_id===row?.case_id);
     return esc(offender?.no_telp||"-")
   }
+  if(k==="status_bayar")return statusBadge(paymentStatusLabel(v));
   if(k==="title"&&row?.event_type)return esc(historyDisplayTitle(row));
   if(k.includes("date")||k.includes("tanggal")||k.includes("time")||k==="first_seen_at"||k==="event_time"||k==="terminated_at")return fmtDate(v);
   if(k.includes("denda")||k.includes("amount"))return money(v);
@@ -1339,7 +1354,7 @@ function caseSearchText(c,b,includePhone=false){
   const terminated=b.terminated.find(x=>x.case_id===c.case_id||norm(x.ref_number)===norm(c.ref_number))||{};
   const values=[
     c.case_id,c.violation_id,c.ref_number,c.tnkb,c.no_registrasi,c.jenis_pelanggaran,c.pasal,c.lokasi,
-    c.status_etle,c.no_blanko,c.no_briva,c.status_bayar,c.nama_pemilik,
+    c.status_etle,c.no_blanko,c.no_briva,c.status_bayar,paymentStatusLabel(c.status_bayar),c.nama_pemilik,
     offender.nama,offender.no_sim,offender.email,
     shipping.tracking_number,shipping.courier,shipping.status,shipping.status_description,
     court.pengadilan,court.status_sidang,court.no_amar_putusan,court.hakim,
@@ -1532,7 +1547,7 @@ function assistantAnswerHtml(question){
   const b=state.bundle||demo;
   const q=norm(question);
   const cases=b.cases||[];
-  const paid=c=>/paid|terbayar|lunas|selesai/.test(norm(c.status_bayar));
+  const paid=c=>paymentIsPaid(c.status_bayar);
   const plateMatch=question.toUpperCase().match(/\b[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{0,3}\b/);
   const specific=plateMatch?norm(plateMatch[0]).replace(/\s+/g,""):null;
 
@@ -2062,7 +2077,7 @@ async function openDetail(caseId){disposePrivateEvidencePreview();disposeStopped
 function demoDetail(id){const c=caseById(id)||demo.cases[0];return{case:c,offender:demo.offenders.find(x=>x.case_id===id),vehicle:{case_id:id,nama_pemilik:c.nama_pemilik,merk:"MITSUBISHI",tipe:"FUSO",jenis_kendaraan:"MOBIL BARANG",tahun_rakit:"2020",bahan_bakar:"SOLAR",jbb:3200,jbi:3100,berat_timbang:3450,berat_lebih:350},photos:[],shipping:demo.shipping.find(x=>x.case_id===id),payment:c.no_blanko?{no_briva:c.no_briva,status_bayar:c.status_bayar,titipan:500000,denda_maksimum:500000,denda_pengadilan:150000,biaya_perkara:5000,nominal_sisa:350000}:null,dispute:demo.disputes.find(x=>x.case_id===id),terminated:demo.terminated.find(x=>x.case_id===id),court:demo.courts.find(x=>x.case_id===id),manual:{kategori_internal:"BELUM_DIPROSES",prioritas:"NORMAL",catatan_ringkas:"Preview"},notes:[],history:demo.histories.filter(x=>x.case_id===id)}}
 async function loadDetail(caseId){const c=caseById(caseId);if(!c)throw new Error("Perkara tidak ditemukan.");// One fresh token per detail opening, reused across eleven independent reads.
 const authToken=await auth.currentUser.getIdToken(true);const detailQ=(table,opts)=>q(table,{...opts,authToken});const one=async(t,f,v)=>{if(!v)return null;const r=await detailQ(t,{filters:{[f]:"eq."+v},limit:1});return r[0]||null};const [offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history]=await Promise.all([one("etle_offenders","case_id",caseId),one("etle_vehicles","case_id",caseId),detailQ("etle_photos",{filters:{case_id:"eq."+caseId},order:"sort_order.asc"}),c.ref_number?one("etle_shipping","ref_number",c.ref_number):one("etle_shipping","case_id",caseId),one("etle_payments","case_id",caseId),c.violation_id?one("etle_disputes","violation_id",c.violation_id):one("etle_disputes","case_id",caseId),c.ref_number?one("etle_terminated_cases","ref_number",c.ref_number):one("etle_terminated_cases","case_id",caseId),c.violation_id?one("etle_court_info","violation_id",c.violation_id):one("etle_court_info","case_id",caseId),one("gsmart_case_status","case_id",caseId),detailQ("gsmart_case_notes",{filters:{case_id:"eq."+caseId},order:"created_at.desc"}),detailQ("gsmart_case_history",{filters:{case_id:"eq."+caseId},order:"event_time.desc.nullslast"})]);return{case:c,offender,vehicle,photos,shipping,payment,dispute,terminated,court,manual,notes,history}}
-function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([k])=>obj&&obj[k]!=null&&obj[k]!=="").map(([k,l,t])=>'<div class="detail-item"><small>'+l+'</small><b>'+esc(t==="money"?money(obj[k]):t==="date"?fmtDate(obj[k]):obj[k])+'</b></div>').join("")+'</div>'}
+function infoGrid(obj,fields){return'<div class="detail-grid">'+fields.filter(([k])=>obj&&obj[k]!=null&&obj[k]!=="").map(([k,l,t])=>'<div class="detail-item"><small>'+l+'</small><b>'+esc(t==="money"?money(obj[k]):t==="date"?fmtDate(obj[k]):t==="paymentStatus"?paymentStatusLabel(obj[k]):obj[k])+'</b></div>').join("")+'</div>'}
 function positiveAmount(v){const n=Number(v);return Number.isFinite(n)&&n>0}
 function hasCourtFine(d){return positiveAmount(d?.court?.denda_putusan)||positiveAmount(d?.payment?.denda_pengadilan)}
 function kejaksaanUrl(noBlanko){return"https://tilang.kejaksaan.go.id/detail/"+encodeURIComponent(String(noBlanko||"").trim())}
@@ -2224,7 +2239,7 @@ function renderDetail(d){
       '<div class="detail-summary-side">'+
         '<div class="detail-summary-card accent"><small>Status Perkara</small><b>'+esc(statusText)+'</b><span>'+esc(c.pasal||"")+'</span></div>'+
         '<div class="detail-summary-card"><small>Kendaraan</small><b>'+esc(vehicleLabel)+'</b><span>'+esc(d.vehicle?.jenis_kendaraan||"")+'</span></div>'+
-        '<div class="detail-summary-card"><small>Denda / Putusan</small><b>'+(paymentFine!=null?money(paymentFine):"-")+'</b><span>'+esc(d.payment?.status_bayar||d.court?.status_sidang||"")+'</span></div>'+
+        '<div class="detail-summary-card"><small>Denda / Putusan</small><b>'+(paymentFine!=null?money(paymentFine):"-")+'</b><span>'+esc(d.payment?.status_bayar!=null&&d.payment?.status_bayar!==""?paymentStatusLabel(d.payment.status_bayar):d.court?.status_sidang||"")+'</span></div>'+
       '</div>'+
     '</section>'+
 
@@ -2259,7 +2274,7 @@ function renderDetail(d){
           infoGrid(d.shipping,[["tracking_number","No. Resi"],["courier","Kurir"],["status","Status"],["status_description","Keterangan"],["printed_date","Tanggal Cetak","date"],["delivered_at","Terkirim","date"]])+
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">Rp</span>Pembayaran & Denda</h3>'+
-          infoGrid(d.payment,[["no_briva","No. BRIVA"],["status_bayar","Status Bayar"],["titipan","Titipan","money"],["denda_maksimum","Denda Maksimum","money"],["denda_pengadilan","Denda Pengadilan","money"],["biaya_perkara","Biaya Perkara","money"],["nominal_sisa","Sisa","money"],["paid_at","Dibayar","date"]])+
+          infoGrid(d.payment,[["no_briva","No. BRIVA"],["status_bayar","Status Bayar","paymentStatus"],["titipan","Titipan","money"],["denda_maksimum","Denda Maksimum","money"],["denda_pengadilan","Denda Pengadilan","money"],["biaya_perkara","Biaya Perkara","money"],["nominal_sisa","Sisa","money"],["paid_at","Dibayar","date"]])+
         '</section>'+
         '<section class="detail-card"><h3 class="detail-card-title"><span class="detail-card-icon">⚖</span>Persidangan</h3>'+
           infoGrid(d.court,[["tanggal_sidang","Tanggal Sidang","date"],["pengadilan","Pengadilan"],["hakim","Hakim"],["no_amar_putusan","Amar Putusan"],["denda_putusan","Denda Putusan","money"],["biaya_perkara","Biaya Perkara","money"],["status_sidang","Status"]])+
