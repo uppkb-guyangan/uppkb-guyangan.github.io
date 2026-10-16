@@ -35,6 +35,15 @@ async function ensurePersistentAuth(){
   }
 }
 const authPersistenceReady=ensurePersistentAuth();
+// Return a fresh identity only for the currently active application session.
+// Backend independently verifies identity and authorization for every request.
+window.getGitaSession=async()=>{
+  const user=auth.currentUser;
+  if(state.demo||!user||!state.profile||state.profile.aktif!==true||state.profile.uid!==user.uid)throw new Error("Silakan login dengan akun petugas aktif.");
+  const token=await user.getIdToken(false);
+  if(auth.currentUser?.uid!==user.uid||state.demo||state.profile?.uid!==user.uid)throw new Error("Sesi berubah. Silakan ulangi.");
+  return {token,role:String(state.profile.role||"").trim().toUpperCase()};
+};
 
 const menu=[["dashboard","Dashboard"],["shipping","Pengiriman Surat"],["blanko","Blanko Tilang Terbit"],["disputes","Pelanggaran Tersanggah"],["archive","Konfirmasi Daya Angkut Sosialisasi"],["terminated","Pelanggaran Dihentikan"],["court","Persidangan"],["new","Pelanggaran Terdata"],["history","Perpindahan Proses"],["analytics","Analitik ETLE"],["vehicles","Profil Kendaraan"],["favorites","Pelanggaran Dipantau"],["search","Pencarian Global"],["report","Laporan ETLE"],["etleHubLogin","Login ETLE Hub"],["health","Kesehatan Sistem"],["loginHistory","Riwayat Login"],["settings","Pengaturan"],["management","Manajemen"]];
 const icons={dashboard:"⌂",shipping:"✉",blanko:"▣",disputes:"⚑",terminated:"⊘",court:"⚖",new:"+",history:"↻",analytics:"▥",vehicles:"▤",archive:"▦",favorites:"★",search:"⌕",report:"▧",etleHubLogin:"↗",health:"♡",loginHistory:"◷",settings:"⚙",management:"▤"};
