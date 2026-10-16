@@ -1,0 +1,6 @@
+# Firebase tokens are verified cryptographically and online inside each handler.
+# Supabase's legacy JWT gateway cannot verify Firebase issuer tokens.
+[functions.gita-maintenance]
+verify_jwt = false
+[functions.gita-agent]
+verify_jwt = false

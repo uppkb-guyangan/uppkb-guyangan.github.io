@@ -119,7 +119,7 @@ test("Export uses browser-only data already loaded; it has no network dependenci
   assert.ok(app.includes("shippingRows:activeShippingRows(b)"));
   assert.ok(app.includes("includePayment:perms().copyPhone"));
   assert.ok(app.includes('import("./gsmart-report-excel.mjs?v=20261015-reportperiod1")'));
-  assert.ok(html.includes("app-v2.js?v=20261015-etlehub-roles1"));
-  assert.ok(sw.includes("gsmart-shell-v62"));
+  assert.ok(html.includes("app-v2.js?v=20261016-gita-dev1"));
+  assert.ok(sw.includes("gsmart-shell-v63"));
   assert.ok(sw.includes("gsmart-report-excel.mjs?v=20261015-reportperiod1"));
 });

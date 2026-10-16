@@ -1,0 +1,127 @@
+name: GITA Developer Mode
+run-name: GITA ${{ inputs.request_id || 'security-tests' }}
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Backend-generated request UUID
+        required: true
+        type: string
+      action:
+        required: true
+        type: choice
+        options: [audit, fix]
+      scope:
+        required: true
+        type: choice
+        options: [aplikasi, gita, pwa, blanko, persidangan, analitik, simulasi]
+  pull_request:
+    paths:
+      - 'gita-*'
+      - 'supabase/functions/**'
+      - 'supabase/gita_developer_jobs.sql'
+      - 'scripts/gita-*'
+      - 'scripts/gita-developer/**'
+      - 'scripts/fixtures/gita-simulation.mjs'
+      - '.github/workflows/gita-developer.yml'
+permissions:
+  contents: read
+concurrency:
+  group: gita-${{ inputs.request_id || github.ref }}
+  cancel-in-progress: false
+jobs:
+  security-tests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test scripts/*.test.mjs
+  propose:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/gita-developer-mode-v1' && github.repository == 'uppkb-guyangan/uppkb-guyangan.github.io'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      GITA_REQUEST_ID: ${{ inputs.request_id }}
+      GITA_ACTION: ${{ inputs.action }}
+      GITA_SCOPE: ${{ inputs.scope }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reproduce disconnected synthetic bug if requested
+        run: node scripts/gita-developer/prepare.mjs inject
+      - name: Request bounded AI proposal (no code execution tools)
+        env:
+          GITA_AI_API_KEY: ${{ secrets.GITA_AI_API_KEY }}
+          GITA_AI_MODEL: ${{ vars.GITA_AI_MODEL }}
+        run: node scripts/gita-developer/agent.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gita-proposal
+          path: /tmp/gita-proposal.json
+          retention-days: 3
+          if-no-files-found: error
+  validate:
+    needs: propose
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      GITA_REQUEST_ID: ${{ inputs.request_id }}
+      GITA_ACTION: ${{ inputs.action }}
+      GITA_SCOPE: ${{ inputs.scope }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: gita-proposal
+          path: /tmp
+      - run: node scripts/gita-developer/prepare.mjs inject
+      - run: node scripts/gita-developer/prepare.mjs apply
+      - name: Pull test runtime before blocking candidate networking
+        run: docker pull node:24-bookworm
+      - name: Test candidate in isolated container without secrets or network
+        run: |
+          docker run --rm --network none --read-only --memory 512m --cpus 2 --pids-limit 128 --cap-drop ALL --security-opt no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,noexec,nosuid,size=32m -v "$GITHUB_WORKSPACE:/work:ro" -w /work node:24-bookworm sh -c 'node --check app-v2.js && node --check gita-agent-ui.js && node --check sw.js && node --test scripts/*.test.mjs'
+  publish-draft:
+    needs: validate
+    if: inputs.action == 'fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GITA_REQUEST_ID: ${{ inputs.request_id }}
+      GITA_ACTION: ${{ inputs.action }}
+      GITA_SCOPE: ${{ inputs.scope }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: gita-proposal
+          path: /tmp
+      - run: node scripts/gita-developer/prepare.mjs inject
+      - name: Trusted publisher creates a new branch and draft PR only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITA_BASE_SHA: ${{ github.sha }}
+        run: node scripts/gita-developer/publish.mjs

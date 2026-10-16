@@ -104,7 +104,7 @@
   });
 
   // Agent UI juga ditunda agar Firebase/login/dashboard mendapat prioritas jaringan/CPU.
-  const loadAgent=()=>import('./gita-agent-ui.js?v=20261004-agent1').catch(err=>console.error('GITA Agent UI gagal dimuat:',err));
+  const loadAgent=()=>import('./gita-agent-ui.js?v=20261016-dev1').catch(err=>console.error('GITA Agent UI gagal dimuat:',err));
   if('requestIdleCallback' in window)requestIdleCallback(loadAgent,{timeout:6000});
   else setTimeout(loadAgent,4000);
 })();

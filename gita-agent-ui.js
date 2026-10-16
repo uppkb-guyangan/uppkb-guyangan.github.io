@@ -1,3 +1,4 @@
+import { detectGitaMaintenanceIntent } from "./gita-maintenance-intent.mjs?v=20261016-dev1";
 import { supabaseConfig } from "./config.js?v=20261002-3";
 
 const $ = (id) => document.getElementById(id);
@@ -29,12 +30,27 @@ async function askGita(question) {
     const key = supabaseConfig.publishableKey || supabaseConfig.anonKey;
     if (!key) throw new Error("Kunci Supabase web tidak tersedia.");
 
+    const getSession=()=>{
+      if(!window.getGitaSession)throw new Error("Sesi GITA belum siap. Silakan login kembali.");
+      return window.getGitaSession();
+    };
+    const intent=detectGitaMaintenanceIntent(q);
+    if(intent){
+      const {showDeveloperCommand}=await import("./gita-developer-ui.mjs?v=20261016-dev1");
+      await showDeveloperCommand({intent,out,getSession,endpoint:`${supabaseConfig.url}/functions/v1/gita-maintenance`,apiKey:key});
+      window.setGitaState?.("idle");
+      return;
+    }
+    const session=await getSession();
     const response = await fetch(`${supabaseConfig.url}/functions/v1/gita-agent`, {
       method: "POST",
+      cache: "no-store",
+      credentials: "omit",
+      signal: AbortSignal.timeout(60000),
       headers: {
         "Content-Type": "application/json",
         "apikey": key,
-        "Authorization": `Bearer ${key}`
+        "Authorization": `Bearer ${session.token}`
       },
       body: JSON.stringify({ question: q })
     });
@@ -52,7 +68,7 @@ async function askGita(question) {
       '<p style="white-space:normal;line-height:1.65">' + renderAnswer(answer) + '</p></div>';
     window.setGitaState?.("talking");
   } catch (error) {
-    console.error("GITA Agent error:", error);
+    console.warn("GITA request failed");
     out.innerHTML =
       '<div class="cp-section-label cp-ai-label">✦ GITA <span>read-only</span></div>' +
       '<div class="assistant-answer assistant-help"><b>GITA sedang tidak dapat merespons.</b>' +
