@@ -254,6 +254,12 @@ main{min-width:0}.topbar{min-height:88px;padding:15px 30px;background:rgba(255,2
   .sticky-table-toolbar .search-field-wrap{flex-basis:100%}
   .sticky-table-toolbar select{flex:1 1 130px}
   .toolbar-reset-btn{flex:0 0 auto}
+  /* Blanko mobile: keep the three filters on one compact row and reduce search height. */
+  .blanko-compact-toolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:7px}
+  .blanko-compact-toolbar .search-field-wrap{grid-column:1/-1;min-width:0;width:100%;flex-basis:auto}
+  .blanko-compact-toolbar .search-field-wrap input{height:38px;min-height:38px;padding-top:7px;padding-bottom:7px;font-size:14px}
+  .blanko-compact-toolbar select{width:100%;min-width:0;max-width:100%;padding:8px 5px;font-size:11px}
+  .blanko-compact-toolbar .toolbar-reset-btn{grid-column:1/-1;justify-self:end;padding:6px 9px;font-size:10px}
 }
 
 /* Command Palette + read-only assistant */
