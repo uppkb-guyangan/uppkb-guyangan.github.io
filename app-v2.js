@@ -7,7 +7,7 @@ import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-v
 
 const $=id=>document.getElementById(id);
 const initialShareParams=new URLSearchParams(window.location.search);
-const initialBlankoMonth=/^\\d{4}-(0[1-9]|1[0-2])$/.test(initialShareParams.get("bulan")||"")?initialShareParams.get("bulan"):null;
+const initialBlankoMonth=/^\d{4}-(0[1-9]|1[0-2])$/.test(initialShareParams.get("bulan")||"")?initialShareParams.get("bulan"):null;
 const initialBlankoCategory=/^[A-Z0-9_ -]{1,60}$/.test(initialShareParams.get("kategori")||"")?initialShareParams.get("kategori"):null;
 const initialBlankoPage=initialShareParams.get("page")==="blanko"&&(initialBlankoMonth||initialBlankoCategory);
 const state={profile:null,bundle:null,page:initialBlankoPage?"blanko":"dashboard",disputeTab:"active",demo:false,month:null,blankoMonth:initialBlankoMonth,blankoCategory:initialBlankoCategory,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
