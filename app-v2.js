@@ -994,7 +994,7 @@ function processPage(page,rows){
       if(page==="blanko"&&state.blankoCategory&&[...$("blankoGsmartFilter").options].some(o=>o.value===state.blankoCategory))$("blankoGsmartFilter").value=state.blankoCategory;
       apply();
     };
-    for(const id of ["blankoGsmartFilter","blankoOverFilter"])$(id).onchange=()=>{apply();synchronize()};
+    for(const id of ["blankoGsmartFilter","blankoOverFilter"])$(id).onchange=()=>{if(page==="blanko"&&id==="blankoGsmartFilter"){state.blankoCategory=$(id).value||null;syncBlankoShareUrl()}apply();synchronize()};
     if($("blankoPaymentFilter"))$("blankoPaymentFilter").onchange=apply;
     refreshBlankoView=apply;
     synchronize();
