@@ -999,7 +999,7 @@ function processPage(page,rows){
     refreshBlankoView=apply;
     synchronize();
   }
-  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";if($("blankoPaymentFilter"))$("blankoPaymentFilter").value="";if(page==="blanko"){state.blankoMonth=null;state.blankoCategory=null;if($("blankoMonthFilter"))$("blankoMonthFilter").value="";syncBlankoShareUrl()}apply()};
+  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";if($("blankoPaymentFilter"))$("blankoPaymentFilter").value="";if(page==="blanko"){const monthChanged=!!state.blankoMonth;state.blankoMonth=null;state.blankoCategory=null;if($("blankoMonthFilter"))$("blankoMonthFilter").value="";syncBlankoShareUrl();if(monthChanged){openPage("blanko");return}}apply()};
   if($("showAllFocusedData"))$("showAllFocusedData").onclick=()=>openPage(page);
   bindDetailRows();
 }
