@@ -236,7 +236,7 @@ function applySidebarPreference(){
   try{hidden=localStorage.getItem("gsmart_sidebar_hidden")==="1"}catch(_){}
   setDesktopSidebarHidden(hidden);
 }
-function showApp(){hideAuthBoot();$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage("dashboard");openRequestedCase();launchPushMigration()}
+function showApp(){hideAuthBoot();$("loginView").classList.add("hidden");$("appView").classList.remove("hidden");renderProfile();applyPrefs();applyInitialPeriodPreference();buildMonthOptions();applySidebarPreference();updateConnectionStatus();openPage(state.page||"dashboard");openRequestedCase();launchPushMigration()}
 function launchPushMigration(){
   if(state.demo||!auth.currentUser||!state.profile)return;
   // Independent best-effort upgrade; never blocks login, dashboard, or ETLE data.
