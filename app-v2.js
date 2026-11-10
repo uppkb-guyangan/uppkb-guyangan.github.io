@@ -6,7 +6,11 @@ import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-e
 import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-vehicle-photo.js?v=20261010-stopped1";
 
 const $=id=>document.getElementById(id);
-const state={profile:null,bundle:null,page:"dashboard",disputeTab:"active",demo:false,month:null,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
+const initialShareParams=new URLSearchParams(window.location.search);
+const initialBlankoMonth=/^\\d{4}-(0[1-9]|1[0-2])$/.test(initialShareParams.get("bulan")||"")?initialShareParams.get("bulan"):null;
+const initialBlankoCategory=/^[A-Z0-9_ -]{1,60}$/.test(initialShareParams.get("kategori")||"")?initialShareParams.get("kategori"):null;
+const initialBlankoPage=initialShareParams.get("page")==="blanko"&&(initialBlankoMonth||initialBlankoCategory);
+const state={profile:null,bundle:null,page:initialBlankoPage?"blanko":"dashboard",disputeTab:"active",demo:false,month:null,blankoMonth:initialBlankoMonth,blankoCategory:initialBlankoCategory,detail:null,detailSource:"OTHER",dashboardStats:null,historyFocus:null,activityFocus:null,favoriteIds:null,favoritesRemote:false};
 let interactiveLogin=false;
 // Read-only Blanko list status, keyed by case_id (never by TNKB).
 const blankoManualCache=new Map();
@@ -297,6 +301,20 @@ function renderNav(){
     openPage(b.dataset.id)
   })
 }
+function syncBlankoShareUrl(){
+  const params=new URLSearchParams();
+  params.set("page","blanko");
+  if(state.blankoMonth)params.set("bulan",state.blankoMonth);
+  if(state.blankoCategory)params.set("kategori",state.blankoCategory);
+  const next=window.location.pathname+"?"+params.toString()+window.location.hash;
+  window.history.replaceState({...(window.history.state||{}),gsmartBlankoShare:true}, "", next);
+}
+function copyBlankoShareLink(){
+  syncBlankoShareUrl();
+  const link=window.location.href;
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(link).then(()=>toast("Link filter berhasil disalin")).catch(()=>toast("Tidak dapat menyalin link. Silakan salin dari bilah alamat."));}
+  else toast("Silakan salin link dari bilah alamat browser.");
+}
 function buildMonthOptions(){const b=state.bundle||demo;const all=[...b.cases.flatMap(x=>[ym(x.tanggal_pelanggaran),ym(x.tanggal_blanko),ym(x.first_seen_at)]),...b.shipping.map(x=>ym(x.printed_date)),...b.disputes.map(x=>ym(x.confirmation_date)),...b.terminated.map(x=>ym(x.terminated_at)),...b.courts.map(x=>ym(x.tanggal_sidang)),...b.histories.map(x=>ym(x.event_time))].filter(Boolean);const months=[...new Set(all)].sort().reverse();$("globalMonth").innerHTML='<option value="">Semua Data</option>'+months.map(m=>'<option value="'+m+'">'+monthName(m)+'</option>').join("");$("globalMonth").value=state.month||""}
 $("globalMonth").onchange=e=>{state.month=e.target.value||null;renderNav();renderPage()};
 function openPage(p,{historyFocus=null,activityFocus=null}={}){state.page=p;if(p==="disputes"&&activityFocus?.mode==="today")state.disputeTab="active";state.historyFocus=p==="history"?historyFocus:null;state.activityFocus=activityFocus&&activityFocus.page===p?activityFocus:null;renderNav();const names=Object.fromEntries(menu);$("pageTitle").textContent=names[p];$("pageSub").textContent=p==="dashboard"?"Monitoring ETLE terintegrasi":"Data G-Smart UPPKB Guyangan";if(p==="report"&&!perms().report){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Laporan ETLE.</div>';return}if(p==="favorites"&&!perms().watchCases){$("content").innerHTML='<div class="notice">Role Anda tidak memiliki akses ke Pelanggaran Dipantau.</div>';return}if((p==="loginHistory"||p==="health")&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Menu ini hanya dapat diakses Admin.</div>';return}if(p==="management"&&(!perms().admin||state.demo)){$("content").innerHTML='<div class="notice">Manajemen hanya dapat diakses Admin aktif.</div>';return}if(p==="settings")state.settingsSection=null;renderPage()}
@@ -334,7 +352,7 @@ function filteredRows(page,b){
   }
   switch(page){
     case"shipping":return activeShippingRows(b).filter(x=>period(x.printed_date));
-    case"blanko":return b.cases.filter(x=>x.no_blanko&&period(x.tanggal_blanko));
+    case"blanko":return b.cases.filter(x=>x.no_blanko&&(state.blankoMonth?ym(x.tanggal_blanko)===state.blankoMonth:period(x.tanggal_blanko)));
     case"disputes":return state.disputeTab==="stopped"?stoppedDisputes(b):activeDisputes(b);
     case"terminated":return b.terminated.filter(x=>period(x.terminated_at));
     case"court":return b.courts.filter(x=>period(x.tanggal_sidang));
@@ -896,7 +914,7 @@ function processPage(page,rows){
   const blankoView=++blankoViewSequence;
   refreshBlankoView=null;
   let extra="";
-  if(page==="blanko"||page==="court")extra='<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar / Pengembalian">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>'+(page==="blanko"?'<select id="blankoPaymentFilter" aria-label="Filter Status Bayar"><option value="">Semua Status Bayar</option><option value="unpaid">Belum Bayar</option><option value="paid">Sudah Terbayar</option></select>':"");
+  if(page==="blanko"||page==="court")extra=(page==="blanko"?'<select id="blankoMonthFilter" aria-label="Filter Bulan Blanko"><option value="">Semua Bulan</option>'+[...new Set((state.bundle||demo).cases.map(x=>ym(x.tanggal_blanko)).filter(Boolean))].sort().reverse().map(m=>'<option value="'+esc(m)+'">'+esc(monthName(m))+'</option>').join("")+'</select>':"")+'<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar / Pengembalian">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>'+(page==="blanko"?'<select id="blankoPaymentFilter" aria-label="Filter Status Bayar"><option value="">Semua Status Bayar</option><option value="unpaid">Belum Bayar</option><option value="paid">Sudah Terbayar</option></select><button type="button" id="shareBlankoFilter" class="action-btn" title="Salin tautan filter">↗ Salin Link</button>':"");
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
   const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
@@ -961,10 +979,19 @@ function processPage(page,rows){
   $("clearFilter").onclick=()=>{$("filter").value="";apply();$("filter").focus()};
   if($("statusFilter"))$("statusFilter").onchange=apply;
   if(page==="blanko"||page==="court"){
+    if(page==="blanko"){
+      const monthFilter=$("blankoMonthFilter");
+      if(monthFilter){monthFilter.value=state.blankoMonth||"";monthFilter.onchange=()=>{state.blankoMonth=monthFilter.value||null;syncBlankoShareUrl();openPage("blanko")};}
+      const categoryFilter=$("blankoGsmartFilter");
+      if(categoryFilter&&state.blankoCategory&&[...categoryFilter.options].some(o=>o.value===state.blankoCategory))categoryFilter.value=state.blankoCategory;
+      if(categoryFilter)categoryFilter.onchange=()=>{state.blankoCategory=categoryFilter.value||null;syncBlankoShareUrl();apply();synchronize()};
+      if($("shareBlankoFilter"))$("shareBlankoFilter").onclick=copyBlankoShareLink;
+    }
     const synchronize=async()=>{
       await fetchBlankoManualStatuses(rows);
       if(state.page!==page||blankoViewSequence!==blankoView||!$("filter"))return;
       updateBlankoManualOptions(rows);
+      if(page==="blanko"&&state.blankoCategory&&[...$("blankoGsmartFilter").options].some(o=>o.value===state.blankoCategory))$("blankoGsmartFilter").value=state.blankoCategory;
       apply();
     };
     for(const id of ["blankoGsmartFilter","blankoOverFilter"])$(id).onchange=()=>{apply();synchronize()};
@@ -972,7 +999,7 @@ function processPage(page,rows){
     refreshBlankoView=apply;
     synchronize();
   }
-  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";if($("blankoPaymentFilter"))$("blankoPaymentFilter").value="";apply()};
+  if($("resetTableFilters"))$("resetTableFilters").onclick=()=>{$("filter").value="";if($("statusFilter"))$("statusFilter").value="";if($("blankoGsmartFilter"))$("blankoGsmartFilter").value="";if($("blankoOverFilter"))$("blankoOverFilter").value="";if($("blankoPaymentFilter"))$("blankoPaymentFilter").value="";if(page==="blanko"){state.blankoMonth=null;state.blankoCategory=null;if($("blankoMonthFilter"))$("blankoMonthFilter").value="";syncBlankoShareUrl()}apply()};
   if($("showAllFocusedData"))$("showAllFocusedData").onclick=()=>openPage(page);
   bindDetailRows();
 }
