@@ -913,8 +913,9 @@ function processPage(page,rows){
   const titles=Object.fromEntries(menu);
   const blankoView=++blankoViewSequence;
   refreshBlankoView=null;
+  let exportRows=[...rows];
   let extra="";
-  if(page==="blanko"||page==="court")extra=(page==="blanko"?'<select id="blankoMonthFilter" aria-label="Filter Bulan Blanko"><option value="">Semua Bulan</option>'+[...new Set((state.bundle||demo).cases.map(x=>ym(x.tanggal_blanko)).filter(Boolean))].sort().reverse().map(m=>'<option value="'+esc(m)+'">'+esc(monthName(m))+'</option>').join("")+'</select>':"")+'<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar / Pengembalian">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>'+(page==="blanko"?'<select id="blankoPaymentFilter" aria-label="Filter Status Bayar"><option value="">Semua Status Bayar</option><option value="unpaid">Belum Bayar</option><option value="paid">Sudah Terbayar</option></select><button type="button" id="shareBlankoFilter" class="action-btn" title="Salin tautan filter">↗ Salin Link</button>':"");
+  if(page==="blanko"||page==="court")extra=(page==="blanko"?'<select id="blankoMonthFilter" aria-label="Filter Bulan Blanko"><option value="">Semua Bulan</option>'+[...new Set((state.bundle||demo).cases.map(x=>ym(x.tanggal_blanko)).filter(Boolean))].sort().reverse().map(m=>'<option value="'+esc(m)+'">'+esc(monthName(m))+'</option>').join("")+'</select>':"")+'<select id="blankoGsmartFilter" aria-label="Filter Status G-Smart">'+blankoManualOptionList(rows,"kategori_internal")+'</select><select id="blankoOverFilter" aria-label="Filter Status Lebih Bayar / Pengembalian">'+blankoManualOptionList(rows,"status_lebih_bayar")+'</select>'+(page==="blanko"?'<select id="blankoPaymentFilter" aria-label="Filter Status Bayar"><option value="">Semua Status Bayar</option><option value="unpaid">Belum Bayar</option><option value="paid">Sudah Terbayar</option></select><button type="button" id="shareBlankoFilter" class="action-btn" title="Salin tautan filter">↗ Salin Link</button><button type="button" id="exportBlankoExcel" class="action-btn" title="Ekspor data yang sedang ditampilkan ke Excel">⬇ Ekspor Excel</button>':"");
   if(page==="shipping")extra='<select id="statusFilter"><option value="">Semua Status</option><option>Tercetak</option><option>Dalam Proses</option><option>Terkirim</option><option>Gagal Kirim</option><option>Dikembalikan</option><option>Lainnya</option></select>';
   const historyFocused=page==="history"&&state.historyFocus?.mode==="today-changes";
   const activityFocused=state.activityFocus?.mode==="today"&&state.activityFocus.page===page;
@@ -963,6 +964,7 @@ function processPage(page,rows){
         notice.classList.toggle("visible",!!notice.textContent);
       }
     }
+    exportRows=r;
     $("slot").innerHTML=genericTable(page,r);
     $("resultCount").textContent=r.length===rows.length?r.length+" data":r.length+" dari "+rows.length+" data";
     $("clearFilter").classList.toggle("hidden",!q);
@@ -986,6 +988,24 @@ function processPage(page,rows){
       if(categoryFilter&&state.blankoCategory&&[...categoryFilter.options].some(o=>o.value===state.blankoCategory))categoryFilter.value=state.blankoCategory;
       if(categoryFilter)categoryFilter.onchange=()=>{state.blankoCategory=categoryFilter.value||null;syncBlankoShareUrl();apply();synchronize()};
       if($("shareBlankoFilter"))$("shareBlankoFilter").onclick=copyBlankoShareLink;
+      if($("exportBlankoExcel"))$("exportBlankoExcel").onclick=async()=>{
+        const button=$("exportBlankoExcel");if(button.disabled)return;
+        button.disabled=true;const original=button.textContent;button.textContent="Menyiapkan Excel...";
+        try{
+          const {downloadBlankoExcel}=await import("./gsmart-report-excel.mjs?v=20261111-blanko-export1");
+          const includePhone=rolePermissions().copyPhone;
+          const columns=[["no","No."],["tnkb","TNKB"],["manualStatus","Status G-Smart"],["manualRefund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tanggal Blanko"]];
+          if(includePhone)columns.push(["phone","No. Telepon"]);
+          columns.push(["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]);
+          const data=exportRows.map((row,index)=>{
+            const offender=includePhone?state.bundle?.offenders?.find(o=>String(o.case_id)===String(row.case_id)):null;
+            return [index+1,row.tnkb||"",blankoManualValue(row,"kategori_internal")||"Belum dimuat",blankoManualValue(row,"status_lebih_bayar")||"Belum dimuat",row.jenis_pelanggaran||"",row.tanggal_blanko||"",...(includePhone?[offender?.no_telp||""]:[]),row.no_blanko||"",row.no_briva||"",paymentStatusLabel(row.status_bayar)];
+          });
+          const filename=downloadBlankoExcel({rows:data,headers:columns.map(x=>x[1]),periodLabel:state.blankoMonth?monthName(state.blankoMonth):"Semua Bulan",categoryLabel:state.blankoCategory||"Semua Kategori"});
+          toast("File Excel berhasil dibuat: "+filename);
+        }catch(error){console.error("G-Smart: ekspor Blanko Excel gagal",error);toast("Ekspor Excel gagal. Silakan coba lagi.")}
+        finally{button.disabled=false;button.textContent=original}
+      };
     }
     const synchronize=async()=>{
       await fetchBlankoManualStatuses(rows);

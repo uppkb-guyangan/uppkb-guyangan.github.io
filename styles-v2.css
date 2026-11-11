@@ -670,3 +670,12 @@ button.bar-row.analytics-action:hover{background:#f3f7fb}
  .report-quality-grid{grid-template-columns:1fr}
  .report-quality-head{flex-direction:column;align-items:flex-start}
 }
+
+/* Blanko toolbar: keep search compact so filter and export actions fit together. */
+@media(min-width:761px){
+  .blanko-compact-toolbar .search-field-wrap{flex:0 1 220px;width:220px;min-width:180px}
+  .blanko-compact-toolbar .search-field-wrap input{width:100%;min-width:0;padding-left:34px;padding-right:30px}
+  .blanko-compact-toolbar select{flex:0 1 145px;min-width:118px;max-width:160px;padding:9px 9px;font-size:12px}
+  .blanko-compact-toolbar #shareBlankoFilter,
+  .blanko-compact-toolbar #exportBlankoExcel{flex:0 0 auto;padding:8px 9px;font-size:11px;white-space:nowrap}
+}
