@@ -261,3 +261,18 @@ export function downloadEtleExcel(args){
   }finally{setTimeout(()=>URL.revokeObjectURL(url),60000)}
   return filename;
 }
+
+export function downloadBlankoExcel({rows=[],headers=[],periodLabel="Semua Bulan",categoryLabel="Semua Kategori"}={}){
+  if(!Array.isArray(rows)||!Array.isArray(headers)||!headers.length)throw Error("Data Blanko Excel tidak valid");
+  const period=String(periodLabel)+" • "+String(categoryLabel);
+  const records=rows.map(values=>values.map(value=>value==null?"":String(value)));
+  const sheet=listSheet({title:"BLANKO TILANG TERBIT",period,updated:dateKey(new Date()),note:"Data mengikuti seluruh filter aktif pada halaman Blanko Tilang Terbit saat ekspor dilakukan.",headers,rows:records,widths:headers.map((header,index)=>index===0?8:Math.min(34,Math.max(16,header.length+8)))});
+  const bytes=xlsxFiles([["Blanko Tilang",sheet]]);
+  const blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const url=URL.createObjectURL(blob);
+  const safe=String(periodLabel).replace(/[^A-Za-z0-9_-]+/g,"_");
+  const filename="Blanko_Tilang_"+(safe||"Semua_Bulan")+".xlsx";
+  try{const a=document.createElement("a");a.href=url;a.download=filename;a.style.display="none";document.body.appendChild(a);a.click();a.remove();}
+  finally{setTimeout(()=>URL.revokeObjectURL(url),60000)}
+  return filename;
+}
