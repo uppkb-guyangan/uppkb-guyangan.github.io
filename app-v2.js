@@ -994,7 +994,7 @@ function processPage(page,rows){
         try{
           const {downloadBlankoExcel}=await import("./gsmart-report-excel.mjs?v=20261111-blanko-export1");
           const includePhone=rolePermissions().copyPhone;
-          const columns=[["tnkb","TNKB"],["manualStatus","Status G-Smart"],["manualRefund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tanggal Blanko"]];
+          const columns=[["no","No."],["tnkb","TNKB"],["manualStatus","Status G-Smart"],["manualRefund","Lebih Bayar / Pengembalian"],["jenis_pelanggaran","Jenis Pelanggaran"],["tanggal_blanko","Tanggal Blanko"]];
           if(includePhone)columns.push(["phone","No. Telepon"]);
           columns.push(["no_blanko","No. Blanko"],["no_briva","No. BRIVA"],["status_bayar","Status Bayar"]);
           const data=exportRows.map((row,index)=>{
