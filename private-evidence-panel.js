@@ -54,6 +54,16 @@ function metadataFields(record,publicOffender={}){
   return labels.filter(([k])=>data[k]!==undefined&&data[k]!==null&&String(data[k]).trim()&&!(publicOffender?.[k]!=null&&String(publicOffender[k]).trim()))
     .map(([key,label])=>[label,String(data[key])]);
 }
+export async function fetchPrivateOffender({caseId,endpoint,apiKey,getToken}){
+  if(!caseId)throw Error("CASE_REQUIRED");
+  const response=await requestEvidence(endpoint,apiKey,getToken,caseId,"detail");
+  if(response.status===401||response.status===403)throw Error("PRIVATE_ACCESS_DENIED");
+  if(response.status===404) return null;
+  if(!response.ok)throw Error("PRIVATE_EVIDENCE_UNAVAILABLE");
+  const result=await response.json();
+  const offender=result?.offender||result?.offender_data||result?.offenderData||null;
+  return offender&&typeof offender==="object"?offender:null;
+}
 export async function mountPrivateEvidence(panel,{caseId,endpoint,apiKey,getToken,offenderPanel=null,publicOffender={}}){
   if(!panel||!caseId)return;
   clearPreview();

@@ -47,9 +47,9 @@ test("Accepted status classifier remains available for other workflows",()=>{
   assert.equal(isDisputeAccepted({result:"DITOLAK"}),false);
 });
 
-test("Accepted WhatsApp message can be opened regardless of dispute status",()=>{
+test("Accepted WhatsApp message can be opened regardless of dispute status",async()=>{
   const {openDisputeWhatsApp,calls,notices}=disputeWhatsAppModule();
-  openDisputeWhatsApp({
+  await openDisputeWhatsApp({
     case:{tnkb:"S 1234 AB"},
     offender:{no_telp:"081234567890"},
     dispute:{status:"TERSANGGAH",result:""}
@@ -58,16 +58,16 @@ test("Accepted WhatsApp message can be opened regardless of dispute status",()=>
   assert.match(decodeURIComponent(calls[0][0].split("?text=")[1]),/DINYATAKAN DITERIMA/);
 });
 
-test("Both templates work even when dispute metadata is absent",()=>{
+test("Both templates work even when dispute metadata is absent",async()=>{
   const accepted=disputeWhatsAppModule();
-  accepted.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"accepted");
+  await accepted.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"accepted");
   assert.equal(accepted.calls.length,1);
   const followup=disputeWhatsAppModule();
-  followup.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"followup");
+  await followup.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"followup");
   assert.equal(followup.calls.length,1);
 });
 
-test("Follow-up template opens WhatsApp with case data and editable text",()=>{
+test("Follow-up template opens WhatsApp with case data and editable text",async()=>{
   const {openDisputeWhatsApp,calls}=disputeWhatsAppModule();
   openDisputeWhatsApp({
     case:{tnkb:"S 1234 AB",jenis_pelanggaran:"DAYA ANGKUT",tanggal_pelanggaran:"2026-11-01"},
@@ -86,11 +86,11 @@ test("Follow-up template opens WhatsApp with case data and editable text",()=>{
   assert.equal(calls[0][2],"noopener,noreferrer");
 });
 
-test("Dispute WhatsApp action is restricted to Admin and the dispute detail view",()=>{
+test("Dispute WhatsApp action is restricted to Admin and the dispute detail view",async()=>{
   const deniedRole=disputeWhatsAppModule({admin:false});
-  deniedRole.openDisputeWhatsApp({dispute:{result:"DITERIMA"}},"accepted");
+  await deniedRole.openDisputeWhatsApp({dispute:{result:"DITERIMA"}},"accepted");
   assert.equal(deniedRole.calls.length,0);
   const wrongPage=disputeWhatsAppModule({source:"BLANKO"});
-  wrongPage.openDisputeWhatsApp({dispute:{result:"DITERIMA"}},"accepted");
+  await wrongPage.openDisputeWhatsApp({dispute:{result:"DITERIMA"}},"accepted");
   assert.equal(wrongPage.calls.length,0);
 });

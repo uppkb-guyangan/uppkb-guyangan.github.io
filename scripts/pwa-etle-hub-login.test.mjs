@@ -56,7 +56,7 @@ test("No password/session management is added to G-Smart",()=>{
 test("PWA cache updated and login available on mobile and desktop",()=>{
   assert.match(html,/app-v2\.js\?v=20261015-etlehub-roles1/);
   assert.match(sw,/app-v2\.js\?v=20261015-etlehub-roles1/);
-  assert.match(sw,/gsmart-shell-v68/);
+  assert.match(sw,/gsmart-shell-v69/);
 });
 
 
