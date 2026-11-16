@@ -58,3 +58,12 @@ test("build uses fresh PWA versioned script and stylesheet",()=>{
   assert.match(index,/app-v2\.js\?v=\d{8}-[a-zA-Z0-9-]+/);
   assert.match(index,/private-evidence-panel\.css\?v=20261010-(?:admin1|offender1|dispute-fields1)/);
 });
+
+test("Private dispute phone lookup uses the existing authorized detail endpoint",()=>{
+  assert.match(panel,/export async function fetchPrivateOffender/);
+  assert.match(panel,/requestEvidence\(endpoint,apiKey,getToken,caseId,"detail"\)/);
+  assert.match(panel,/result\?\.offender\|\|result\?\.offender_data\|\|result\?\.offenderData/);
+  const app=readFileSync(new URL("../app-v2.js",import.meta.url),"utf8");
+  assert.match(app,/fetchPrivateOffender/);
+  assert.match(app,/functions\\/v1\\/gsmart-dispute-private/);
+});
