@@ -10,15 +10,14 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
   const end=src.indexOf("function openWhatsApp(d){",start);
   assert.ok(start>=0&&end>start,"Dispute WhatsApp helpers exist");
   const calls=[],notices=[];
+  const phoneStart=src.indexOf("function normalizePhone(v){");
+  const phoneEnd=src.indexOf("\n",phoneStart);
+  assert.ok(phoneStart>=0&&phoneEnd>phoneStart,"Phone normalizer exists");
   const helpers=runInNewContext(
-    src.slice(start,end)+"\n({isDisputeAccepted,openDisputeWhatsApp})",
+    src.slice(start,end)+"\n"+src.slice(phoneStart,phoneEnd)+"\n({isDisputeAccepted,openDisputeWhatsApp,normalizePhone})",
     {
       perms:()=>({admin}),
       state:{detailSource:source},
-      normalizePhone:value=>{
-        const digits=String(value||"").replace(/\D/g,"");
-        return digits.startsWith("08")?"62"+digits.slice(1):digits.startsWith("628")?digits:null;
-      },
       fmtDate:()=> "16 November 2026",
       toast:message=>notices.push(message),
       window:{open:(...args)=>calls.push(args)}
@@ -26,6 +25,19 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
   );
   return {...helpers,calls,notices};
 }
+
+test("Phone numbers normalize to Indonesian international format 62",()=>{
+  const {normalizePhone}=disputeWhatsAppModule();
+  for(const [input,expected] of [
+    ["081234567890","6281234567890"],
+    ["81234567890","6281234567890"],
+    ["6281234567890","6281234567890"],
+    ["+62 812-3456-7890","6281234567890"],
+    ["0062 812 3456 7890","6281234567890"],
+    ["62081234567890","6281234567890"]
+  ]) assert.equal(normalizePhone(input),expected,input);
+  for(const input of ["","021234","12345","628","abc"]) assert.equal(normalizePhone(input),null,input);
+});
 
 test("Accepted status classifier remains available for other workflows",()=>{
   const {isDisputeAccepted}=disputeWhatsAppModule();
