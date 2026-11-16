@@ -2463,7 +2463,7 @@ function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onc
 async function refreshDetail(){const id=state.detail.case.case_id;state.detail=await loadDetail(id);renderDetail(state.detail)}
 function isDisputeAccepted(dispute){
   const values=[dispute?.result,dispute?.status].map(v=>String(v||"").trim().toUpperCase()).filter(Boolean);
-  return values.some(v=>/^(SANGGAHAN\\s+)?(DITERIMA|ACCEPTED|APPROVED)$/.test(v)||v==="KEBERATAN DITERIMA");
+  return values.some(v=>/^(SANGGAHAN\s+)?(DITERIMA|ACCEPTED|APPROVED)$/.test(v)||v==="KEBERATAN DITERIMA");
 }
 function openDisputeWhatsApp(d,template){
   if(!perms().admin||state.detailSource!=="DISPUTE"||!d?.dispute){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
@@ -2473,11 +2473,11 @@ function openDisputeWhatsApp(d,template){
   if(!phone){toast("Nomor WhatsApp tidak valid");return}
   const c=d.case||{};
   const date=c.tanggal_pelanggaran?fmtDate(c.tanggal_pelanggaran):"-";
-  const opening="Yth. Bapak/Ibu,\\n\\nKami dari Response Center ETLE Hub UPPKB Guyangan ";
-  const identity="terkait sanggahan atas pelanggaran kendaraan dengan data berikut:\\n\\nNomor Polisi: "+(c.tnkb||"-")+"\\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\\nTanggal Pelanggaran: "+date+"\\n\\n";
+  const opening="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ";
+  const identity="terkait sanggahan atas pelanggaran kendaraan dengan data berikut:\n\nNomor Polisi: "+(c.tnkb||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nTanggal Pelanggaran: "+date+"\n\n";
   const msg=template==="accepted"
-    ? opening+"menyampaikan bahwa sanggahan yang telah Bapak/Ibu ajukan "+identity+"telah kami periksa dan DINYATAKAN DITERIMA.\\n\\nProses penanganan selanjutnya akan dilaksanakan sesuai ketentuan yang berlaku.\\n\\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\\n\\nHormat kami,\\nResponse Center ETLE Hub\\nUPPKB Guyangan"
-    : opening+"memerlukan konfirmasi ulang atas sanggahan yang Bapak/Ibu ajukan "+identity+"Sehubungan dengan proses verifikasi, kami mohon kesediaan Bapak/Ibu untuk memberikan klarifikasi dan/atau melengkapi dokumen pendukung yang diperlukan.\\n\\nMohon membalas pesan ini untuk koordinasi lebih lanjut.\\n\\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\\n\\nHormat kami,\\nResponse Center ETLE Hub\\nUPPKB Guyangan";
+    ? opening+"menyampaikan bahwa sanggahan yang telah Bapak/Ibu ajukan "+identity+"telah kami periksa dan DINYATAKAN DITERIMA.\n\nProses penanganan selanjutnya akan dilaksanakan sesuai ketentuan yang berlaku.\n\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\n\nHormat kami,\nResponse Center ETLE Hub\nUPPKB Guyangan"
+    : opening+"memerlukan konfirmasi ulang atas sanggahan yang Bapak/Ibu ajukan "+identity+"Sehubungan dengan proses verifikasi, kami mohon kesediaan Bapak/Ibu untuk memberikan klarifikasi dan/atau melengkapi dokumen pendukung yang diperlukan.\n\nMohon membalas pesan ini untuk koordinasi lebih lanjut.\n\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\n\nHormat kami,\nResponse Center ETLE Hub\nUPPKB Guyangan";
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank","noopener,noreferrer");
 }
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
