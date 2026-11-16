@@ -14,7 +14,7 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
   const phoneEnd=src.indexOf("\n",phoneStart);
   assert.ok(phoneStart>=0&&phoneEnd>phoneStart,"Phone normalizer exists");
   const helpers=runInNewContext(
-    src.slice(start,end)+"\n"+src.slice(phoneStart,phoneEnd)+"\\n({isDisputeAccepted,openDisputeWhatsApp,normalizePhone})",
+    src.slice(start,end)+"\n"+src.slice(phoneStart,phoneEnd)+"\n({isDisputeAccepted,openDisputeWhatsApp,normalizePhone})",
     {
       perms:()=>({admin}),
       state:{detailSource:source},
