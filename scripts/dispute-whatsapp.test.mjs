@@ -16,7 +16,7 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
       perms:()=>({admin}),
       state:{detailSource:source},
       normalizePhone:value=>{
-        const digits=String(value||"").replace(/\\D/g,"");
+        const digits=String(value||"").replace(/\D/g,"");
         return digits.startsWith("08")?"62"+digits.slice(1):digits.startsWith("628")?digits:null;
       },
       fmtDate:()=> "16 November 2026",
