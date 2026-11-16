@@ -70,6 +70,6 @@ test("Raw owners are kept and unfamiliar company spellings are never guessed",()
 test("Web PWA cache bumped for this change with no unrelated UI version changes",()=>{
   assert.match(html,/app-v2\.js\?v=20261015-etlehub-roles1/);
   assert.match(sw,/app-v2\.js\?v=20261015-etlehub-roles1/);
-  assert.match(sw,/gsmart-shell-v66/);
+  assert.match(sw,/gsmart-shell-v67/);
   assert.match(src,/const cases=b\.cases\.filter\(x=>period\(x\.tanggal_pelanggaran\)\)/);
 });
