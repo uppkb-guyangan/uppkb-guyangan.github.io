@@ -2463,7 +2463,7 @@ function isDisputeAccepted(dispute){
   const values=[dispute?.result,dispute?.status].map(v=>String(v||"").trim().toUpperCase()).filter(Boolean);
   return values.some(v=>/^(SANGGAHAN\s+)?(DITERIMA|ACCEPTED|APPROVED)$/.test(v)||v==="KEBERATAN DITERIMA");
 }
-function openDisputeWhatsApp(d,template){
+async function openDisputeWhatsApp(d,template){
   if(!perms().admin||state.detailSource!=="DISPUTE"){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
   if(template!=="accepted"&&template!=="followup"){toast("Template WhatsApp tidak dikenal.");return}
   let phone=normalizePhone(d.offender?.no_telp);
