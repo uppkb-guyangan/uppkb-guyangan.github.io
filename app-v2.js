@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebas
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { firebaseConfig, supabaseConfig } from "./config.js?v=20261002-3";
-import { mountPrivateEvidence, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261010-wasatpel1";
+import { mountPrivateEvidence, fetchPrivateOffender, disposePrivateEvidencePreview } from "./private-evidence-panel.js?v=20261116-phonefallback1";
 import { loadStoppedVehiclePhoto, disposeStoppedVehiclePhoto } from "./stopped-vehicle-photo.js?v=20261010-stopped1";
 
 const $=id=>document.getElementById(id);
@@ -2466,8 +2466,22 @@ function isDisputeAccepted(dispute){
 function openDisputeWhatsApp(d,template){
   if(!perms().admin||state.detailSource!=="DISPUTE"){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
   if(template!=="accepted"&&template!=="followup"){toast("Template WhatsApp tidak dikenal.");return}
-  const phone=normalizePhone(d.offender?.no_telp);
-  if(!phone){toast("Nomor WhatsApp tidak valid");return}
+  let phone=normalizePhone(d.offender?.no_telp);
+  if(!phone&&!state.demo&&perms().privateDispute){
+    try{
+      const privateOffender=await fetchPrivateOffender({
+        caseId:d.case?.case_id,
+        endpoint:supabaseConfig.url+"/functions/v1/gsmart-dispute-private",
+        apiKey:supabaseConfig.publishableKey,
+        getToken:()=>auth.currentUser.getIdToken(true)
+      });
+      phone=normalizePhone(privateOffender?.no_telp);
+    }catch(error){
+      console.warn("G-Smart: nomor privat sanggahan tidak dapat dibaca.",error?.message||error);
+      if(error?.message==="PRIVATE_ACCESS_DENIED"){toast("Akses data nomor privat ditolak. Periksa role dan sesi akun.");return}
+    }
+  }
+  if(!phone){toast("Nomor telepon tidak tersedia atau formatnya tidak valid pada data perkara maupun arsip sanggahan.");return}
   const c=d.case||{};
   const date=c.tanggal_pelanggaran?fmtDate(c.tanggal_pelanggaran):"-";
   const opening="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ";
