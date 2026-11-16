@@ -11,10 +11,10 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
   assert.ok(start>=0&&end>start,"Dispute WhatsApp helpers exist");
   const calls=[],notices=[];
   const phoneStart=src.indexOf("function normalizePhone(v){");
-  const phoneEnd=src.indexOf("\\n",phoneStart);
+  const phoneEnd=src.indexOf("\n",phoneStart);
   assert.ok(phoneStart>=0&&phoneEnd>phoneStart,"Phone normalizer exists");
   const helpers=runInNewContext(
-    src.slice(start,end)+"\\n"+src.slice(phoneStart,phoneEnd)+"\\n({isDisputeAccepted,openDisputeWhatsApp,normalizePhone})",
+    src.slice(start,end)+"\n"+src.slice(phoneStart,phoneEnd)+"\\n({isDisputeAccepted,openDisputeWhatsApp,normalizePhone})",
     {
       perms:()=>({admin}),
       state:{detailSource:source},
