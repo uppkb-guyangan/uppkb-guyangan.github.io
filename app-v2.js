@@ -2257,9 +2257,14 @@ function renderDetail(d){
   const c=d.case;
   const etleHubUrl=p.etleHub&&!state.demo?etleHubBackendDetailUrl(c):null;
   const phone=d.offender?.no_telp;
-  const canWhatsApp=p.admin&&state.detailSource==="BLANKO";
+  const canWhatsApp=p.admin&&(state.detailSource==="BLANKO"||state.detailSource==="DISPUTE");
+  const disputeWhatsAppActions=state.detailSource==="DISPUTE"&&canWhatsApp&&d.dispute
+    ? (isDisputeAccepted(d.dispute)?'<button class="action-btn gold" id="waDisputeAcceptedBtn">WA · Sanggahan Diterima</button>':"")+
+      '<button class="action-btn gold" id="waDisputeFollowupBtn">WA · Konfirmasi Ulang</button>'
+    : "";
   const phoneAction=p.copyPhone&&phone
-    ? '<button class="action-btn" id="copyPhone">Salin Telepon</button>'+(canWhatsApp?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':"")
+    ? '<button class="action-btn" id="copyPhone">Salin Telepon</button>'+
+      (state.detailSource==="BLANKO"&&canWhatsApp?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':disputeWhatsAppActions)
     : "";
   const kejaksaanAction=c.no_blanko&&hasCourtFine(d)
     ? '<button class="action-btn gold" id="kejaksaanBtn">⚖ Buka E-Tilang Kejaksaan ↗</button>'
@@ -2372,6 +2377,8 @@ function renderDetail(d){
   };
     if($("qrCaseBtn"))$("qrCaseBtn").onclick=()=>showCaseQr(d);if($("copyPhone"))$("copyPhone").onclick=async()=>{await navigator.clipboard.writeText(phone);toast("Nomor telepon disalin")};
   if($("waBtn"))$("waBtn").onclick=()=>openWhatsApp(d);
+  if($("waDisputeAcceptedBtn"))$("waDisputeAcceptedBtn").onclick=()=>openDisputeWhatsApp(d,"accepted");
+  if($("waDisputeFollowupBtn"))$("waDisputeFollowupBtn").onclick=()=>openDisputeWhatsApp(d,"followup");
   if($("kejaksaanBtn"))$("kejaksaanBtn").onclick=()=>window.open(kejaksaanUrl(c.no_blanko),"_blank","noopener,noreferrer");if($("confirmEtleBtn"))$("confirmEtleBtn").onclick=()=>{const url=etleConfirmationUrl(c);if(!url){toast("No. Registrasi atau TNKB belum tersedia");return}window.open(url,"_blank","noopener,noreferrer");toast("Membuka Konfirmasi ETLE otomatis")};if($("qrConfirmBtn"))$("qrConfirmBtn").onclick=()=>showConfirmQr(d);if($("etleHubBackendBtn"))$("etleHubBackendBtn").onclick=()=>{if(!perms().etleHub||state.demo){toast("Akses ETLE Hub hanya untuk Admin dan Wasatpel.");return}const url=etleHubBackendDetailUrl(c);if(!url){toast("Violation ID belum tersedia");return}window.open(url,"_blank","noopener,noreferrer")};
   $("copyCase").onclick=async()=>{await navigator.clipboard.writeText("TNKB: "+(c.tnkb||"-")+"\nNo. Registrasi: "+(c.no_registrasi||"-")+"\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\nNo. Blanko: "+(c.no_blanko||"-")+"\nBRIVA: "+(c.no_briva||"-"));toast("Ringkasan perkara disalin")};
   bindDetailActions(d);
@@ -2454,6 +2461,25 @@ function bindTimelineControls(){
 }
 function bindDetailActions(d){if($("deniedManualEdit"))$("deniedManualEdit").onclick=()=>toast("User Anda tidak mempunyai kewenangan untuk mengubah Status G-SMART. Silakan hubungi Administrator.");if($("manualCategory"))$("manualCategory").value=d.manual?.kategori_internal||"BELUM_DIPROSES";if($("manualPriority"))$("manualPriority").value=d.manual?.prioritas||"NORMAL";if($("saveManual"))$("saveManual").onclick=async()=>{try{setSync("Menyimpan");await write("gsmart_case_status",{case_id:d.case.case_id,kategori_internal:$("manualCategory").value,prioritas:$("manualPriority").value,status_lebih_bayar:$("overStatus").value||null,nominal_lebih_bayar:$("overAmount").value?Number($("overAmount").value):null,status_pengembalian:$("refundStatus").value||null,catatan_ringkas:$("manualNote").value||null,pic_uid:state.profile.uid,pic_name:state.profile.nama,updated_by:state.profile.uid},{onConflict:"case_id"});blankoManualCache.set(String(d.case.case_id),{state:"ready",data:{kategori_internal:$("manualCategory").value,status_lebih_bayar:$("overStatus").value||null,status_pengembalian:$("refundStatus").value||null}});if(state.page==="blanko"||state.page==="court")refreshBlankoView?.();toast("Status G-Smart disimpan");await refreshDetail()}catch(e){toast(e.message)}finally{setSync("Siap")}};if($("addNote"))$("addNote").onclick=async()=>{const note=$("newNote").value.trim();if(!note)return;try{await write("gsmart_case_notes",{case_id:d.case.case_id,note,created_by:state.profile.uid,created_by_name:state.profile.nama});toast("Catatan ditambahkan");await refreshDetail()}catch(e){toast(e.message)}}}
 async function refreshDetail(){const id=state.detail.case.case_id;state.detail=await loadDetail(id);renderDetail(state.detail)}
+function isDisputeAccepted(dispute){
+  const values=[dispute?.result,dispute?.status].map(v=>String(v||"").trim().toUpperCase()).filter(Boolean);
+  return values.some(v=>/^(SANGGAHAN\\s+)?(DITERIMA|ACCEPTED|APPROVED)$/.test(v)||v==="KEBERATAN DITERIMA");
+}
+function openDisputeWhatsApp(d,template){
+  if(!perms().admin||state.detailSource!=="DISPUTE"||!d?.dispute){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
+  if(template!=="accepted"&&template!=="followup"){toast("Template WhatsApp tidak dikenal.");return}
+  if(template==="accepted"&&!isDisputeAccepted(d.dispute)){toast("Sanggahan belum tercatat berstatus diterima. Periksa hasil sanggahan terlebih dahulu.");return}
+  const phone=normalizePhone(d.offender?.no_telp);
+  if(!phone){toast("Nomor WhatsApp tidak valid");return}
+  const c=d.case||{};
+  const date=c.tanggal_pelanggaran?fmtDate(c.tanggal_pelanggaran):"-";
+  const opening="Yth. Bapak/Ibu,\\n\\nKami dari Response Center ETLE Hub UPPKB Guyangan ";
+  const identity="terkait sanggahan atas pelanggaran kendaraan dengan data berikut:\\n\\nNomor Polisi: "+(c.tnkb||"-")+"\\nJenis Pelanggaran: "+(c.jenis_pelanggaran||"-")+"\\nTanggal Pelanggaran: "+date+"\\n\\n";
+  const msg=template==="accepted"
+    ? opening+"menyampaikan bahwa sanggahan yang telah Bapak/Ibu ajukan "+identity+"telah kami periksa dan DINYATAKAN DITERIMA.\\n\\nProses penanganan selanjutnya akan dilaksanakan sesuai ketentuan yang berlaku.\\n\\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\\n\\nHormat kami,\\nResponse Center ETLE Hub\\nUPPKB Guyangan"
+    : opening+"memerlukan konfirmasi ulang atas sanggahan yang Bapak/Ibu ajukan "+identity+"Sehubungan dengan proses verifikasi, kami mohon kesediaan Bapak/Ibu untuk memberikan klarifikasi dan/atau melengkapi dokumen pendukung yang diperlukan.\\n\\nMohon membalas pesan ini untuk koordinasi lebih lanjut.\\n\\nTerima kasih atas perhatian dan kerja sama Bapak/Ibu.\\n\\nHormat kami,\\nResponse Center ETLE Hub\\nUPPKB Guyangan";
+  window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank","noopener,noreferrer");
+}
 function openWhatsApp(d){const phone=normalizePhone(d.offender?.no_telp);if(!phone){toast("Nomor WhatsApp tidak valid");return}const c=d.case;let msg="Yth. Bapak/Ibu,\n\nKami dari Response Center ETLE Hub UPPKB Guyangan ingin mengonfirmasi terkait pelanggaran "+(c.jenis_pelanggaran||"ETLE")+" untuk kendaraan:\n\nNo. Polisi: "+(c.tnkb||"-")+"\n\nMohon konfirmasinya agar dapat kami lakukan pengecekan lebih lanjut pada sistem.";if(c.no_blanko&&hasCourtFine(d)){const fine=positiveAmount(d?.court?.denda_putusan)?d.court.denda_putusan:d?.payment?.denda_pengadilan;msg+="\n\nInformasi E-Tilang Kejaksaan:\nNo. Blanko: "+c.no_blanko+"\nDenda Putusan: "+money(fine)+"\nDetail E-Tilang Kejaksaan:\n"+kejaksaanUrl(c.no_blanko)}msg+="\n\nTerima kasih.\n\nResponse Center ETLE Hub UPPKB Guyangan";window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank")}
 function normalizePhone(v){const d=String(v||"").replace(/\D/g,"");if(d.startsWith("08"))return"62"+d.slice(1);if(d.startsWith("628"))return d;return null}
 $("closeModal").onclick=()=>{disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop")){disposePrivateEvidencePreview();disposeStoppedVehiclePhoto();$("modalBackdrop").classList.add("hidden")}};
