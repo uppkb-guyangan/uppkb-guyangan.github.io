@@ -2258,14 +2258,12 @@ function renderDetail(d){
   const etleHubUrl=p.etleHub&&!state.demo?etleHubBackendDetailUrl(c):null;
   const phone=d.offender?.no_telp;
   const canWhatsApp=p.admin&&(state.detailSource==="BLANKO"||state.detailSource==="DISPUTE");
-  const disputeWhatsAppActions=state.detailSource==="DISPUTE"&&canWhatsApp&&d.dispute
-    ? (isDisputeAccepted(d.dispute)?'<button class="action-btn gold" id="waDisputeAcceptedBtn">WA · Sanggahan Diterima</button>':"")+
+  const disputeWhatsAppActions=state.detailSource==="DISPUTE"&&p.admin
+    ? '<button class="action-btn gold" id="waDisputeAcceptedBtn">WA · Sanggahan Diterima</button>'+
       '<button class="action-btn gold" id="waDisputeFollowupBtn">WA · Konfirmasi Ulang</button>'
     : "";
-  const phoneAction=p.copyPhone&&phone
-    ? '<button class="action-btn" id="copyPhone">Salin Telepon</button>'+
-      (state.detailSource==="BLANKO"&&canWhatsApp?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':disputeWhatsAppActions)
-    : "";
+  const phoneAction=(p.copyPhone&&phone?'<button class="action-btn" id="copyPhone">Salin Telepon</button>':"")+
+    (state.detailSource==="BLANKO"&&canWhatsApp&&phone?'<button class="action-btn gold" id="waBtn">WhatsApp</button>':disputeWhatsAppActions);
   const kejaksaanAction=c.no_blanko&&hasCourtFine(d)
     ? '<button class="action-btn gold" id="kejaksaanBtn">⚖ Buka E-Tilang Kejaksaan ↗</button>'
     : "";
@@ -2466,9 +2464,8 @@ function isDisputeAccepted(dispute){
   return values.some(v=>/^(SANGGAHAN\s+)?(DITERIMA|ACCEPTED|APPROVED)$/.test(v)||v==="KEBERATAN DITERIMA");
 }
 function openDisputeWhatsApp(d,template){
-  if(!perms().admin||state.detailSource!=="DISPUTE"||!d?.dispute){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
+  if(!perms().admin||state.detailSource!=="DISPUTE"){toast("Aksi WhatsApp sanggahan hanya tersedia bagi Admin pada detail Tersanggah.");return}
   if(template!=="accepted"&&template!=="followup"){toast("Template WhatsApp tidak dikenal.");return}
-  if(template==="accepted"&&!isDisputeAccepted(d.dispute)){toast("Sanggahan belum tercatat berstatus diterima. Periksa hasil sanggahan terlebih dahulu.");return}
   const phone=normalizePhone(d.offender?.no_telp);
   if(!phone){toast("Nomor WhatsApp tidak valid");return}
   const c=d.case||{};
