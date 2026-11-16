@@ -65,5 +65,5 @@ test("Private dispute phone lookup uses the existing authorized detail endpoint"
   assert.match(panel,/result\?\.offender\|\|result\?\.offender_data\|\|result\?\.offenderData/);
   const app=readFileSync(new URL("../app-v2.js",import.meta.url),"utf8");
   assert.match(app,/fetchPrivateOffender/);
-  assert.match(app,/functions\\/v1\\/gsmart-dispute-private/);
+  assert.match(app,/functions\/v1\/gsmart-dispute-private/);
 });
