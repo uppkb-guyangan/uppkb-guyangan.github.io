@@ -27,7 +27,7 @@ function disputeWhatsAppModule({admin=true,source="DISPUTE"}={}){
   return {...helpers,calls,notices};
 }
 
-test("Accepted template is enabled only for an explicit accepted result",()=>{
+test("Accepted status classifier remains available for other workflows",()=>{
   const {isDisputeAccepted}=disputeWhatsAppModule();
   assert.equal(isDisputeAccepted({status:"TERSANGGAH"}),false);
   assert.equal(isDisputeAccepted({result:"SANGGAHAN DITERIMA"}),true);
@@ -35,15 +35,24 @@ test("Accepted template is enabled only for an explicit accepted result",()=>{
   assert.equal(isDisputeAccepted({result:"DITOLAK"}),false);
 });
 
-test("Accepted WhatsApp message is blocked while the dispute has no accepted result",()=>{
+test("Accepted WhatsApp message can be opened regardless of dispute status",()=>{
   const {openDisputeWhatsApp,calls,notices}=disputeWhatsAppModule();
   openDisputeWhatsApp({
     case:{tnkb:"S 1234 AB"},
     offender:{no_telp:"081234567890"},
     dispute:{status:"TERSANGGAH",result:""}
   },"accepted");
-  assert.equal(calls.length,0);
-  assert.match(notices.join(" "),/belum tercatat berstatus diterima/i);
+  assert.equal(calls.length,1);
+  assert.match(decodeURIComponent(calls[0][0].split("?text=")[1]),/DINYATAKAN DITERIMA/);
+});
+
+test("Both templates work even when dispute metadata is absent",()=>{
+  const accepted=disputeWhatsAppModule();
+  accepted.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"accepted");
+  assert.equal(accepted.calls.length,1);
+  const followup=disputeWhatsAppModule();
+  followup.openDisputeWhatsApp({case:{tnkb:"S 1234 AB"},offender:{no_telp:"081234567890"}},"followup");
+  assert.equal(followup.calls.length,1);
 });
 
 test("Follow-up template opens WhatsApp with case data and editable text",()=>{
